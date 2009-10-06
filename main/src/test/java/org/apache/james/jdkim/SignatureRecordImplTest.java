@@ -50,19 +50,19 @@ public class SignatureRecordImplTest extends TestCase {
 			sr.getHashAlgo();
 			fail("expected failure");
 		} catch (Exception e) {
-			assertTrue(e.getMessage().toLowerCase().contains("hash"));
+			assertTrue(e.getMessage().toLowerCase().indexOf("hash") != -1);
 		}
 		try {
 			sr.getHashMethod();
 			fail("expected failure");
 		} catch (Exception e) {
-			assertTrue(e.getMessage().toLowerCase().contains("hash"));
+			assertTrue(e.getMessage().toLowerCase().indexOf("hash") != -1);
 		}
 		try {
 			sr.getHashAlgo();
 			fail("expected failure");
 		} catch (Exception e) {
-			assertTrue(e.getMessage().toLowerCase().contains("hash"));
+			assertTrue(e.getMessage().toLowerCase().indexOf("hash") != -1);
 		}
 	}
 	
@@ -72,7 +72,7 @@ public class SignatureRecordImplTest extends TestCase {
 			sr.validate();
 			fail("expected failure");
 		} catch (Exception e) {
-			assertTrue(e.getMessage().contains("expired"));
+			assertTrue(e.getMessage().indexOf("expired") != -1);
 		}
 	}
 	

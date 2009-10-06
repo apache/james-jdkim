@@ -24,7 +24,7 @@ import java.util.List;
 public interface PublicKeyRecordRetriever {
 	
 	/**
-	 * @param method/options the options declared for the lookup method.
+	 * @param methodAndOption the options declared for the lookup method.
 	 * @param selector the value of "s=" tag
 	 * @param token the value of the "d=" tag
 	 * @return A list of strings representing 0 to multiple records

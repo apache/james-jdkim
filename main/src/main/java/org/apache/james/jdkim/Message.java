@@ -19,13 +19,6 @@
 
 package org.apache.james.jdkim;
 
-import org.apache.james.mime4j.MimeException;
-import org.apache.james.mime4j.MimeIOException;
-import org.apache.james.mime4j.io.EOLConvertingInputStream;
-import org.apache.james.mime4j.parser.Field;
-import org.apache.james.mime4j.parser.MimeEntityConfig;
-import org.apache.james.mime4j.parser.MimeTokenStream;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
@@ -35,12 +28,17 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.james.mime4j.MimeException;
+import org.apache.james.mime4j.io.EOLConvertingInputStream;
+import org.apache.james.mime4j.parser.MimeEntityConfig;
+import org.apache.james.mime4j.parser.MimeTokenStream;
+
 /**
  * The header of an entity (see RFC 2045).
  * 
  * TODO: we have to handle correct ordered extraction for fields.
  */
-public class Message implements Iterable, Headers {
+public class Message implements Headers {
 
 	private List fields = new LinkedList();
 	private Map fieldMap = new HashMap();
@@ -75,7 +73,7 @@ public class Message implements Iterable, Headers {
 			switch (state) {
 			// a field
 			case MimeTokenStream.T_FIELD:
-				addField(stream.getField());
+				addField(stream.getFieldName(), stream.getField());
 				break;
 
 			// expected ignored tokens
@@ -115,14 +113,14 @@ public class Message implements Iterable, Headers {
 	 * @param field
 	 *            the field to add.
 	 */
-	public void addField(Field field) {
-		List values = (List) fieldMap.get(field.getName().toLowerCase());
+	public void addField(String fieldName, String field) {
+		List values = (List) fieldMap.get(fieldName.toLowerCase());
 		if (values == null) {
 			values = new LinkedList();
-			fieldMap.put(field.getName().toLowerCase(), values);
+			fieldMap.put(fieldName.toLowerCase(), values);
 		}
-		values.add(new String(field.getRaw().toByteArray()));
-		fields.add(new String(field.getRaw().toByteArray()));
+		values.add(field);
+		fields.add(field);
 	}
 
 	/* (non-Javadoc)
@@ -151,7 +149,7 @@ public class Message implements Iterable, Headers {
 		final List l = (List) fieldMap.get(lowerCaseName);
 		final List results;
 		if (l == null || l.isEmpty()) {
-			results = Collections.emptyList();
+			results = null;
 		} else {
 			results = Collections.unmodifiableList(l);
 		}

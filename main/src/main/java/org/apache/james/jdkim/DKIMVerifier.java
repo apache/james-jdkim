@@ -86,7 +86,7 @@ public class DKIMVerifier extends DKIMCommon {
 	 * Iterates through signature's declared lookup method
 	 *
 	 * @param sign the signature record
-	 * @return
+	 * @return an "applicable" PublicKeyRecord
 	 * @throws TempFailException
 	 * @throws PermFailException
 	 */

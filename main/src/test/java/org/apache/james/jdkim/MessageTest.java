@@ -30,7 +30,6 @@ import java.util.List;
 import junit.framework.TestCase;
 
 import org.apache.james.mime4j.MimeException;
-import org.apache.james.mime4j.field.UnstructuredField;
 
 public class MessageTest extends TestCase {
 
@@ -59,17 +58,17 @@ public class MessageTest extends TestCase {
 
 	public void testAddField() throws MimeException {
 		Message m = new Message();
-		m.addField(UnstructuredField.parse("Subject: test\r\n"));
-		m.addField(UnstructuredField.parse("Subject: test2\r\n"));
+		m.addField("Subject", "Subject: test\r\n");
+		m.addField("Subject", "Subject: test2\r\n");
 		String f = m.getField("Subject");
 		assertEquals("Subject: test\r\n", f);
 	}
 
 	public void testGetFields() throws MimeException {
 		Message m = new Message();
-		m.addField(UnstructuredField.parse("Subject: test\r\n"));
-		m.addField(UnstructuredField.parse("Subject: test2\r\n"));
-		m.addField(UnstructuredField.parse("From: test2\r\n"));
+		m.addField("Subject", "Subject: test\r\n");
+		m.addField("Subject", "Subject: test2\r\n");
+		m.addField("From", "From: test2\r\n");
 		List f = m.getFields();
 		List expects = new LinkedList();
 		expects.add("Subject: test\r\n");
@@ -93,9 +92,9 @@ public class MessageTest extends TestCase {
 
 	public void testGetFieldsString() throws MimeException {
 		Message m = new Message();
-		m.addField(UnstructuredField.parse("Subject: test\r\n"));
-		m.addField(UnstructuredField.parse("subject: test2\r\n"));
-		m.addField(UnstructuredField.parse("From: test2\r\n"));
+		m.addField("Subject", "Subject: test\r\n");
+		m.addField("subject", "subject: test2\r\n");
+		m.addField("From", "From: test2\r\n");
 		List f = m.getFields("Subject");
 		List expects = new LinkedList();
 		expects.add("Subject: test\r\n");
@@ -109,9 +108,9 @@ public class MessageTest extends TestCase {
 
 	public void testIterator() throws MimeException {
 		Message m = new Message();
-		m.addField(UnstructuredField.parse("Subject: test\r\n"));
-		m.addField(UnstructuredField.parse("subject: test2\r\n"));
-		m.addField(UnstructuredField.parse("From: test2\r\n"));
+		m.addField("Subject", "Subject: test\r\n");
+		m.addField("subject", "subject: test2\r\n");
+		m.addField("From", "From: test2\r\n");
 		Iterator i = m.iterator();
 		String field = (String) i.next();
 		assertEquals("Subject: test\r\n", field);
@@ -123,7 +122,7 @@ public class MessageTest extends TestCase {
 
 	public void testToString() throws MimeException {
 		Message m = new Message();
-		m.addField(UnstructuredField.parse("Subject: test\r\n"));
+		m.addField("Subject", "Subject: test\r\n");
 		m.setBodyInputStream(new ByteArrayInputStream("body".getBytes()));
 		String expected = "Subject: test\r\n\r\nbody";
 		assertEquals(expected, m.toString());	
