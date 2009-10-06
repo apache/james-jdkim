@@ -23,11 +23,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.regex.Pattern;
 
+import org.apache.commons.codec.binary.Base64;
 import org.apache.james.jdkim.CodecUtil;
 import org.apache.james.jdkim.SignatureRecord;
-
-import com.sun.org.apache.xml.internal.security.exceptions.Base64DecodingException;
-import com.sun.org.apache.xml.internal.security.utils.Base64;
 
 
 public class SignatureRecordImpl extends TagValue implements SignatureRecord {
@@ -179,21 +177,11 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
 	}
 
 	public byte[] getBodyHash() {
-		try {
-			return Base64.decode(getValue("bh").toString().getBytes());
-		} catch (Base64DecodingException e) {
-			// TODO not the best thing
-			throw new IllegalStateException("Base64.decode.failed", e);
-		}
+		return Base64.decodeBase64(getValue("bh").toString().getBytes());
 	}
 
 	public byte[] getSignature() {
-		try {
-			return Base64.decode(getValue("b").toString().getBytes());
-		} catch (Base64DecodingException e) {
-			// TODO not the best thing
-			throw new IllegalStateException("Base64.decode.failed", e);
-		}
+		return Base64.decodeBase64(getValue("b").toString().getBytes());
 	}
 
 	public int getBodyHashLimit() {
