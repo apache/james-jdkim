@@ -129,7 +129,7 @@ public class FileBasedTest extends TestCase {
 			File dir = TESTS_FOLDER;
 			File[] files = dir.listFiles();
 
-			for (int i = 0; i < files.length; i++) {
+			if (files != null) for (int i = 0; i < files.length; i++) {
 				File f = files[i];
 				if (f.getName().toLowerCase().endsWith(".eml")) {
 					addTest(new FileBasedTest(f.getName().substring(0,
