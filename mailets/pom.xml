@@ -13,11 +13,6 @@
   <description/>
   
     <dependencies>
-    <dependency>
-      <groupId>org.apache.james</groupId>
-      <artifactId>apache-jsieve</artifactId>
-      <version>0.3-SNAPSHOT</version>
-    </dependency>
     
     <dependency>
       <groupId>org.apache.james</groupId>
@@ -29,6 +24,13 @@
       <groupId>org.apache.james</groupId>
       <artifactId>apache-jdkim</artifactId>
       <version>0.1-SNAPSHOT</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.james</groupId>
+      <artifactId>apache-jdkim</artifactId>
+      <version>0.1-SNAPSHOT</version>
+      <type>test-jar</type>
+      <scope>test</scope>
     </dependency>
     
     <dependency>
