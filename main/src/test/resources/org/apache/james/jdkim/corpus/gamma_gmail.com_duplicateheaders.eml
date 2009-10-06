@@ -1,0 +1,50 @@
+From Stefano Bagnara Mon Sep 28 09:17:57 2009
+X-Apparently-To: voxma1l@yahoo.com via 98.136.165.83; Mon, 28 Sep 2009 02:18:08 -0700
+Return-Path: <vidocq@gmail.com>
+X-YahooFilteredBulk: 209.85.220.213
+X-YMailISG: VgY3hJwWLDtOd4gkGBid.rktZLKPcTabcX4fk3yG.NvgrbQ7_tKZrZWwVq4dpBK7Fv64RLAl9Uu_..mU5HD1utTfzb2VcyTRd_o8K9eXYpczgiyEYR0UxYFHLddvZpdnV_kAPjsGioOGb_O0T_zUosCg_8cHG1CdOJ3jpdcdJJMDWKskxIr7hPLQ_kWNGfzWybsjpHQEk350oimGPjvxsMJpt1FWxivzDiIYl8KlKQaB548fimJxe45gPFWIlnUjdz_WgmII9jCNdQFgxxIAnnJwZxdWNhUlfhjCTSoz3gcpEkX6CYW7PLYOrXczg5HEtXrNTpehGWulBsfQvW0n2NHnm.klkZRtP5bmQBrQ0fZayJnaFp.osZXQGxqZYRIdFqfGs9eBZcgFIGMjDKNgnqEMXekEAyntJoYfVb8LNUf4cpnGWYRX3xEFtyE-
+X-Originating-IP: [209.85.220.213]
+Authentication-Results: mta131.mail.re1.yahoo.com  from=gmail.com; domainkeys=pass (ok); from=gmail.com; dkim=pass (ok)
+Received: from 209.85.220.213  (EHLO mail-fx0-f213.google.com) (209.85.220.213)
+  by mta131.mail.re1.yahoo.com with SMTP; Mon, 28 Sep 2009 02:18:08 -0700
+Received: by mail-fx0-f213.google.com with SMTP id 9so3707122fxm.1
+        for <voxma1l@yahoo.com>; Mon, 28 Sep 2009 02:18:07 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=gamma;
+        h=domainkey-signature:received:received:message-id:date:from
+         :user-agent:mime-version:to:subject:content-type
+         :content-transfer-encoding;
+        bh=XevQIBZo+QNtNBdBr+DdZQAF16UgppmInqrj7bkxEEE=;
+        b=xiIPLIvUos3o8fdKfU+QwbbKDUsebNL8h9hPuPyyTWIJwHOggThu8EpoyHamIDEMU8
+         rKJ+bWJgv/sCysztiLibyzFPJqAy/ScAzNml6YpHAtSzWdldtTJu+EDpk/SCXueK7TxQ
+         jsC20QxBc7QO0Zp5jhE8V9vddrNZy8omplhGQ=
+DomainKey-Signature: a=rsa-sha1; c=nofws;
+        d=gmail.com; s=gamma;
+        h=message-id:date:from:user-agent:mime-version:to:subject
+         :content-type:content-transfer-encoding;
+        b=gGTCj40v/iAU1HXzZp2IgLq3Vv1IuH/KDfECo+mtL8p6wzwMoxXZ7RixvJLKw10yFU
+         X8H1EuxvcB4onCEgkWo3AtxNPjkw99gTcD8f1MG/KAuYVW1uB5wxTgrM6u7nrisUDe8w
+         UPi1aDPXwutiwvr/mQE5i30j3YQ5/Hrwr+kcg=
+Received: by 10.204.0.69 with SMTP id 5mr2763710bka.173.1254129487877;
+        Mon, 28 Sep 2009 02:18:07 -0700 (PDT)
+Return-Path: <vidocq@gmail.com>
+Received: from ?192.168.1.2? ([78.134.14.206])
+        by mx.google.com with ESMTPS id 13sm3456970fks.20.2009.09.28.02.18.06
+        (version=TLSv1/SSLv3 cipher=RC4-MD5);
+        Mon, 28 Sep 2009 02:18:07 -0700 (PDT)
+Message-ID: <4AC07F45.6090201@gmail.com>
+Date: Mon, 28 Sep 2009 11:17:57 +0200
+From: Stefano Bagnara <vidocq@gmail.com>
+User-Agent: Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.9a1) Gecko/20051206 Thunderbird/1.6a1 Mnenhy/0.7.3.0
+MIME-Version: 1.0
+To: voxma1l@yahoo.com
+Subject: testing DKIM  using gmail smtp
+Content-Type: text/plain; charset=ISO-8859-15
+Content-Transfer-Encoding: 7bit
+Content-Length: 123
+
+this is a simple test.
+
+make sure we use more than one line because yahoo has canonicalization
+issues with short bodies.
+

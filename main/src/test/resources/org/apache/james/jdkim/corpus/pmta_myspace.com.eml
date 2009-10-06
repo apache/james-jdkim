@@ -1,0 +1,36 @@
+Delivered-To: apache@bago.org
+Received: by 10.101.66.15 with SMTP id t15cs133318ank;
+        Mon, 28 Sep 2009 02:03:56 -0700 (PDT)
+Received: by 10.101.84.11 with SMTP id m11mr2707079anl.70.1254128636414;
+        Mon, 28 Sep 2009 02:03:56 -0700 (PDT)
+Return-Path: <voxmail@myspace.com>
+Received: from els2mmmsmlr0017.serv.msprod.msp (vmta11.myspace.com [204.16.33.74])
+        by mx.google.com with ESMTP id 39si16253243iwn.60.2009.09.28.02.03.54;
+        Mon, 28 Sep 2009 02:03:55 -0700 (PDT)
+Received-SPF: pass (google.com: domain of voxmail@myspace.com designates 204.16.33.74 as permitted sender) client-ip=204.16.33.74;
+Authentication-Results: mx.google.com; spf=pass (google.com: domain of voxmail@myspace.com designates 204.16.33.74 as permitted sender) smtp.mail=voxmail@myspace.com; dkim=neutral (no key) header.i=voxmail@myspace.com
+Message-Id: <4ac07bfb.6744f10a.1d77.2d95SMTPIN_ADDED@mx.google.com>
+DKIM-Signature: v=1; a=rsa-sha1; c=relaxed/relaxed; s=pmta; d=myspace.com;
+ h=MIME-Version:From:To:Reply-To:Date:Subject:Content-Type:Content-Transfer-Encoding; i=voxmail@myspace.com;
+ bh=tVlzRQUgY+ULnZtF2hCZrVnPpOo=;
+ b=ApmxTykFR2XpcF1ZU7AX9JNOLJ0/Ctaf/95+QMOTEgpYHj6uWysQzYrt+2nR8cNOY7S7r0jxhk+t
+   AKVzMVNx3tZ5SNjBFmYNxUzugm3q9Y0h9RGhpwKOnIyVFdr6/52Tw40132mBYy0ybWGAIB25roFc
+   /ebJMNtdqnZevjdw+8o=
+DomainKey-Signature: a=rsa-sha1; c=nofws; q=dns; s=pmta; d=myspace.com;
+ b=oK81fAJ4a6hpLMzxlWJ9Chwm127YcPN4HN05z+D0daZFrvZoCv1sGmKFmooU5d6LjzvPYbGuXnt6
+   DZBaXSMlH/ka2/96MSQ7rzZquh0aveOm3Js+IzXI8gZ7m2EOd0mtMOFLyrbvpgpEk8eM4dH7LB72
+   r0UKBobzRvn/qwnBYQI=;
+Received: from cha1mrlyper0047 (10.44.128.42) by els2mmmsmlr0017.serv.msprod.msp (PowerMTA(TM) v3.5r13) id ho1tvm0psfsa for <apache@bago.org>; Mon, 28 Sep 2009 02:03:50 -0700 (envelope-from <voxmail@myspace.com>)
+X-MS-SenderID: 447067834
+X-MS-SenderIP: 78.134.14.206
+MIME-Version: 1.0
+From: "Account MySpace" <voxmail@myspace.com>
+To: "apache@bago.org" <apache@bago.org>
+Reply-To: "Account MySpace" <voxmail@myspace.com>
+Date: 28 Sep 2009 02:03:50 -0700
+Subject: =?utf-8?B?dGVzdGluZyBES0lNIGZyb20gbXlzcGFjZQ==?=
+Content-Type: text/html; charset=utf-8
+Content-Transfer-Encoding: base64
+
+dGVzdDxiciAvPg==
+

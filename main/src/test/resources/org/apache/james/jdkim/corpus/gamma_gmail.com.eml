@@ -1,0 +1,36 @@
+From Vidocq Mon Sep 28 08:13:32 2009
+X-Apparently-To: voxma1l@yahoo.com via 98.136.165.89; Mon, 28 Sep 2009 01:13:32 -0700
+Return-Path: <vidocq@gmail.com>
+X-YMailISG: aPE8_lYWLDsCfcFvKUgNPfIjocvKnjIh7vRA6d6PtLkL84CB0opvLljTaw9dldAsF7RpvdlsA2fsF3PB.BKPrc.PhrPovfw98vvNmUaVvnEVTOiXXi4aeZKEM4vS_maAIpcZCvzwj_Me2nZ4mXVPUIUuE0a82oK7AlWYzQ25DejHgWc8_fbDJPwH.z_fBa5WBdnLu5wHnfSfDAMsgrFtc7jqqnxi4BjLtJ_Ny8uh9EEa7m9b2kcmJ0kfcPKo9q_G6vTS_r1NY6C0ns3Y5ZLgKfIXsn5G0n5FyJNv_TpmLUJl0mJFmIA1mAYLvMbQXVXbatkYxoLblDaGszPQb.yu4bPT2PxCYl0jSVh_38NWST5U5q.rRUnBxJPie01g8yTOjIf.DZ7lQ2Y2nMroaPX08XaNU4CQo4n3etEN_NyneuAzq6yZA8tZq_ioh2knAlFsYOlv
+X-Originating-IP: [209.85.210.177]
+Authentication-Results: mta119.mail.ac4.yahoo.com  from=gmail.com; domainkeys=pass (ok); from=gmail.com; dkim=pass (ok)
+Received: from 127.0.0.1  (EHLO mail-yx0-f177.google.com) (209.85.210.177)
+  by mta119.mail.ac4.yahoo.com with SMTP; Mon, 28 Sep 2009 01:13:32 -0700
+Received: by yxe7 with SMTP id 7so4678290yxe.25
+        for <voxma1l@yahoo.com>; Mon, 28 Sep 2009 01:13:32 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=gamma;
+        h=domainkey-signature:mime-version:received:date:message-id:subject
+         :from:to:content-type;
+        bh=AbPsrGRdyVjM2e5ZZdhQA/aLe305f2bPvPRohUxrGjo=;
+        b=ksNsfQJv20M9/Vf66sMJT1WHM/fUfcqli1NfkyxSOjr8jlNTH4JNCGacb2neWuwMN4
+         C4TFXqMR8BENkn+XrCV1FjrlW1mCxlLDilVypP/uqqq04KzJpVyJG6zZLd/0DeknSLN6
+         sDGKdCvIdS+YpHEhUxoEuf6QizCs8PTXhnJiA=
+DomainKey-Signature: a=rsa-sha1; c=nofws;
+        d=gmail.com; s=gamma;
+        h=mime-version:date:message-id:subject:from:to:content-type;
+        b=mngZfuQY3mMg2DaX3xapF8KYO2Z73m6LDXvx7VzR0R6TN4VhSC2EaFVMwD0PYPH+8P
+         7oZ6feneUCyEzeETk+9/pc2/k6dZNeGwVR0w5P5Mn7bWLfkhzeqHl+TvnhXqZQO9yqZ2
+         alb2mmQ8wkZcBXHM9eQcS96y09xBZq9mFS5mg=
+MIME-Version: 1.0
+Received: by 10.91.148.16 with SMTP id a16mr2759799ago.119.1254125612484; Mon, 
+	28 Sep 2009 01:13:32 -0700 (PDT)
+Date: Mon, 28 Sep 2009 10:13:32 +0200
+Message-ID: <e589f65d0909280113p64254eeej1ed77d5893ddeacc@mail.gmail.com>
+Subject: testing dkim
+From: Vidocq <vidocq@gmail.com>
+To: voxma1l@yahoo.com
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Length: 14
+
+A simple text

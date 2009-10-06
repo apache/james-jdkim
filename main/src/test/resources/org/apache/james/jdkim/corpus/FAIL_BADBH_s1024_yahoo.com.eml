@@ -1,0 +1,40 @@
+Delivered-To: vidocq@gmail.com
+Received: by 10.90.94.13 with SMTP id r13cs186817agb;
+        Mon, 28 Sep 2009 01:15:48 -0700 (PDT)
+Received: by 10.151.88.18 with SMTP id q18mr7275377ybl.307.1254125748244;
+        Mon, 28 Sep 2009 01:15:48 -0700 (PDT)
+Return-Path: <voxma1l@yahoo.com>
+Received: from n13a.bullet.mail.mud.yahoo.com (n13a.bullet.mail.mud.yahoo.com [68.142.207.51])
+        by mx.google.com with SMTP id 12si2678950ywh.122.2009.09.28.01.15.48;
+        Mon, 28 Sep 2009 01:15:48 -0700 (PDT)
+Received-SPF: pass (google.com: domain of voxma1l@yahoo.com designates 68.142.207.51 as permitted sender) client-ip=68.142.207.51;
+Authentication-Results: mx.google.com; spf=pass (google.com: domain of voxma1l@yahoo.com designates 68.142.207.51 as permitted sender) smtp.mail=voxma1l@yahoo.com; dkim=neutral (body hash did not verify) header.i=@yahoo.com
+Received: from [68.142.200.226] by n13.bullet.mail.mud.yahoo.com with NNFMP; 28 Sep 2009 08:15:47 -0000
+Received: from [76.13.13.25] by t7.bullet.mud.yahoo.com with NNFMP; 28 Sep 2009 08:15:47 -0000
+Received: from [67.195.9.81] by t4.bullet.mail.ac4.yahoo.com with NNFMP; 28 Sep 2009 08:15:47 -0000
+Received: from [98.137.27.211] by t1.bullet.mail.gq1.yahoo.com with NNFMP; 28 Sep 2009 08:15:47 -0000
+Received: from [127.0.0.1] by omp121.mail.gq1.yahoo.com with NNFMP; 28 Sep 2009 08:15:47 -0000
+X-Yahoo-Newman-Property: ymail-3
+X-Yahoo-Newman-Id: 627291.73561.bm@omp121.mail.gq1.yahoo.com
+Received: (qmail 92500 invoked by uid 60001); 28 Sep 2009 08:15:46 -0000
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=yahoo.com; s=s1024; t=1254125746; bh=58HcZ0hr3X9pNK4Bn6ETUIeTtZg4kz+gEjPvFHHBZY8=; h=Message-ID:X-YMail-OSG:Received:X-Mailer:Date:From:Subject:To:MIME-Version:Content-Type; b=1Ba/TT1eRjQXOBU6usu6J5JKtMx/cSh1HjgNL1DMiOpyTpdQM5YarqaHumQ77mwgKM6Iyko4FFwGunNkVUBT+SpSafh4CTQnHvDKdREclkv7oL21Os77+jtCmR7poL2fikXfxTlKc+h1wiljPyxYfAHN6ToiFrrAw+74NSLoegY=
+DomainKey-Signature:a=rsa-sha1; q=dns; c=nofws;
+  s=s1024; d=yahoo.com;
+  h=Message-ID:X-YMail-OSG:Received:X-Mailer:Date:From:Subject:To:MIME-Version:Content-Type;
+  b=JxCPXpU/8SIAV3zq6LF7Ov5G4XbcOjoIHCZyf//fu4kqjaXFaL+nFnfCQmV1Dn7He7A7fTLT1yzdbDrL8yD+/1XFUhsM+2vYV4gAJFL/5bkXvyRVB/V17+6muK+rEvgfuFHQtRU+JWATtrN5/HQ5V5Q2/acxSu6yFW89YeYxLBU=;
+Message-ID: <262298.92082.qm@web113004.mail.gq1.yahoo.com>
+X-YMail-OSG: 6RZQpq8VM1no0cbuSXRQLWSSLdysP1W5_4Q_utjL4TA1.ENaCOdk.3MHY5kX4XyJ9wZ1_MNyYsCU0ELlkqmxCQXFz2clFlIQGUfuuv3wAHnTE40U7lBf216j92r5zmmDH9Py1cLb7np4ixW4Vu87KoYprvFLsboQz21M8iRPULsOiOZTtSszRZRT5PgzExZJuQSGeLQ-
+Received: from [78.134.14.206] by web113004.mail.gq1.yahoo.com via HTTP; Mon, 28 Sep 2009 01:15:46 PDT
+X-Mailer: YahooMailRC/157.18 YahooMailWebService/0.7.347.2
+Date: Mon, 28 Sep 2009 01:15:46 -0700 (PDT)
+From: Stefano Bagnara <voxma1l@yahoo.com>
+Subject: test dkim and gmail forward
+To: vidocq@gmail.com
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+
+test
+
+
+
+      

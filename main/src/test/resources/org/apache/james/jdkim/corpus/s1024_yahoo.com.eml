@@ -1,0 +1,107 @@
+Delivered-To: apache@bago.org
+Received: by 10.101.66.15 with SMTP id t15cs126914ank;
+        Mon, 28 Sep 2009 00:06:34 -0700 (PDT)
+Received: by 10.101.190.9 with SMTP id s9mr2469026anp.198.1254121594757;
+        Mon, 28 Sep 2009 00:06:34 -0700 (PDT)
+Return-Path: <voxma1l@yahoo.com>
+Received: from n3b.bullet.mail.ac4.yahoo.com (n3b.bullet.mail.ac4.yahoo.com [76.13.13.73])
+        by mx.google.com with SMTP id 14si14864222yxe.76.2009.09.28.00.06.33;
+        Mon, 28 Sep 2009 00:06:33 -0700 (PDT)
+Received-SPF: pass (google.com: domain of voxma1l@yahoo.com designates 76.13.13.73 as permitted sender) client-ip=76.13.13.73;
+Authentication-Results: mx.google.com; spf=pass (google.com: domain of voxma1l@yahoo.com designates 76.13.13.73 as permitted sender) smtp.mail=voxma1l@yahoo.com; dkim=pass (test mode) header.i=@yahoo.com
+Received: from [76.13.13.26] by n3.bullet.mail.ac4.yahoo.com with NNFMP; 28 Sep 2009 07:06:33 -0000
+Received: from [67.195.9.81] by t3.bullet.mail.ac4.yahoo.com with NNFMP; 28 Sep 2009 07:06:33 -0000
+Received: from [98.137.27.210] by t1.bullet.mail.gq1.yahoo.com with NNFMP; 28 Sep 2009 07:06:32 -0000
+Received: from [127.0.0.1] by omp120.mail.gq1.yahoo.com with NNFMP; 28 Sep 2009 07:06:32 -0000
+X-Yahoo-Newman-Property: ymail-3
+X-Yahoo-Newman-Id: 874416.1135.bm@omp120.mail.gq1.yahoo.com
+Received: (qmail 76297 invoked by uid 60001); 28 Sep 2009 07:06:32 -0000
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=yahoo.com; s=s1024; t=1254121592; bh=pzgwnp5GNzqeYR0kXj7zd4i4b5twaYXF+731CJk7WVY=; h=Message-ID:X-YMail-OSG:Received:X-Mailer:Date:From:Subject:To:MIME-Version:Content-Type; b=zsEbDEufW5kISfVzjV9dG3Xj5lKbrSGprRP9Dt/YBSROWcRkBQofk4b2zdOhhMmi/U1/HWGHpSJy1Z6IlC+7jo1WP0rXsUxSjya2IZUCEl88HiQNSZq1QYQHigmeoTU49EkbSoH9stvB5NmEaXWJdqbJj2lz7ysZnTAep9nTXIo=
+DomainKey-Signature:a=rsa-sha1; q=dns; c=nofws;
+  s=s1024; d=yahoo.com;
+  h=Message-ID:X-YMail-OSG:Received:X-Mailer:Date:From:Subject:To:MIME-Version:Content-Type;
+  b=EI4C4fWfl50ye/TGh7Adz3t0r12AMf6GywApYluDlET9qIFH0xP9KtlstbvhW01GkP5VZhOz+iA20pFU9QN9378PVqtZlvS2T/R0370uL8nAYS3/BQn2qT9DrlrsAiwliej/qrHYvGUFZ+GNS1j6Q+ZrosRpyhdRQuzFFYPtTa0=;
+Message-ID: <694231.74522.qm@web113011.mail.gq1.yahoo.com>
+X-YMail-OSG: mA8x9q0VM1kLSv7tbN9rbY4TqExBRXCEPxQObNV_JVxUhpH_lIf4AywL2foGcchwbk7QAtmSZct2i2aL8HVxJqpdoiffP67gNrfVkO.ffSRR7MFgNnt84.dk5oWtHEmKkZs3qgVC3JL_WKfCcaTTl4kO0bEk8c.2.glqsYtwayLRS0Ix5XbWr4ohipQfDzk7ql5ax.rhwchQzmxyu6dc9cFTeBxOH1s0avsp_RuE3VR5564ANiNg75QwklcR1BsujV8PGFbkkVHNLyA-
+Received: from [78.134.14.206] by web113011.mail.gq1.yahoo.com via HTTP; Mon, 28 Sep 2009 00:06:32 PDT
+X-Mailer: YahooMailRC/157.18 YahooMailWebService/0.7.347.2
+Date: Mon, 28 Sep 2009 00:06:32 -0700 (PDT)
+From: Stefano Bagnara <voxma1l@yahoo.com>
+Subject: =?utf-8?B?VGhpcyBpcyBhIERLSU0gdGVzdCBmcm9tIHlhaG9vIHdpdGggYSBsb25nIHN1?=
+ =?utf-8?B?YmplY3QgdXNpbmcgYW4gaXNvLTg4NTktMTUgY2hhcjog4oKs?=
+To: apache@bago.org
+MIME-Version: 1.0
+Content-Type: multipart/alternative; boundary="0-1433073717-1254121592=:74522"
+
+--0-1433073717-1254121592=:74522
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+
+Here is a standard Apache License 2.0 header, just to exercize canonicaliza=
+tion.=0A=0A/***************************************************************=
+*=0A * Licensed to the Apache Software Foundation (ASF) under one   *=0A * =
+or more contributor license agreements.  See the NOTICE file *=0A * distrib=
+uted with this work for additional information        *=0A * regarding copy=
+right ownership.  The ASF licenses this file   *=0A * to you under the Apac=
+he License, Version 2.0 (the            *=0A * "License"); you may not use =
+this file except in compliance   *=0A * with the License.  You may obtain a=
+ copy of the License at   *=0A *                                           =
+                   *=0A *   http://www.apache.org/licenses/LICENSE-2.0     =
+            *=0A *                                                         =
+     *=0A * Unless required by applicable law or agreed to in writing,   *=
+=0A * software distributed under the License is distributed on an  *=0A * "=
+AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY       *=0A * KIND, ei=
+ther express or implied.  See the License for the    *=0A * specific langua=
+ge governing permissions and limitations      *=0A * under the License.    =
+                                       *=0A *******************************=
+*********************************/=0A=0AHere is a line with ending spaces  =
+        =0A=0AThen we end with empty lines and a whitespace line.=0A=0A=0A =
+     
+--0-1433073717-1254121592=:74522
+Content-Type: text/html; charset=utf-8
+Content-Transfer-Encoding: quoted-printable
+
+<html><head><style type=3D"text/css"><!-- DIV {margin:0px;} --></style></he=
+ad><body><div style=3D"font-family:times new roman,new york,times,serif;fon=
+t-size:12pt"><div>Here is a standard Apache License 2.0 header, just to exe=
+rcize canonicalization.<br><br>/*******************************************=
+*********************<br>&nbsp;* Licensed to the Apache Software Foundation=
+ (ASF) under one&nbsp;&nbsp; *<br>&nbsp;* or more contributor license agree=
+ments.&nbsp; See the NOTICE file *<br>&nbsp;* distributed with this work fo=
+r additional information&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; *<br>&nb=
+sp;* regarding copyright ownership.&nbsp; The ASF licenses this file&nbsp;&=
+nbsp; *<br>&nbsp;* to you under the Apache License, Version 2.0 (the&nbsp;&=
+nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; *<br>&nbsp;* "L=
+icense"); you may not use this file except in compliance&nbsp;&nbsp; *<br>&=
+nbsp;* with the License.&nbsp; You may obtain a copy of the License
+ at&nbsp;&nbsp; *<br>&nbsp;*&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp=
+;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&n=
+bsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp=
+;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&n=
+bsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp=
+;&nbsp;&nbsp;&nbsp; *<br><span>&nbsp;*&nbsp;&nbsp; <a target=3D"_blank" hre=
+f=3D"http://www.apache.org/licenses/LICENSE-2.0">http://www.apache.org/lice=
+nses/LICENSE-2.0</a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&=
+nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+ *</span><br>&nbsp;*&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&=
+nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbs=
+p;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&=
+nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbs=
+p;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&=
+nbsp;&nbsp; *<br>&nbsp;* Unless required by applicable law or agreed to in =
+writing,&nbsp;&nbsp; *<br>&nbsp;* software distributed under the License is=
+ distributed on an&nbsp; *<br>&nbsp;* "AS IS" BASIS, WITHOUT WARRANTIES OR =
+CONDITIONS OF ANY&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; *<br>&nbsp;* KIND, ei=
+ther express or implied.&nbsp; See the License for the&nbsp;&nbsp;&nbsp; *<=
+br>&nbsp;* specific language governing permissions and limitations&nbsp;&nb=
+sp;&nbsp;&nbsp;&nbsp; *<br>&nbsp;* under the
+ License.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;=
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nb=
+sp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;=
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; *<br>&nbsp;***************************=
+*************************************/<br><br>Here is a line with ending sp=
+aces&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <br><br>Then we =
+end with empty lines and a whitespace line.<br><br><br><br><br>&nbsp;<br><b=
+r></div></div><br>=0A=0A=0A=0A      </body></html>
+--0-1433073717-1254121592=:74522--
+
