@@ -390,6 +390,19 @@
             <exclude>NOTICE.base</exclude>
             <exclude>LICENSE.apache</exclude>
             <exclude>release.properties</exclude>
+
+            <!-- 3rd party descriptors distributed via maven repositories
+                 and included "as is" -->
+            <exclude>src/test/resources/org/apache/james/jdkim/corpus/FAIL_BADBH_s1024_yahoo.com.eml</exclude>
+            <exclude>src/test/resources/org/apache/james/jdkim/corpus/gamma_gmail.com.eml</exclude>
+            <exclude>src/test/resources/org/apache/james/jdkim/corpus/gamma_gmail.com_duplicateheaders.eml</exclude>
+            <exclude>src/test/resources/org/apache/james/jdkim/corpus/pmta_myspace.com.eml</exclude>
+            <exclude>src/test/resources/org/apache/james/jdkim/corpus/s1024_yahoo.com.eml</exclude>
+            <!-- maven release temporary file -->
+            <exclude>dependency-reduced-pom.xml</exclude>
+            <exclude>release.properties</exclude>
+
+
           </excludes>
         </configuration>
       </plugin>
