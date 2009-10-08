@@ -39,9 +39,9 @@ import org.apache.james.jdkim.MockPublicKeyRecordRetriever;
 import org.apache.james.jdkim.PermFailException;
 import org.apache.mailet.Mail;
 import org.apache.mailet.Mailet;
-import org.apache.mailet.base.test.MockMail;
-import org.apache.mailet.base.test.MockMailContext;
-import org.apache.mailet.base.test.MockMailetConfig;
+import org.apache.mailet.base.test.FakeMail;
+import org.apache.mailet.base.test.FakeMailContext;
+import org.apache.mailet.base.test.FakeMailetConfig;
 
 public class DKIMSignTest extends TestCase {
 	
@@ -50,13 +50,13 @@ public class DKIMSignTest extends TestCase {
 		
 	    Mailet mailet = new DKIMSign();
 	
-	    MockMailetConfig mci = new MockMailetConfig("Test",new MockMailContext());
+	    FakeMailetConfig mci = new FakeMailetConfig("Test",new FakeMailContext());
 	    mci.setProperty("signatureTemplate","v=1; s=selector; d=example.com; h=from:to:received:received; a=rsa-sha256; bh=; b=;");
 	    mci.setProperty("privateKey","MIICdgIBADANBgkqhkiG9w0BAQEFAASCAmAwggJcAgEAAoGBANgNpgpfPBVjCpZsuGa4nrppMA3zCYNH6t8cTwd+eRI5rHSgihMznOq5mtMujfTzvRgx9jPHB8HqP83PdB3CtQP+3RgxgmJQrJYmcIp9lcckEn7J9Eevuhb5RbdxWj0IbZsF8jGwifBh7XvmD1SPKe0mla56p0QijVzZuG/0ynrpAgMBAAECgYEAjxdzCdmLRKrk3z3AX6AU2GdEQWjeuwkNoJjyKod0DkMOWevdptv/KGKnDQj/UeWALp8gbah7Fc5cVaX5RKCpG3WRO32NeFUUTGDyY2SjZR6UDAW2yXwJGNVxhA5x514f9Yz+ZeODbBSqpl6cGaUqUPq81vvSMUl5VoMn/ufuPwECQQD02QfYPhmCP8g4BVhxxlgfvj5WA7R7tWRSNCT3C0naPpwaono9+PSuhUgxRbOgFvxh8StHyXomdVBt/LzeAl6JAkEA4eTejDsmMCfxe47JnHbgpxNphYpSQBB9FZgMUU5hAXgpX3EtIS3JxjSSOx3EYoO51ZywBOWUXNcMJAXoNM0hYQJAQDnZ4/BOMqtWctN8IsQbg6Acq+Vm53hqa2HAPIlagwQfYKE0HaN7U3gkusAE4T6GT466gqcoAoSNZ3x/cmD+uQJAePyZCaiAephaKSA/8VJmXnXyNXjxNqjeJduq9T0yjZPrLNg0IKoigMsVax41WcJNnRBv4h+IR/VR5lVXmjgn4QJANq02dLdX2phQqOP+Ss1EP9TT7t6HxLbKUuoPdGVKf0q1gZEyAC1Re2I4SLMEfpt3+ivMj1X2zDzIHP5mogfblA==");
 	
 	    mailet.init(mci);
 	
-	    Mail mail = new MockMail();
+	    Mail mail = new FakeMail();
 	    mail.setMessage(new MimeMessage(Session
 	            .getDefaultInstance(new Properties()),
 	            new ByteArrayInputStream(message.getBytes())));
@@ -71,8 +71,8 @@ public class DKIMSignTest extends TestCase {
 	    mail.getMessage().writeTo(rawMessage);
 	    String res = rawMessage.toString();
 	    
-		MockPublicKeyRecordRetriever mockPublicKeyRecordRetriever = new MockPublicKeyRecordRetriever("v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDYDaYKXzwVYwqWbLhmuJ66aTAN8wmDR+rfHE8HfnkSOax0oIoTM5zquZrTLo30870YMfYzxwfB6j/Nz3QdwrUD/t0YMYJiUKyWJnCKfZXHJBJ+yfRHr7oW+UW3cVo9CG2bBfIxsInwYe175g9UjyntJpWueqdEIo1c2bhv9Mp66QIDAQAB;", "selector", "example.com");
-	    new DKIMVerifier(mockPublicKeyRecordRetriever).verify(new ByteArrayInputStream(res.getBytes()));
+		MockPublicKeyRecordRetriever MockPublicKeyRecordRetriever = new MockPublicKeyRecordRetriever("v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDYDaYKXzwVYwqWbLhmuJ66aTAN8wmDR+rfHE8HfnkSOax0oIoTM5zquZrTLo30870YMfYzxwfB6j/Nz3QdwrUD/t0YMYJiUKyWJnCKfZXHJBJ+yfRHr7oW+UW3cVo9CG2bBfIxsInwYe175g9UjyntJpWueqdEIo1c2bhv9Mp66QIDAQAB;", "selector", "example.com");
+	    new DKIMVerifier(MockPublicKeyRecordRetriever).verify(new ByteArrayInputStream(res.getBytes()));
 	}
 	
 	public void testDKIMSignMessageAsText() throws MessagingException, IOException, FailException {
@@ -83,13 +83,13 @@ public class DKIMSignTest extends TestCase {
 	    
 	    Mailet mailet = new DKIMSign();
 	
-	    MockMailetConfig mci = new MockMailetConfig("Test",new MockMailContext());
+	    FakeMailetConfig mci = new FakeMailetConfig("Test",new FakeMailContext());
 	    mci.setProperty("signatureTemplate","v=1; s=selector; d=example.com; h=from:to:received:received; a=rsa-sha256; bh=; b=;");
 	    mci.setProperty("privateKey","MIICdgIBADANBgkqhkiG9w0BAQEFAASCAmAwggJcAgEAAoGBANgNpgpfPBVjCpZsuGa4nrppMA3zCYNH6t8cTwd+eRI5rHSgihMznOq5mtMujfTzvRgx9jPHB8HqP83PdB3CtQP+3RgxgmJQrJYmcIp9lcckEn7J9Eevuhb5RbdxWj0IbZsF8jGwifBh7XvmD1SPKe0mla56p0QijVzZuG/0ynrpAgMBAAECgYEAjxdzCdmLRKrk3z3AX6AU2GdEQWjeuwkNoJjyKod0DkMOWevdptv/KGKnDQj/UeWALp8gbah7Fc5cVaX5RKCpG3WRO32NeFUUTGDyY2SjZR6UDAW2yXwJGNVxhA5x514f9Yz+ZeODbBSqpl6cGaUqUPq81vvSMUl5VoMn/ufuPwECQQD02QfYPhmCP8g4BVhxxlgfvj5WA7R7tWRSNCT3C0naPpwaono9+PSuhUgxRbOgFvxh8StHyXomdVBt/LzeAl6JAkEA4eTejDsmMCfxe47JnHbgpxNphYpSQBB9FZgMUU5hAXgpX3EtIS3JxjSSOx3EYoO51ZywBOWUXNcMJAXoNM0hYQJAQDnZ4/BOMqtWctN8IsQbg6Acq+Vm53hqa2HAPIlagwQfYKE0HaN7U3gkusAE4T6GT466gqcoAoSNZ3x/cmD+uQJAePyZCaiAephaKSA/8VJmXnXyNXjxNqjeJduq9T0yjZPrLNg0IKoigMsVax41WcJNnRBv4h+IR/VR5lVXmjgn4QJANq02dLdX2phQqOP+Ss1EP9TT7t6HxLbKUuoPdGVKf0q1gZEyAC1Re2I4SLMEfpt3+ivMj1X2zDzIHP5mogfblA==");
 	
 	    mailet.init(mci);
 	
-	    Mail mail = new MockMail();
+	    Mail mail = new FakeMail();
 	    mail.setMessage(mm);
 
 	    Mailet m7bit = new ConvertTo7Bit();
@@ -103,8 +103,8 @@ public class DKIMSignTest extends TestCase {
 	    mail.getMessage().writeTo(rawMessage);
 	    String res = rawMessage.toString();
 	    
-		MockPublicKeyRecordRetriever mockPublicKeyRecordRetriever = new MockPublicKeyRecordRetriever("v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDYDaYKXzwVYwqWbLhmuJ66aTAN8wmDR+rfHE8HfnkSOax0oIoTM5zquZrTLo30870YMfYzxwfB6j/Nz3QdwrUD/t0YMYJiUKyWJnCKfZXHJBJ+yfRHr7oW+UW3cVo9CG2bBfIxsInwYe175g9UjyntJpWueqdEIo1c2bhv9Mp66QIDAQAB;", "selector", "example.com");
-	    new DKIMVerifier(mockPublicKeyRecordRetriever).verify(new ByteArrayInputStream(res.getBytes()));
+		MockPublicKeyRecordRetriever MockPublicKeyRecordRetriever = new MockPublicKeyRecordRetriever("v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDYDaYKXzwVYwqWbLhmuJ66aTAN8wmDR+rfHE8HfnkSOax0oIoTM5zquZrTLo30870YMfYzxwfB6j/Nz3QdwrUD/t0YMYJiUKyWJnCKfZXHJBJ+yfRHr7oW+UW3cVo9CG2bBfIxsInwYe175g9UjyntJpWueqdEIo1c2bhv9Mp66QIDAQAB;", "selector", "example.com");
+	    new DKIMVerifier(MockPublicKeyRecordRetriever).verify(new ByteArrayInputStream(res.getBytes()));
 	}
 
 	public void testDKIMSignMessageAsObjectConvertedTo7Bit() throws MessagingException, IOException, FailException {
@@ -115,14 +115,14 @@ public class DKIMSignTest extends TestCase {
 	    mm.setHeader("Content-Transfer-Encoding", "8bit");
 	    mm.saveChanges();
 	
-	    MockMailContext mockMailContext = new MockMailContext();
-	    mockMailContext.getServerInfo();
-		MockMailetConfig mci = new MockMailetConfig("Test",mockMailContext);
+	    FakeMailContext FakeMailContext = new FakeMailContext();
+	    FakeMailContext.getServerInfo();
+		FakeMailetConfig mci = new FakeMailetConfig("Test",FakeMailContext);
 	    mci.setProperty("signatureTemplate","v=1; s=selector; d=example.com; h=from:to:received:received; a=rsa-sha256; bh=; b=;");
 	    mci.setProperty("privateKey","MIICdgIBADANBgkqhkiG9w0BAQEFAASCAmAwggJcAgEAAoGBANgNpgpfPBVjCpZsuGa4nrppMA3zCYNH6t8cTwd+eRI5rHSgihMznOq5mtMujfTzvRgx9jPHB8HqP83PdB3CtQP+3RgxgmJQrJYmcIp9lcckEn7J9Eevuhb5RbdxWj0IbZsF8jGwifBh7XvmD1SPKe0mla56p0QijVzZuG/0ynrpAgMBAAECgYEAjxdzCdmLRKrk3z3AX6AU2GdEQWjeuwkNoJjyKod0DkMOWevdptv/KGKnDQj/UeWALp8gbah7Fc5cVaX5RKCpG3WRO32NeFUUTGDyY2SjZR6UDAW2yXwJGNVxhA5x514f9Yz+ZeODbBSqpl6cGaUqUPq81vvSMUl5VoMn/ufuPwECQQD02QfYPhmCP8g4BVhxxlgfvj5WA7R7tWRSNCT3C0naPpwaono9+PSuhUgxRbOgFvxh8StHyXomdVBt/LzeAl6JAkEA4eTejDsmMCfxe47JnHbgpxNphYpSQBB9FZgMUU5hAXgpX3EtIS3JxjSSOx3EYoO51ZywBOWUXNcMJAXoNM0hYQJAQDnZ4/BOMqtWctN8IsQbg6Acq+Vm53hqa2HAPIlagwQfYKE0HaN7U3gkusAE4T6GT466gqcoAoSNZ3x/cmD+uQJAePyZCaiAephaKSA/8VJmXnXyNXjxNqjeJduq9T0yjZPrLNg0IKoigMsVax41WcJNnRBv4h+IR/VR5lVXmjgn4QJANq02dLdX2phQqOP+Ss1EP9TT7t6HxLbKUuoPdGVKf0q1gZEyAC1Re2I4SLMEfpt3+ivMj1X2zDzIHP5mogfblA==");
 	
 	
-	    Mail mail = new MockMail();
+	    Mail mail = new FakeMail();
 	    mail.setMessage(mm);
 	    
 	    Mailet mailet = new DKIMSign();
@@ -140,8 +140,8 @@ public class DKIMSignTest extends TestCase {
 	    mail.getMessage().writeTo(rawMessage);
 	    String res = rawMessage.toString();
 	    
-		MockPublicKeyRecordRetriever mockPublicKeyRecordRetriever = new MockPublicKeyRecordRetriever("v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDYDaYKXzwVYwqWbLhmuJ66aTAN8wmDR+rfHE8HfnkSOax0oIoTM5zquZrTLo30870YMfYzxwfB6j/Nz3QdwrUD/t0YMYJiUKyWJnCKfZXHJBJ+yfRHr7oW+UW3cVo9CG2bBfIxsInwYe175g9UjyntJpWueqdEIo1c2bhv9Mp66QIDAQAB;", "selector", "example.com");
-	    new DKIMVerifier(mockPublicKeyRecordRetriever).verify(new ByteArrayInputStream(res.getBytes()));
+		MockPublicKeyRecordRetriever MockPublicKeyRecordRetriever = new MockPublicKeyRecordRetriever("v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDYDaYKXzwVYwqWbLhmuJ66aTAN8wmDR+rfHE8HfnkSOax0oIoTM5zquZrTLo30870YMfYzxwfB6j/Nz3QdwrUD/t0YMYJiUKyWJnCKfZXHJBJ+yfRHr7oW+UW3cVo9CG2bBfIxsInwYe175g9UjyntJpWueqdEIo1c2bhv9Mp66QIDAQAB;", "selector", "example.com");
+	    new DKIMVerifier(MockPublicKeyRecordRetriever).verify(new ByteArrayInputStream(res.getBytes()));
 	}
 
 	public void testDKIMSignMessageAsObjectNotConverted() throws MessagingException, IOException, FailException {
@@ -152,14 +152,14 @@ public class DKIMSignTest extends TestCase {
 	    mm.setHeader("Content-Transfer-Encoding", "8bit");
 	    mm.saveChanges();
 	
-	    MockMailContext mockMailContext = new MockMailContext();
-	    mockMailContext.getServerInfo();
-		MockMailetConfig mci = new MockMailetConfig("Test",mockMailContext);
+	    FakeMailContext FakeMailContext = new FakeMailContext();
+	    FakeMailContext.getServerInfo();
+		FakeMailetConfig mci = new FakeMailetConfig("Test",FakeMailContext);
 	    mci.setProperty("signatureTemplate","v=1; s=selector; d=example.com; h=from:to:received:received; a=rsa-sha256; bh=; b=;");
 	    mci.setProperty("privateKey","MIICdgIBADANBgkqhkiG9w0BAQEFAASCAmAwggJcAgEAAoGBANgNpgpfPBVjCpZsuGa4nrppMA3zCYNH6t8cTwd+eRI5rHSgihMznOq5mtMujfTzvRgx9jPHB8HqP83PdB3CtQP+3RgxgmJQrJYmcIp9lcckEn7J9Eevuhb5RbdxWj0IbZsF8jGwifBh7XvmD1SPKe0mla56p0QijVzZuG/0ynrpAgMBAAECgYEAjxdzCdmLRKrk3z3AX6AU2GdEQWjeuwkNoJjyKod0DkMOWevdptv/KGKnDQj/UeWALp8gbah7Fc5cVaX5RKCpG3WRO32NeFUUTGDyY2SjZR6UDAW2yXwJGNVxhA5x514f9Yz+ZeODbBSqpl6cGaUqUPq81vvSMUl5VoMn/ufuPwECQQD02QfYPhmCP8g4BVhxxlgfvj5WA7R7tWRSNCT3C0naPpwaono9+PSuhUgxRbOgFvxh8StHyXomdVBt/LzeAl6JAkEA4eTejDsmMCfxe47JnHbgpxNphYpSQBB9FZgMUU5hAXgpX3EtIS3JxjSSOx3EYoO51ZywBOWUXNcMJAXoNM0hYQJAQDnZ4/BOMqtWctN8IsQbg6Acq+Vm53hqa2HAPIlagwQfYKE0HaN7U3gkusAE4T6GT466gqcoAoSNZ3x/cmD+uQJAePyZCaiAephaKSA/8VJmXnXyNXjxNqjeJduq9T0yjZPrLNg0IKoigMsVax41WcJNnRBv4h+IR/VR5lVXmjgn4QJANq02dLdX2phQqOP+Ss1EP9TT7t6HxLbKUuoPdGVKf0q1gZEyAC1Re2I4SLMEfpt3+ivMj1X2zDzIHP5mogfblA==");
 	
 	
-	    Mail mail = new MockMail();
+	    Mail mail = new FakeMail();
 	    mail.setMessage(mm);
 	    
 	    Mailet mailet = new DKIMSign();
@@ -177,9 +177,9 @@ public class DKIMSignTest extends TestCase {
 	    mail.getMessage().writeTo(rawMessage);
 	    String res = rawMessage.toString();
 	    
-		MockPublicKeyRecordRetriever mockPublicKeyRecordRetriever = new MockPublicKeyRecordRetriever("v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDYDaYKXzwVYwqWbLhmuJ66aTAN8wmDR+rfHE8HfnkSOax0oIoTM5zquZrTLo30870YMfYzxwfB6j/Nz3QdwrUD/t0YMYJiUKyWJnCKfZXHJBJ+yfRHr7oW+UW3cVo9CG2bBfIxsInwYe175g9UjyntJpWueqdEIo1c2bhv9Mp66QIDAQAB;", "selector", "example.com");
+		MockPublicKeyRecordRetriever MockPublicKeyRecordRetriever = new MockPublicKeyRecordRetriever("v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDYDaYKXzwVYwqWbLhmuJ66aTAN8wmDR+rfHE8HfnkSOax0oIoTM5zquZrTLo30870YMfYzxwfB6j/Nz3QdwrUD/t0YMYJiUKyWJnCKfZXHJBJ+yfRHr7oW+UW3cVo9CG2bBfIxsInwYe175g9UjyntJpWueqdEIo1c2bhv9Mp66QIDAQAB;", "selector", "example.com");
 	    try {
-	    	new DKIMVerifier(mockPublicKeyRecordRetriever).verify(new ByteArrayInputStream(res.getBytes()));
+	    	new DKIMVerifier(MockPublicKeyRecordRetriever).verify(new ByteArrayInputStream(res.getBytes()));
 	    	fail("Expected PermFail");
 	    } catch (PermFailException e) {
 	    	
