@@ -1,0 +1,344 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <!--
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+  
+      http://www.apache.org/licenses/LICENSE-2.0
+  
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.    
+  -->
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>org.apache.james</groupId>
+  <artifactId>apache-mailet-base</artifactId>
+  <name>Apache JAMES Basic Mailet Toolkit</name>
+  <version>1.0</version>
+  <packaging>jar</packaging>
+  <description>
+    Apache JAMES Basic Mailet Toolkit is a collection of utilities and lightweight framework
+    aimed at developers and testers of mailets. This toolkit is extensively used elsewhere in
+    JAMES.
+  </description>
+  <parent>
+    <groupId>org.apache.james</groupId>
+    <artifactId>james-project</artifactId>
+    <version>1.3</version>
+    <relativePath>../james-project/project/pom.xml</relativePath>
+  </parent>
+  <url>http://james.apache.org/mailet/base/</url>
+  <inceptionYear>2008</inceptionYear>
+
+  <properties>
+    <!--
+    The website is committed to subversion. This property can be overriden
+    to upload the site to a local staging location.
+    For example, adding the following to ~/.m2/settings.xml will upload
+    to localhost:
+    
+      <profiles>
+        <profile>
+           <id>main</id>
+           <activation>
+              <activeByDefault>true</activeByDefault>
+           </activation>
+           <properties>
+              <james.www>scp://localhost/www</james.www>
+              <james.www.id>localhost</james.www.id>
+      ...
+    -->
+    <!-- General location for site stage -->
+    <james.www>scp://people.apache.org/www/james.apache.org/</james.www>
+    <!-- Project specific location, allowing specific override -->
+    <james.mailetbase.www>${james.www}/mailet/base/</james.mailetbase.www>
+    <!-- Overridding this value allows single set of loopback settings to be maintained -->
+    <james.www.id>mailet-base-website</james.www.id>
+  </properties>
+
+  <distributionManagement>
+    <site>
+      <id>${james.www.id}</id>
+      <url>${james.mailetbase.www}</url>
+    </site>
+  </distributionManagement>
+
+  <issueManagement>
+    <system>JIRA</system>
+    <url>http://issues.apache.org/jira/browse/MAILETBASE</url>
+  </issueManagement>
+
+  <scm>
+    <connection>scm:svn:http://svn.apache.org/repos/asf/james/mailet/base/tags/apache-mailet-base-1.0</connection>
+    <developerConnection>scm:svn:https://svn.apache.org/repos/asf/james/mailet/base/tags/apache-mailet-base-1.0</developerConnection>
+    <url>http://svn.apache.org/viewcvs.cgi/james/mailet/base/tags/apache-mailet-base-1.0?root=Apache-SVN</url>
+  </scm>
+
+  <dependencies>
+    <dependency>
+      <groupId>javax.mail</groupId>
+      <artifactId>mail</artifactId>
+      <version>1.4.1</version>
+    </dependency>
+    <dependency>
+      <groupId>javax.activation</groupId>
+      <artifactId>activation</artifactId>
+      <version>1.1.1</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.james</groupId>
+      <artifactId>apache-mailet</artifactId>
+      <version>2.4</version>
+    </dependency>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>3.8.1</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+	<repositories>
+    <repository>
+      <id>mailet-stage-repository</id>
+      <name>Stage repository</name>
+      <url>file://${basedir}/stage</url>
+      <layout>legacy</layout>
+      <releases>
+        <enabled>true</enabled>
+        <checksumPolicy>ignore</checksumPolicy>
+      </releases>
+      <snapshots>
+        <enabled>true</enabled>
+        <checksumPolicy>ignore</checksumPolicy>
+      </snapshots>
+    </repository>
+	</repositories>
+
+  <mailingLists>
+    <mailingList>
+	    <name>Apache JAMES Server List</name>
+	    <subscribe>server-dev-subscribe@james.apache.org</subscribe>
+	    <unsubscribe>server-dev-unsubscribe@james.apache.org</unsubscribe>
+	    <post>server-dev@james.apache.org</post>
+	    <archive>http://mail-archives.apache.org/mod_mbox/james-server-dev/</archive>
+    </mailingList>
+  </mailingLists>
+
+  <build>
+    <plugins>
+      <plugin>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <optimize>true</optimize>
+          <source>1.4</source>
+          <target>1.4</target>
+          <encoding>UTF-8</encoding>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <configuration>
+          <archive>
+          <manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
+            <manifestEntries>
+              <Specification-Title>Apache James Mailets Base</Specification-Title>
+              <Specification-Version>${pom.version}</Specification-Version>
+              <Specification-Vendor>The Apache Software Foundation</Specification-Vendor>
+              <Implementation-Title>Apache James Mailets Base</Implementation-Title>
+              <Implementation-Version>${pom.version}</Implementation-Version>
+              <Implementation-Vendor>The Apache Software Foundation</Implementation-Vendor>
+              <Implementation-Vendor-Id>org.apache</Implementation-Vendor-Id>
+              <url>${pom.url}</url>
+            </manifestEntries>
+          </archive>
+        </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-jar-plugin</artifactId>
+        <executions>
+          <execution>
+            <goals>
+              <goal>test-jar</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.felix</groupId>
+        <artifactId>maven-bundle-plugin</artifactId>
+        <version>1.4.3</version>
+        <executions>
+          <execution>
+            <id>bundle-manifest</id>
+            <phase>process-classes</phase>
+            <goals>
+              <goal>manifest</goal>
+            </goals>
+          </execution>
+        </executions>
+        <extensions>true</extensions>
+        <configuration>
+          <instructions>
+            <Export-Package>org.apache.mailet.base.*</Export-Package>
+            <Embed-Dependency>*;scope=runtime</Embed-Dependency>
+          </instructions>
+        </configuration>
+      </plugin>
+      <!-- Add NOTICE and LICENSE to generated JAR -->
+      <plugin>
+        <artifactId>maven-remote-resources-plugin</artifactId>
+        <version>1.0</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>process</goal>
+            </goals>
+            <configuration>
+              <resourceBundles>
+                <resourceBundle>org.apache:apache-jar-resource-bundle:1.4</resourceBundle>
+              </resourceBundles>
+              <properties>
+	              <!--  <preProjectText>PRE PROCESS TEXT</preProjectText>  -->
+	              <postProjectText>This file is automatically generated by dependencies declared in pom.xml</postProjectText>
+	              <addLicense>true</addLicense>
+              </properties>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-source-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>attach-sources</id>
+            <phase>package</phase>
+            <goals>
+              <goal>jar</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+	  <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-doap-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>site</id>
+            <phase>site</phase>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+         <doapOptions>
+           <programmingLanguage>java</programmingLanguage>
+           <category>mail</category>
+           <download-page>http://james.apache.org/download.cgi</download-page>
+         </doapOptions>
+
+         <asfExtOptions>
+           <included>true</included>
+           <pmc>http://james.apache.org</pmc>
+           <name>Apache JAMES</name>
+         </asfExtOptions>
+
+        </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <version>2.5</version>
+        <executions>
+          <execution>
+            <id>create-javadocs</id>
+            <phase>package</phase>
+            <goals>
+              <goal>javadoc</goal>
+              <goal>jar</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <artifactId>maven-assembly-plugin</artifactId>
+        <version>2.2-beta-2</version>
+        <configuration>
+          <descriptorSourceDirectory>${basedir}/src/assemble/</descriptorSourceDirectory>
+        </configuration>
+        <executions>
+          <execution>
+            <id>make-assembly</id>
+            <phase>package</phase> <!-- append to the packaging phase. -->
+            <goals>
+              <goal>attached</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+  
+   <reporting>
+    <plugins>
+      <plugin>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>2.4.3</version>
+      </plugin>
+      <plugin>
+        <artifactId>maven-surefire-report-plugin</artifactId>
+        <version>2.4.3</version>
+      </plugin> 
+      <plugin>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <version>2.5</version>
+        <configuration>
+          <encoding>UTF-8</encoding>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jxr-plugin</artifactId>
+        <version>2.1</version>
+      </plugin>
+      <plugin>
+        <artifactId>maven-site-plugin</artifactId>
+        <version>2.0-beta-6</version>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>rat-maven-plugin</artifactId>
+        <version>1.0-alpha-3</version>
+        <configuration>
+          <excludes>
+            <exclude>NOTICE.txt</exclude>
+            <exclude>LICENSE.txt</exclude>
+            <!-- Generated by Maven -->
+            <exclude>release.properties</exclude>
+            <exclude>dist/**/*</exclude>
+            <!-- Apache License, Version 2 -->
+            <exclude>stage/org.apache.james/xmls/*</exclude>
+          </excludes>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>taglist-maven-plugin</artifactId>
+        <version>2.3</version>
+        <configuration>
+          <encoding>UTF-8</encoding>
+        </configuration>
+      </plugin>
+    </plugins>
+  </reporting>
+  
+</project>
