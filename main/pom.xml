@@ -19,12 +19,12 @@
     under the License.    
   -->
   <parent>
-    <artifactId>jdkim-project</artifactId>
-    <groupId>org.apache.james</groupId>
+    <artifactId>apache-jdkim-project</artifactId>
+    <groupId>org.apache.james.jdkim</groupId>
     <version>0.1-SNAPSHOT</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
-  <groupId>org.apache.james</groupId>
+  <groupId>org.apache.james.jdkim</groupId>
   <artifactId>apache-jdkim</artifactId>
   <name>Apache JAMES jDKIM</name>
   <version>0.1-SNAPSHOT</version>
@@ -110,7 +110,7 @@
     <dependency>
       <groupId>dnsjava</groupId>
       <artifactId>dnsjava</artifactId>
-      <version>2.0.6</version>
+      <version>2.0.7</version>
     </dependency>
   
   </dependencies>
@@ -193,7 +193,7 @@
       <!-- Add NOTICE and LICENSE to generated JAR -->
       <plugin>
         <artifactId>maven-remote-resources-plugin</artifactId>
-        <version>1.0</version>
+        <version>1.1</version>
         <executions>
           <execution>
             <goals>
@@ -234,7 +234,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-source-plugin</artifactId>
-        <version>2.0.4</version>
+        <version>2.1</version>
         <executions>
           <execution>
             <id>attach-sources</id>
@@ -265,6 +265,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-doap-plugin</artifactId>
+        <version>1.0</version>
         <executions>
           <execution>
             <id>site</id>
@@ -297,10 +298,11 @@
 
         </configuration>
       </plugin>
+      <!-- Shading commons-codec Base64 class so that we don't have one more dependency -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-shade-plugin</artifactId>
-        <version>1.2</version>
+        <version>1.2.1</version>
         <executions>
           <execution>
             <phase>package</phase>
@@ -311,7 +313,6 @@
               <artifactSet>
                 <includes>
                   <include>commons-codec:commons-codec</include>
-                  <include>org.apache.james:apache-mailet-base</include>
                 </includes>
               </artifactSet>
               <filters>
@@ -324,23 +325,14 @@
                     <exclude>org/apache/commons/codec/digest/*</exclude>
                     <exclude>org/apache/commons/codec/binary/He*</exclude>
                     <exclude>org/apache/commons/codec/binary/Binary*</exclude>
+                    <exclude>org/apache/commons/codec/binary/*Stream*</exclude>
                   </excludes>
-                </filter>
-                <filter>
-                  <artifact>org.apache.james:apache-mailet-base</artifact>
-                  <includes>
-                    <include>org/apache/mailet/base/GenericMailet.class</include>
-                  </includes>
                 </filter>
               </filters>
               <relocations>
                 <relocation>
                   <pattern>org.apache.commons.codec</pattern>
-                  <shadedPattern>org.apache.mailet.domainkeys.codec</shadedPattern>
-                </relocation>
-                <relocation>
-                  <pattern>org.apache.mailet.base</pattern>
-                  <shadedPattern>org.apache.mailet.domainkeys</shadedPattern>
+                  <shadedPattern>org.apache.james.jdkim.codec</shadedPattern>
                 </relocation>
               </relocations>
               <transformers>
@@ -350,22 +342,41 @@
           </execution>
         </executions>
       </plugin>
+	  <!--       
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>2.4.3</version>
+        <inherited>true</inherited>
+        <configuration>
+          <forkMode>once</forkMode>
+          <reportFormat>xml</reportFormat>
+          <classesDirectory>${project.build.directory}/generated-classes/emma/classes</classesDirectory>    
+        </configuration>        
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>emma-maven-plugin</artifactId>
+        <version>1.0-alpha-2</version>
+        <inherited>true</inherited>          
+        <executions>
+          <execution>
+            <phase>process-classes</phase>               
+            <goals>
+              <goal>instrument</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+       -->
     </plugins>
   </build>
 
   <reporting>
     <plugins>
       <plugin>
-        <artifactId>maven-surefire-plugin</artifactId>
-        <version>2.4.3</version>
-      </plugin>
-      <plugin>
-        <artifactId>maven-surefire-report-plugin</artifactId>
-        <version>2.4.3</version>
-      </plugin> 
-      <plugin>
         <artifactId>maven-javadoc-plugin</artifactId>
-        <version>2.4</version>
+        <version>2.6</version>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -389,7 +400,7 @@
       </plugin>
       <plugin>
         <artifactId>maven-site-plugin</artifactId>
-        <version>2.0-beta-7</version>
+        <version>2.0.1</version>
       </plugin>
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
@@ -423,9 +434,17 @@
       </plugin>
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
-        <artifactId>javacc-maven-plugin</artifactId>
-        <version>2.4.1</version>
+        <artifactId>emma-maven-plugin</artifactId>
+        <version>1.0-alpha-2</version>
       </plugin>
+      <plugin>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>2.4.3</version>
+      </plugin>
+      <plugin>
+        <artifactId>maven-surefire-report-plugin</artifactId>
+        <version>2.4.3</version>
+      </plugin> 
     </plugins>
   </reporting>
   

@@ -20,7 +20,7 @@
 <project>
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.apache.james.jdkim</groupId>
-  <artifactId>stage</artifactId>
+  <artifactId>apache-jdkim-stage</artifactId>
   <name>Apache JAMES jDKIM Stage Repository</name>
   <description>Local maven repository for Apache JAMES jDKIM</description>
   <packaging>pom</packaging>
@@ -128,7 +128,7 @@
     <dependency>
       <groupId>dnsjava</groupId>
       <artifactId>dnsjava</artifactId>
-      <version>2.0.6</version>
+      <version>2.0.7</version>
     </dependency>
   </dependencies>
 
