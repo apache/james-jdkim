@@ -80,17 +80,18 @@ public class DNSPublicKeyRecordRetriever implements PublicKeyRecordRetriever {
                     case Type.TXT:
                         TXTRecord txt = (TXTRecord) rr[i];
                         if (txt.getStrings().size() == 1) {
-                            // TODO we need a better fix for this, like using getStringsAsByteArray
-                        	// it's not clear whether this is a bug in dnsjava or not.
-                            records.add(((String)txt.getStrings().get(0)).replaceAll("\\\\", ""));
+                            // This was required until dnsjava 2.0.6 because dnsjava was escaping 
+                        	// the result like it was doublequoted (JDKIM-7).
+                            // records.add(((String)txt.getStrings().get(0)).replaceAll("\\\\", ""));
+                            records.add(((String)txt.getStrings().get(0)));
                         } else {
                             StringBuffer sb = new StringBuffer();
                             for (Iterator/* String */ it = txt.getStrings().iterator(); it
                                     .hasNext();) {
                                 String k = (String) it.next();
-                                // TODO we need a better fix for this, like using getStringsAsByteArray
-                            	// it's not clear whether this is a bug in dnsjava or not.
-                                k = k.replaceAll("\\\\", "");
+                                // This was required until dnsjava 2.0.6 because dnsjava was escaping 
+                            	// the result like it was doublequoted (JDKIM-7).
+                                // k = k.replaceAll("\\\\", "");
                                 sb.append(k);
                             }
                             records.add(sb.toString());
