@@ -21,7 +21,7 @@
   <groupId>dnsjava</groupId>
   <artifactId>dnsjava</artifactId>
   <name>dnsjava</name>
-  <version>2.0.6</version>
+  <version>2.0.7</version>
   <packaging>jar</packaging>
   <url>http://www.dnsjava.org</url>
   <licenses>
