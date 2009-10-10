@@ -47,12 +47,6 @@ public interface PublicKeyRecord {
 
 	public abstract PublicKey getPublicKey();
 
-	/**
-	 * throws an exception when the key is not suitable to match tje signature.
-	 * @param sign a signature to be tested
-	 */
-	public abstract void apply(SignatureRecord sign);
-
 	
 	public abstract List getFlags();
 	

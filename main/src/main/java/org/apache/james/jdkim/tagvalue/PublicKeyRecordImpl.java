@@ -32,7 +32,6 @@ import java.util.regex.Pattern;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.james.jdkim.PublicKeyRecord;
-import org.apache.james.jdkim.SignatureRecord;
 
 public class PublicKeyRecordImpl extends TagValue implements PublicKeyRecord {
 	
@@ -166,29 +165,6 @@ public class PublicKeyRecordImpl extends TagValue implements PublicKeyRecord {
 		} catch (InvalidKeySpecException e) {
 			throw new IllegalStateException("Invalid key spec: "+e.getMessage());
 		}
-	}
-
-	/**
-	 * @see org.apache.james.jdkim.PublicKeyRecord#apply(org.apache.james.jdkim.SignatureRecord)
-	 */
-	public void apply(SignatureRecord sign) {
-		if (!getGranularityPattern().matcher(sign.getIdentityLocalPart()).matches()) {
-			throw new IllegalStateException("inapplicable key for g="+getValue("g")+" and identity local="+sign.getIdentityLocalPart()+" Pattern: "+getGranularityPattern().pattern());
-		}
-		
-		if (!isHashMethodSupported(sign.getHashMethod())) {
-			throw new IllegalStateException("inappropriate hash method h="+getValue("h")+" and a="+sign.getHashKeyType()+"/"+sign.getHashMethod());
-		}
-		if (!isKeyTypeSupported(sign.getHashKeyType())) {
-			throw new IllegalStateException("inappropriate key type k="+getValue("k")+" and a="+sign.getHashKeyType()+"/"+sign.getHashMethod());
-		}
-		
-		if (isDenySubdomains()) {
-			if (!sign.getIdentity().toString().toLowerCase().endsWith(("@"+sign.getDToken()).toLowerCase())) {
-				throw new IllegalStateException("AUID in subdomain of SDID is not allowed by the public key record.");
-			}
-		}
-		
 	}
 
 }
