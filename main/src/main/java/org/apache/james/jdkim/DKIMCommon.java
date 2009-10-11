@@ -80,7 +80,7 @@ public abstract class DKIMCommon {
 
         for (Iterator i = headers.iterator(); i.hasNext();) {
             CharSequence header = (CharSequence) i.next();
-            // TODO check this getter is case insensitive
+            // NOTE check this getter is case insensitive
             List hl = h.getFields(header.toString());
             if (hl != null && hl.size() > 0) {
                 Integer done = (Integer) processedHeader.get(header.toString());

@@ -189,160 +189,177 @@ public class DKIMVerifier extends DKIMCommon {
         return key;
     }
 
-    public void verify(InputStream is) throws IOException, FailException {
+    /**
+     * Verifies all of the DKIM-Signature records declared in the supplied input
+     * stream
+     * 
+     * @param is
+     *                inputStream
+     * @return a list of verified signature records.
+     * @throws IOException
+     * @throws FailException
+     *                 if no signature can be verified
+     */
+    public List/* SignatureRecord */verify(InputStream is) throws IOException,
+            FailException {
         Message message;
         try {
             message = new Message(is);
+            return verify(message, message.getBodyInputStream());
         } catch (MimeException e1) {
             throw new PermFailException("Mime parsing exception: "
                     + e1.getMessage(), e1);
+        } finally {
+            is.close();
         }
+    }
+
+    /**
+     * Verifies all of the DKIM-Signature records declared in the Headers
+     * object.
+     * 
+     * @param messageHeaders
+     *                parsed headers
+     * @param bodyInputStream
+     *                input stream for the body.
+     * @return a list of verified signature records
+     * @throws IOException
+     * @throws FailException
+     *                 if no signature can be verified
+     */
+    public List/* SignatureRecord */verify(Headers messageHeaders,
+            InputStream bodyInputStream) throws IOException, FailException {
         // System.out.println(message.getFields("DKIM-Signature"));
-        List fields = message.getFields("DKIM-Signature");
+        List fields = messageHeaders.getFields("DKIM-Signature");
         // if (fields.size() > 1) throw new RuntimeException("here we are!");
-        if (fields.size() > 0) {
-            // For each DKIM-signature we prepare an hashjob.
-            // We calculate all hashes concurrently so to read
-            // the inputstream only once.
-            Map/* String, BodyHashJob */bodyHashJobs = new HashMap();
-            List/* OutputStream */outputStreams = new LinkedList();
-            Map/* String, Exception */signatureExceptions = new Hashtable();
-            for (Iterator i = fields.iterator(); i.hasNext();) {
-                String fval = (String) i.next();
-                try {
-                    int pos = fval.indexOf(':');
-                    if (pos > 0) {
-                        String v = fval.substring(pos + 1, fval.length());
-                        SignatureRecord sign;
-                        try {
-                            sign = newSignatureRecord(v);
-                            // validate
-                            sign.validate();
-                        } catch (IllegalStateException e) {
-                            throw new PermFailException(e.getMessage());
-                        }
-
-                        // TODO here we could check more parameters for
-                        // validation
-                        // before running a network operation like the dns
-                        // lookup.
-                        // e.g: the canonicalization method could be checked
-                        // now.
-
-                        PublicKeyRecord key = publicRecordLookup(sign);
-
-                        List headers = sign.getHeaders();
-
-                        boolean verified = signatureVerify(message, fval, sign,
-                                key, headers);
-
-                        if (!verified)
-                            throw new PermFailException(
-                                    "Header signature does not verify");
-
-                        // we track all canonicalizations+limit+bodyHash we
-                        // see so to be able to check all of them in a single
-                        // stream run.
-                        BodyHasher bhj = newBodyHasher(sign);
-
-                        bodyHashJobs.put(fval, bhj);
-                        outputStreams.add(bhj.getOutputStream());
-
-                    } else {
-                        throw new PermFailException(
-                                "unexpected bad signature field");
-                    }
-                } catch (TempFailException e) {
-                    signatureExceptions.put(fval, e);
-                } catch (PermFailException e) {
-                    signatureExceptions.put(fval, e);
-                } catch (InvalidKeyException e) {
-                    signatureExceptions.put(fval, new PermFailException(e
-                            .getMessage(), e));
-                } catch (NoSuchAlgorithmException e) {
-                    signatureExceptions.put(fval, new PermFailException(e
-                            .getMessage(), e));
-                } catch (SignatureException e) {
-                    signatureExceptions.put(fval, new PermFailException(e
-                            .getMessage(), e));
-                }
-            }
-
-            OutputStream o;
-            if (bodyHashJobs.size() == 0) {
-                // TODO loops signatureExceptions to give a more complete
-                // response.
-                if (signatureExceptions.size() == 1) {
-                    throw (FailException) signatureExceptions.values()
-                            .iterator().next();
-                } else {
-                    // System.out.println(signatureExceptions);
-                    throw new PermFailException("found "
-                            + signatureExceptions.size()
-                            + " invalid signatures");
-                }
-            } else if (bodyHashJobs.size() == 1) {
-                o = (OutputStream) outputStreams.get(0);
-            } else {
-                o = new CompoundOutputStream(outputStreams);
-            }
-
-            // simultaneous computation of all the hashes.
-            DKIMCommon.streamCopy(message.getBodyInputStream(), o);
-
-            List/* BodyHashJob */verifiedSignatures = new LinkedList();
-            for (Iterator i = bodyHashJobs.keySet().iterator(); i.hasNext();) {
-                String fval = (String) i.next();
-                BodyHasher bhj = (BodyHasher) bodyHashJobs.get(fval);
-
-                byte[] computedHash = bhj.getDigest();
-                byte[] expectedBodyHash = bhj.getSignatureRecord()
-                        .getBodyHash();
-
-                if (!Arrays.equals(expectedBodyHash, computedHash)) {
-                    signatureExceptions
-                            .put(
-                                    fval,
-                                    new PermFailException(
-                                            "Computed bodyhash is different from the expected one"));
-                } else {
-                    verifiedSignatures.add(bhj);
-                }
-            }
-
-            if (verifiedSignatures.size() == 0) {
-                if (signatureExceptions.size() == 1) {
-                    throw (FailException) signatureExceptions.values()
-                            .iterator().next();
-                } else {
-                    throw new PermFailException("found "
-                            + signatureExceptions.size()
-                            + " non verifying signatures");
-                }
-            } else {
-                // TODO list good and bad signatures.
-                for (Iterator i = signatureExceptions.keySet().iterator(); i
-                        .hasNext();) {
-                    String f = (String) i.next();
-                    System.out.println("DKIM-Error: "
-                            + ((FailException) signatureExceptions.get(f))
-                                    .getMessage() + " FIELD: " + f);
-                }
-                for (Iterator i = verifiedSignatures.iterator(); i.hasNext();) {
-                    BodyHasher bhj = (BodyHasher) i.next();
-                    System.out
-                            .println("DKIM-Pass: " + bhj.getSignatureRecord());
-                }
-            }
-
-        } else {
+        if (fields.size() == 0) {
             throw new PermFailException("DKIM-Signature field not found");
         }
 
-        is.close();
+        // For each DKIM-signature we prepare an hashjob.
+        // We calculate all hashes concurrently so to read
+        // the inputstream only once.
+        Map/* String, BodyHashJob */bodyHashJobs = new HashMap();
+        List/* OutputStream */outputStreams = new LinkedList();
+        Map/* String, Exception */signatureExceptions = new Hashtable();
+        for (Iterator i = fields.iterator(); i.hasNext();) {
+            String signatureField = (String) i.next();
+            try {
+                int pos = signatureField.indexOf(':');
+                if (pos > 0) {
+                    String v = signatureField.substring(pos + 1, signatureField.length());
+                    SignatureRecord signatureRecord;
+                    try {
+                        signatureRecord = newSignatureRecord(v);
+                        // validate
+                        signatureRecord.validate();
+                    } catch (IllegalStateException e) {
+                        throw new PermFailException(e.getMessage());
+                    }
+
+                    // TODO here we could check more parameters for
+                    // validation before running a network operation like the
+                    // dns lookup.
+                    // e.g: the canonicalization method could be checked now.
+                    PublicKeyRecord publicKeyRecord = publicRecordLookup(signatureRecord);
+
+                    List signedHeadersList = signatureRecord.getHeaders();
+
+                    signatureVerify(messageHeaders, signatureField, signatureRecord, publicKeyRecord, signedHeadersList);
+
+                    // we track all canonicalizations+limit+bodyHash we
+                    // see so to be able to check all of them in a single
+                    // stream run.
+                    BodyHasher bhj = newBodyHasher(signatureRecord);
+
+                    bodyHashJobs.put(signatureField, bhj);
+                    outputStreams.add(bhj.getOutputStream());
+
+                } else {
+                    throw new PermFailException(
+                            "unexpected bad signature field");
+                }
+            } catch (TempFailException e) {
+                signatureExceptions.put(signatureField, e);
+            } catch (PermFailException e) {
+                signatureExceptions.put(signatureField, e);
+            } catch (InvalidKeyException e) {
+                signatureExceptions.put(signatureField, new PermFailException(e
+                        .getMessage(), e));
+            } catch (NoSuchAlgorithmException e) {
+                signatureExceptions.put(signatureField, new PermFailException(e
+                        .getMessage(), e));
+            } catch (SignatureException e) {
+                signatureExceptions.put(signatureField, new PermFailException(e
+                        .getMessage(), e));
+            }
+        }
+
+        OutputStream o;
+        if (bodyHashJobs.size() == 0) {
+            throw prepareException(signatureExceptions);
+        } else if (bodyHashJobs.size() == 1) {
+            o = ((BodyHasher) bodyHashJobs.values().iterator().next()).getOutputStream();
+        } else {
+            o = new CompoundOutputStream(outputStreams);
+        }
+
+        // simultaneous computation of all the hashes.
+        DKIMCommon.streamCopy(bodyInputStream, o);
+
+        List/* SignatureRecord */verifiedSignatures = new LinkedList();
+        for (Iterator i = bodyHashJobs.keySet().iterator(); i.hasNext();) {
+            String fval = (String) i.next();
+            BodyHasher bhj = (BodyHasher) bodyHashJobs.get(fval);
+
+            byte[] computedHash = bhj.getDigest();
+            byte[] expectedBodyHash = bhj.getSignatureRecord().getBodyHash();
+
+            if (!Arrays.equals(expectedBodyHash, computedHash)) {
+                signatureExceptions
+                        .put(
+                                fval,
+                                new PermFailException(
+                                        "Computed bodyhash is different from the expected one"));
+            } else {
+                verifiedSignatures.add(bhj.getSignatureRecord());
+            }
+        }
+
+        if (verifiedSignatures.size() == 0) {
+            throw prepareException(signatureExceptions);
+        } else {
+            // TODO list good and bad signatures.
+            for (Iterator i = signatureExceptions.keySet().iterator(); i
+                    .hasNext();) {
+                String f = (String) i.next();
+                System.out.println("DKIM-Error: "
+                        + ((FailException) signatureExceptions.get(f))
+                                .getMessage() + " FIELD: " + f);
+            }
+            for (Iterator i = verifiedSignatures.iterator(); i.hasNext();) {
+                SignatureRecord sr = (SignatureRecord) i.next();
+                System.out.println("DKIM-Pass: " + sr);
+            }
+            return verifiedSignatures;
+        }
+
     }
 
-    private boolean signatureVerify(Headers h, String dkimSignature,
+    private FailException prepareException(Map signatureExceptions) {
+        if (signatureExceptions.size() == 1) {
+            return (FailException) signatureExceptions.values().iterator()
+                    .next();
+        } else {
+            // TODO loops signatureExceptions to give a more complete
+            // response, using nested exception or a compound exception.
+            // System.out.println(signatureExceptions);
+            return new PermFailException("found "
+                    + signatureExceptions.size() + " invalid signatures");
+        }
+    }
+
+    private void signatureVerify(Headers h, String dkimSignature,
             SignatureRecord sign, PublicKeyRecord key, List headers)
             throws NoSuchAlgorithmException, InvalidKeyException,
             SignatureException, PermFailException {
@@ -357,7 +374,9 @@ public class DKIMVerifier extends DKIMCommon {
 
         signatureCheck(h, sign, headers, signatureStub, signature);
 
-        return signature.verify(decoded);
+        if (!signature.verify(decoded))
+            throw new PermFailException(
+                    "Header signature does not verify");
     }
 
 }

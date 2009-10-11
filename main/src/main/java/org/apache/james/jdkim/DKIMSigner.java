@@ -74,7 +74,7 @@ public class DKIMSigner extends DKIMCommon {
             try {
                 BodyHasher bhj = newBodyHasher(srt);
 
-                // simultaneous computation of all the hashes.
+                // computation of the body hash.
                 DKIMCommon.streamCopy(message.getBodyInputStream(), bhj
                         .getOutputStream());
 
