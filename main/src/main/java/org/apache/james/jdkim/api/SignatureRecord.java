@@ -22,6 +22,9 @@ package org.apache.james.jdkim.api;
 import java.util.List;
 
 public interface SignatureRecord {
+	
+	public final static String RELAXED = "relaxed";
+	public final static String SIMPLE = "simple";
 
 	public final static String ALL = ";all;";
 

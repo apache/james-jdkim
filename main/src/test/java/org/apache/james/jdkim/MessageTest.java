@@ -61,8 +61,10 @@ public class MessageTest extends TestCase {
 		Message m = new Message();
 		m.addField("Subject", "Subject: test\r\n");
 		m.addField("Subject", "Subject: test2\r\n");
-		String f = m.getField("Subject");
-		assertEquals("Subject: test\r\n", f);
+		List f = m.getFields("Subject");
+		assertEquals(2, f.size());
+		assertEquals("Subject: test\r\n", f.get(0));
+		assertEquals("Subject: test2\r\n", f.get(1));
 	}
 
 	public void testGetFields() throws MimeException {
@@ -105,20 +107,6 @@ public class MessageTest extends TestCase {
 			assertTrue(expects.remove(field));
 		}
 		assertEquals(0, expects.size());
-	}
-
-	public void testIterator() throws MimeException {
-		Message m = new Message();
-		m.addField("Subject", "Subject: test\r\n");
-		m.addField("subject", "subject: test2\r\n");
-		m.addField("From", "From: test2\r\n");
-		Iterator i = m.iterator();
-		String field = (String) i.next();
-		assertEquals("Subject: test\r\n", field);
-		field = (String) i.next();
-		assertEquals("subject: test2\r\n", field);
-		field = (String) i.next();
-		assertEquals("From: test2\r\n", field);
 	}
 
 	public void testToString() throws MimeException {

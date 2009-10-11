@@ -124,26 +124,15 @@ public class Message implements Headers {
 		fields.add(field);
 	}
 
-	/* (non-Javadoc)
-	 * @see org.apache.james.jdkim.Headers#getFields()
+	/**
+	 * @see org.apache.james.jdkim.api.Headers#getFields()
 	 */
 	public List getFields() {
 		return Collections.unmodifiableList(fields);
 	}
 
-	/* (non-Javadoc)
-	 * @see org.apache.james.jdkim.Headers#getField(java.lang.String)
-	 */
-	public String getField(String name) {
-		List l = (List) fieldMap.get(name.toLowerCase());
-		if (l != null && !l.isEmpty()) {
-			return (String) l.get(0);
-		}
-		return null;
-	}
-
-	/* (non-Javadoc)
-	 * @see org.apache.james.jdkim.Headers#getFields(java.lang.String)
+	/**
+	 * @see org.apache.james.jdkim.api.Headers#getFields(java.lang.String)
 	 */
 	public List getFields(final String name) {
 		final String lowerCaseName = name.toLowerCase();
@@ -155,15 +144,6 @@ public class Message implements Headers {
 			results = Collections.unmodifiableList(l);
 		}
 		return results;
-	}
-
-	/**
-	 * Returns an iterator over the list of fields of this header.
-	 * 
-	 * @return an iterator.
-	 */
-	public Iterator iterator() {
-		return Collections.unmodifiableList(fields).iterator();
 	}
 
 

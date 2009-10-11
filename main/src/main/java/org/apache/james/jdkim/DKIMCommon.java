@@ -31,6 +31,7 @@ import java.util.Map;
 
 import org.apache.james.jdkim.api.Headers;
 import org.apache.james.jdkim.api.SignatureRecord;
+import org.apache.james.jdkim.exceptions.PermFailException;
 
 public abstract class DKIMCommon {
 
@@ -60,14 +61,18 @@ public abstract class DKIMCommon {
 
 	protected static void signatureCheck(Headers h, SignatureRecord sign,
 			List headers, String signatureStub, Signature signature)
-			throws SignatureException {
-		// TODO make this check better (parse the c field inside sign)
-		boolean relaxedHeaders = "relaxed".equals(sign
+			throws SignatureException, PermFailException {
+
+		boolean relaxedHeaders = SignatureRecord.RELAXED.equals(sign
 				.getHeaderCanonicalisationMethod());
+		if (!relaxedHeaders && !SignatureRecord.SIMPLE.equals(sign
+				.getHeaderCanonicalisationMethod())) {
+			throw new PermFailException("Unsupported canonicalization algorythm: "+sign
+				.getHeaderCanonicalisationMethod());
+		}
 
 		// NOTE: this could be improved by using iterators.
-		// NOTE: also this rely on the list returned by Message being in
-		// insertion order
+		// NOTE: this relies on the list returned by Message being in insertion order
 		Map/* String, Integer */processedHeader = new HashMap();
 
 		for (Iterator i = headers.iterator(); i.hasNext();) {

@@ -31,7 +31,8 @@ public interface Headers {
 	public abstract List/* String */ getFields();
 
 	/**
-	 * Gets all <code>Field</code>s having the specified field name.
+	 * Gets all <code>Field</code>s having the specified field name in a case
+	 * insesitive way.
 	 * 
 	 * @param name
 	 *            the field name (e.g. From, Subject).

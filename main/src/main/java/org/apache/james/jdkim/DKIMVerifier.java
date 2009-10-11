@@ -298,7 +298,7 @@ public class DKIMVerifier extends DKIMCommon {
 	private boolean signatureVerify(Headers h, String dkimSignature, SignatureRecord sign,
 			PublicKeyRecord key, List headers)
 			throws NoSuchAlgorithmException, InvalidKeyException,
-			SignatureException {
+			SignatureException, PermFailException {
 		byte[] decoded = sign.getSignature();
 	
 		String signatureStub = dkimSignature.replaceAll("b=[^;]*", "b=");

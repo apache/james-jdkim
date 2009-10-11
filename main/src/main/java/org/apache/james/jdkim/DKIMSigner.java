@@ -69,15 +69,6 @@ public class DKIMSigner extends DKIMCommon {
 			} catch (MimeException e1) {
 				throw new PermFailException("MIME parsing exception: "+e1.getMessage(), e1);
 			}
-	
-			/*
-			Field field;
-			try {
-				field = UnstructuredField.parse("DKIM-Signature: "+signatureRecordTemplate);
-			} catch (MimeException e1) {
-				throw new PermFailException("Mime parsing exception "+e1.getMessage(), e1);
-			}
-			*/
 			SignatureRecord srt = newSignatureRecord(signatureRecordTemplate);
 			try {
 				BodyHasher bhj = newBodyHasher(srt);
@@ -122,7 +113,7 @@ public class DKIMSigner extends DKIMCommon {
 	private byte[] signatureSign(Headers h, String signatureStub, SignatureRecord sign,
 			PrivateKey key, List headers)
 			throws NoSuchAlgorithmException, InvalidKeyException,
-			SignatureException {
+			SignatureException, PermFailException {
 	
 		Signature signature = Signature.getInstance(sign.getHashMethod().toString().toUpperCase()+"with"+sign.getHashKeyType().toString().toUpperCase());
 		signature.initSign(key);
