@@ -19,6 +19,7 @@
 
 package org.apache.james.jdkim;
 
+import org.apache.james.jdkim.exceptions.PermFailException;
 import org.apache.james.mime4j.parser.MimeTokenStream;
 
 import java.io.File;

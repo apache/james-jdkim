@@ -17,10 +17,9 @@
  * under the License.                                           *
  ****************************************************************/
 
-package org.apache.james.jdkim;
+package org.apache.james.jdkim.impl;
 
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -28,41 +27,33 @@ import org.apache.james.jdkim.api.PublicKeyRecordRetriever;
 import org.apache.james.jdkim.exceptions.PermFailException;
 import org.apache.james.jdkim.exceptions.TempFailException;
 
-/**
- * This is a mock public key record retriever that store the "registry" in a local map.
- */
-public class MockPublicKeyRecordRetriever implements
-		PublicKeyRecordRetriever {
-	private static final String _DOMAINKEY = "._domainkey.";
-	private Map/* String, List<String> */ records = new HashMap();
+public class MultiplexingPublicKeyRecordRetriever implements PublicKeyRecordRetriever {
 	
-	public void addRecord(String selector, String token, String record) {
-		String key = selector+_DOMAINKEY+token;
-		List l = (List) records.get(key);
-		if (l == null) {
-			l = new LinkedList();
-			records.put(key, l);
-		}
-		if (record != null) {
-			l.add(record);
-		}
+	private Map/* String, PublicKeyRecordRetriever */ retrievers;
+	
+	public MultiplexingPublicKeyRecordRetriever() {
+		retrievers = new HashMap();
+	}
+	public MultiplexingPublicKeyRecordRetriever(String methodName, PublicKeyRecordRetriever pkrr) {
+		this();
+		addRetriever(methodName, pkrr);
 	}
 	
-	public MockPublicKeyRecordRetriever() {	
-		
-	}
-	
-	public MockPublicKeyRecordRetriever(String record, CharSequence selector, CharSequence token) {	
-		addRecord(selector.toString(), token.toString(), record);
+	public void addRetriever(String methodName, PublicKeyRecordRetriever pkrr) {
+		retrievers.put(methodName, pkrr);
 	}
 
-	public List getRecords(CharSequence methodAndOptions, CharSequence selector, CharSequence token)
+	public List getRecords(CharSequence methodAndOption,
+			CharSequence selector, CharSequence token)
 			throws TempFailException, PermFailException {
-		if ("dns/txt".equals(methodAndOptions)) {
-			String search = selector+_DOMAINKEY+token;
-			List res = (List) records.get(search);
-			if (res == null || res.size() > 0) return res;
-			else throw new TempFailException("Timout or servfail");
-		} else throw new PermFailException("Unsupported method");
+		int pos = methodAndOption.toString().indexOf('/');
+		String method = pos != -1 ? methodAndOption.subSequence(0, pos).toString() : methodAndOption.toString();
+		PublicKeyRecordRetriever pkrr = (PublicKeyRecordRetriever) retrievers.get(method);
+		if (pkrr != null) {
+			return pkrr.getRecords(methodAndOption, selector, token);
+		} else {
+			throw new PermFailException("Unknown public key record retrieving method: "+methodAndOption);
+		}
 	}
+	
 }

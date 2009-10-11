@@ -27,14 +27,28 @@ import java.security.NoSuchAlgorithmException;
 import java.security.Signature;
 import java.security.SignatureException;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.james.jdkim.api.BodyHasher;
+import org.apache.james.jdkim.api.Headers;
+import org.apache.james.jdkim.api.PublicKeyRecord;
+import org.apache.james.jdkim.api.PublicKeyRecordRetriever;
+import org.apache.james.jdkim.api.SignatureRecord;
 import org.apache.james.jdkim.canon.CompoundOutputStream;
+import org.apache.james.jdkim.exceptions.FailException;
+import org.apache.james.jdkim.exceptions.PermFailException;
+import org.apache.james.jdkim.exceptions.TempFailException;
+import org.apache.james.jdkim.impl.BodyHasherImpl;
+import org.apache.james.jdkim.impl.DNSPublicKeyRecordRetriever;
+import org.apache.james.jdkim.impl.Message;
+import org.apache.james.jdkim.impl.MultiplexingPublicKeyRecordRetriever;
 import org.apache.james.jdkim.tagvalue.PublicKeyRecordImpl;
+import org.apache.james.jdkim.tagvalue.SignatureRecordImpl;
 import org.apache.james.mime4j.MimeException;
 
 public class DKIMVerifier extends DKIMCommon {
@@ -49,9 +63,16 @@ public class DKIMVerifier extends DKIMCommon {
 		this.publicKeyRecordRetriever = publicKeyRecordRetriever;
 	}
 
-
 	protected PublicKeyRecord newPublicKeyRecord(String record) {
 		return new PublicKeyRecordImpl(record);
+	}
+
+	public SignatureRecord newSignatureRecord(String record) {
+		return new SignatureRecordImpl(record);
+	}
+
+	public BodyHasher newBodyHasher(SignatureRecord signRecord) throws NoSuchAlgorithmException {
+		return new BodyHasherImpl(signRecord);
 	}
 
 	protected PublicKeyRecordRetriever getPublicKeyRecordRetriever() throws PermFailException {
@@ -83,7 +104,7 @@ public class DKIMVerifier extends DKIMCommon {
 	}
 
 	/**
-	 * @see org.apache.james.jdkim.PublicKeyRecord#apply(org.apache.james.jdkim.SignatureRecord)
+	 * @see org.apache.james.jdkim.api.PublicKeyRecord#apply(org.apache.james.jdkim.api.SignatureRecord)
 	 */
 	public static void apply(PublicKeyRecord pkr, SignatureRecord sign) {
 		if (!pkr.getGranularityPattern().matcher(sign.getIdentityLocalPart()).matches()) {
@@ -162,7 +183,7 @@ public class DKIMVerifier extends DKIMCommon {
 			// For each DKIM-signature we prepare an hashjob.
 			// We calculate all hashes concurrently so to read
 			// the inputstream only once.
-			List/* BodyHashJob */ bodyHashJobs = new LinkedList();
+			Map/* String, BodyHashJob */ bodyHashJobs = new HashMap();
 			List/* OutputStream */ outputStreams = new LinkedList();
 			Map/* String, Exception */ signatureExceptions = new Hashtable();
 			for (Iterator i = fields.iterator(); i.hasNext(); ) {
@@ -195,9 +216,9 @@ public class DKIMVerifier extends DKIMCommon {
 			
 						// we track all canonicalizations+limit+bodyHash we
 						// see so to be able to check all of them in a single stream run.
-						BodyHashJob bhj = DKIMCommon.prepareBodyHashJob(sign, fval);
+						BodyHasher bhj = newBodyHasher(sign);
 						
-						bodyHashJobs.add(bhj);
+						bodyHashJobs.put(fval, bhj);
 						outputStreams.add(bhj.getOutputStream());
 			
 					} else {
@@ -235,14 +256,15 @@ public class DKIMVerifier extends DKIMCommon {
 			DKIMCommon.streamCopy(message.getBodyInputStream(), o);
 
 			List/* BodyHashJob */ verifiedSignatures = new LinkedList();
-			for (Iterator i = bodyHashJobs.iterator(); i.hasNext(); ) {
-				BodyHashJob bhj = (BodyHashJob) i.next();
+			for (Iterator i = bodyHashJobs.keySet().iterator(); i.hasNext(); ) {
+				String fval = (String) i.next();
+				BodyHasher bhj = (BodyHasher) bodyHashJobs.get(fval);
 	
-				byte[] computedHash = bhj.getDigesterOutputStream().getDigest();
+				byte[] computedHash = bhj.getDigest();
 				byte[] expectedBodyHash = bhj.getSignatureRecord().getBodyHash();
 				
 				if (!Arrays.equals(expectedBodyHash, computedHash)) {
-					signatureExceptions.put(bhj.getField().toString(), new PermFailException("Computed bodyhash is different from the expected one"));
+					signatureExceptions.put(fval, new PermFailException("Computed bodyhash is different from the expected one"));
 				} else {
 					verifiedSignatures.add(bhj);
 				}
@@ -261,7 +283,7 @@ public class DKIMVerifier extends DKIMCommon {
 					System.out.println("DKIM-Error: "+((FailException) signatureExceptions.get(f)).getMessage()+" FIELD: "+f);
 				}
 				for (Iterator i = verifiedSignatures.iterator(); i.hasNext(); ) {
-					BodyHashJob bhj = (BodyHashJob) i.next();
+					BodyHasher bhj = (BodyHasher) i.next();
 					System.out.println("DKIM-Pass: "+bhj.getSignatureRecord());
 				}
 			}

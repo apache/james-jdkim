@@ -17,20 +17,14 @@
  * under the License.                                           *
  ****************************************************************/
 
-package org.apache.james.jdkim;
+package org.apache.james.jdkim.exceptions;
 
-import java.util.List;
+public class TempFailException extends FailException {
 
-public interface PublicKeyRecordRetriever {
-	
-	/**
-	 * @param methodAndOption the options declared for the lookup method.
-	 * @param selector the value of "s=" tag
-	 * @param token the value of the "d=" tag
-	 * @return A list of strings representing 0 to multiple records
-	 * @throws TempFailException in case of timeout and other network errors.
-	 * @throws PermFailException in case of unsupported options
-	 */
-	public List/* String */ getRecords(CharSequence methodAndOption, CharSequence selector, CharSequence token) throws TempFailException, PermFailException;
+	private static final long serialVersionUID = 1304733570453821093L;
+
+	public TempFailException(String error) {
+		super(error);
+	}
 
 }

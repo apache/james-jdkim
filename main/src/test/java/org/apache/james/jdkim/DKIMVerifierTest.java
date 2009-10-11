@@ -19,6 +19,7 @@
 
 package org.apache.james.jdkim;
 
+import org.apache.james.jdkim.api.PublicKeyRecord;
 import org.apache.james.jdkim.tagvalue.PublicKeyRecordImpl;
 import org.apache.james.jdkim.tagvalue.SignatureRecordImpl;
 

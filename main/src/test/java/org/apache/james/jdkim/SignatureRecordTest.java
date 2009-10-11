@@ -19,6 +19,7 @@
 
 package org.apache.james.jdkim;
 
+import org.apache.james.jdkim.api.SignatureRecord;
 import org.apache.james.jdkim.tagvalue.SignatureRecordImpl;
 
 import junit.framework.TestCase;

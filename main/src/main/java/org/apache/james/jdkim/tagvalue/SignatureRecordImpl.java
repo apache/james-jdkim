@@ -19,13 +19,13 @@
 
 package org.apache.james.jdkim.tagvalue;
 
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.regex.Pattern;
 
 import org.apache.commons.codec.binary.Base64;
-import org.apache.james.jdkim.CodecUtil;
-import org.apache.james.jdkim.SignatureRecord;
+import org.apache.james.jdkim.api.SignatureRecord;
 
 
 public class SignatureRecordImpl extends TagValue implements SignatureRecord {
@@ -54,7 +54,7 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
 	}
 	
 	/**
-	 * @see org.apache.james.jdkim.SignatureRecord#validate()
+	 * @see org.apache.james.jdkim.api.SignatureRecord#validate()
 	 */
 	public void validate() throws IllegalStateException {
 		super.validate();
@@ -102,7 +102,7 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
 	}
 	
 	/**
-	 * @see org.apache.james.jdkim.SignatureRecord#getHeaders()
+	 * @see org.apache.james.jdkim.api.SignatureRecord#getHeaders()
 	 */
 	public List/* CharSequence */ getHeaders() {
 		return stringToColonSeparatedList(getValue("h").toString(), hdrNamePattern);
@@ -116,7 +116,7 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
 	}
 
 	/**
-	 * @see org.apache.james.jdkim.SignatureRecord#getIdentityLocalPart()
+	 * @see org.apache.james.jdkim.api.SignatureRecord#getIdentityLocalPart()
 	 */
 	public CharSequence getIdentityLocalPart() {
 		String identity = getIdentity().toString();
@@ -125,11 +125,69 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
 	}
 	
 	public CharSequence getIdentity() {
-		return CodecUtil.dkimQuotedPrintableDecode(getValue("i"));
+		return dkimQuotedPrintableDecode(getValue("i"));
 	}
 	
+
+	public static String dkimQuotedPrintableDecode(CharSequence input) throws IllegalArgumentException {
+		StringBuffer sb = new StringBuffer(input.length());
+		// TODO should we fail on WSP that is not part of FWS?
+		// the specification in 2.6 DKIM-Quoted-Printable is not
+		// clear
+		int state = 0;
+		int start = 0;
+		int d = 0;
+		boolean lastWasNL = false;
+		for (int i = 0; i < input.length(); i++) {
+			if (lastWasNL && input.charAt(i) != ' ' && input.charAt(i) != '\t' ) {
+				throw new IllegalArgumentException("Unexpected LF not part of an FWS");
+			}
+			lastWasNL = false;
+			switch (state) {
+			case 0:
+				switch (input.charAt(i)) {
+				case ' ':
+				case '\t':
+				case '\r':
+				case '\n':
+						if ('\n' == input.charAt(i)) lastWasNL = true;
+					sb.append(input.subSequence(start, i));
+					start = i+1;
+					// ignoring whitespace by now.
+					break;
+				case '=':
+					sb.append(input.subSequence(start, i));
+					state = 1;
+					break;
+				}
+				break;
+			case 1:
+			case 2:
+				if (input.charAt(i) >= '0' && input.charAt(i) <= '9' || input.charAt(i) >= 'A' && input.charAt(i) <= 'F') {
+					int v = Arrays.binarySearch("0123456789ABCDEF".getBytes(), (byte) input.charAt(i));
+					if (state == 1) {
+						state = 2;
+						d = v;
+					} else {
+						d = d*16+v;
+						sb.append((char) d);
+						state = 0;
+						start = i+1;
+					}
+				} else {
+					throw new IllegalArgumentException("Invalid input sequence at "+i);
+				}
+			}
+		}
+		if (state != 0) {
+			throw new IllegalArgumentException("Invalid quoted printable termination");
+		}
+		sb.append(input.subSequence(start, input.length()));
+		return sb.toString();
+	}
+
 	/**
-	 * @see org.apache.james.jdkim.SignatureRecord#getHashKeyType()
+	 * @see org.apache.james.jdkim.api.SignatureRecord#getHashKeyType()
 	 */
 	public CharSequence getHashKeyType() {
 		String a = getValue("a").toString();
@@ -140,7 +198,7 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
 	}
 	
 	/**
-	 * @see org.apache.james.jdkim.SignatureRecord#getHashMethod()
+	 * @see org.apache.james.jdkim.api.SignatureRecord#getHashMethod()
 	 */
 	public CharSequence getHashMethod() {
 		String a = getValue("a").toString();
@@ -151,7 +209,7 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
 	}
 	
 	/**
-	 * @see org.apache.james.jdkim.SignatureRecord#getHashAlgo()
+	 * @see org.apache.james.jdkim.api.SignatureRecord#getHashAlgo()
 	 */
 	public CharSequence getHashAlgo() {
 		String a = getValue("a").toString();
@@ -163,14 +221,14 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
 	}
 	
 	/**
-	 * @see org.apache.james.jdkim.SignatureRecord#getSelector()
+	 * @see org.apache.james.jdkim.api.SignatureRecord#getSelector()
 	 */
 	public CharSequence getSelector() {
 		return getValue("s");
 	}
 
 	/**
-	 * @see org.apache.james.jdkim.SignatureRecord#getDToken()
+	 * @see org.apache.james.jdkim.api.SignatureRecord#getDToken()
 	 */
 	public CharSequence getDToken() {
 		return getValue("d");

@@ -25,6 +25,7 @@ import java.security.interfaces.RSAKey;
 import java.util.List;
 import java.util.regex.Pattern;
 
+import org.apache.james.jdkim.api.PublicKeyRecord;
 import org.apache.james.jdkim.tagvalue.PublicKeyRecordImpl;
 
 import junit.framework.TestCase;

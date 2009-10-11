@@ -17,18 +17,42 @@
  * under the License.                                           *
  ****************************************************************/
 
-package org.apache.james.jdkim;
+package org.apache.james.jdkim.api;
 
-public class FailException extends Exception {
+import java.util.List;
 
-	private static final long serialVersionUID = 1584103235607992818L;
+public interface SignatureRecord {
 
-	public FailException(String error) {
-		super(error);
-	}
+	public final static String ALL = ";all;";
 
-	public FailException(String string, Exception e) {
-		super(string, e);
-	}
+	public abstract void validate();
+
+	public abstract List/* CharSequence */getHeaders();
+
+	public abstract CharSequence getIdentityLocalPart();
+
+	public abstract CharSequence getIdentity();
+
+	public abstract CharSequence getHashKeyType();
+
+	public abstract CharSequence getHashMethod();
+	
+	public abstract CharSequence getHashAlgo();
+
+	public abstract CharSequence getSelector();
+
+	public abstract CharSequence getDToken();
+	
+	public abstract byte[] getBodyHash();
+	
+	public abstract int getBodyHashLimit();
+
+	public abstract byte[] getSignature();
+	
+	public abstract String getHeaderCanonicalisationMethod();
+	
+	public abstract String getBodyCanonicalisationMethod();
+
+	public abstract List getRecordLookupMethods();
 
 }

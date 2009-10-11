@@ -34,9 +34,9 @@ import javax.mail.internet.MimeMessage.RecipientType;
 import junit.framework.TestCase;
 
 import org.apache.james.jdkim.DKIMVerifier;
-import org.apache.james.jdkim.FailException;
 import org.apache.james.jdkim.MockPublicKeyRecordRetriever;
-import org.apache.james.jdkim.PermFailException;
+import org.apache.james.jdkim.exceptions.FailException;
+import org.apache.james.jdkim.exceptions.PermFailException;
 import org.apache.mailet.Mail;
 import org.apache.mailet.Mailet;
 import org.apache.mailet.base.test.FakeMail;

@@ -23,6 +23,12 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.james.jdkim.api.PublicKeyRecordRetriever;
+import org.apache.james.jdkim.exceptions.FailException;
+import org.apache.james.jdkim.exceptions.PermFailException;
+import org.apache.james.jdkim.exceptions.TempFailException;
+import org.apache.james.jdkim.impl.MultiplexingPublicKeyRecordRetriever;
+
 import junit.framework.TestCase;
 
 public class MultiplexingPublicKeyRecordRetrieverTest extends TestCase {

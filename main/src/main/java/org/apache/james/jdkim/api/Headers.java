@@ -17,42 +17,26 @@
  * under the License.                                           *
  ****************************************************************/
 
-package org.apache.james.jdkim;
+package org.apache.james.jdkim.api;
 
 import java.util.List;
 
-public interface SignatureRecord {
+public interface Headers {
 
-	public final static String ALL = ";all;";
+	/**
+	 * Gets the fields of this header. The returned list will not be modifiable.
+	 * 
+	 * @return the list of <code>Field</code> objects.
+	 */
+	public abstract List/* String */ getFields();
 
-	public abstract void validate();
-
-	public abstract List/* CharSequence */getHeaders();
-
-	public abstract CharSequence getIdentityLocalPart();
-
-	public abstract CharSequence getIdentity();
-
-	public abstract CharSequence getHashKeyType();
-
-	public abstract CharSequence getHashMethod();
-	
-	public abstract CharSequence getHashAlgo();
-
-	public abstract CharSequence getSelector();
-
-	public abstract CharSequence getDToken();
-	
-	public abstract byte[] getBodyHash();
-	
-	public abstract int getBodyHashLimit();
-
-	public abstract byte[] getSignature();
-	
-	public abstract String getHeaderCanonicalisationMethod();
-	
-	public abstract String getBodyCanonicalisationMethod();
-
-	public abstract List getRecordLookupMethods();
+	/**
+	 * Gets all <code>Field</code>s having the specified field name.
+	 * 
+	 * @param name
+	 *            the field name (e.g. From, Subject).
+	 * @return the list of fields.
+	 */
+	public abstract List/* String */ getFields(final String name);
 
 }

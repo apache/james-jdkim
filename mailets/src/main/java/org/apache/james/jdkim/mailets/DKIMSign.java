@@ -34,12 +34,11 @@ import javax.mail.Header;
 import javax.mail.MessagingException;
 import javax.mail.internet.MimeMessage;
 
-import org.apache.james.jdkim.BodyHashJob;
-import org.apache.james.jdkim.DKIMCommon;
 import org.apache.james.jdkim.DKIMSigner;
-import org.apache.james.jdkim.Headers;
-import org.apache.james.jdkim.PermFailException;
-import org.apache.james.jdkim.SignatureRecord;
+import org.apache.james.jdkim.api.BodyHasher;
+import org.apache.james.jdkim.api.Headers;
+import org.apache.james.jdkim.api.SignatureRecord;
+import org.apache.james.jdkim.exceptions.PermFailException;
 import org.apache.mailet.Mail;
 import org.apache.mailet.base.GenericMailet;
 
@@ -114,7 +113,7 @@ public class DKIMSign extends GenericMailet {
 		DKIMSigner signer = new DKIMSigner(signatureTemplate, privateKey);
 		SignatureRecord signRecord = signer.newSignatureRecord(signatureTemplate);
 		try {
-			BodyHashJob bhj = DKIMCommon.prepareBodyHashJob(signRecord, signatureTemplate);
+			BodyHasher bhj = signer.newBodyHasher(signRecord);
 			MimeMessage message = mail.getMessage();
 			Headers headers = new MimeMessageHeaders(message);
 			try {

@@ -17,18 +17,23 @@
  * under the License.                                           *
  ****************************************************************/
 
-package org.apache.james.jdkim;
+package org.apache.james.jdkim.api;
 
-public class PermFailException extends FailException {
+import java.util.List;
 
-	private static final long serialVersionUID = 1304736020453821093L;
+import org.apache.james.jdkim.exceptions.PermFailException;
+import org.apache.james.jdkim.exceptions.TempFailException;
 
-	public PermFailException(String error) {
-		super(error);
-	}
-
-	public PermFailException(String string, Exception e) {
-		super(string, e);
-	}
+public interface PublicKeyRecordRetriever {
+	
+	/**
+	 * @param methodAndOption the options declared for the lookup method.
+	 * @param selector the value of "s=" tag
+	 * @param token the value of the "d=" tag
+	 * @return A list of strings representing 0 to multiple records
+	 * @throws TempFailException in case of timeout and other network errors.
+	 * @throws PermFailException in case of unsupported options
+	 */
+	public List/* String */ getRecords(CharSequence methodAndOption, CharSequence selector, CharSequence token) throws TempFailException, PermFailException;
 
 }

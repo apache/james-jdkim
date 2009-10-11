@@ -17,12 +17,15 @@
  * under the License.                                           *
  ****************************************************************/
 
-package org.apache.james.jdkim;
+package org.apache.james.jdkim.impl;
 
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.james.jdkim.api.PublicKeyRecordRetriever;
+import org.apache.james.jdkim.exceptions.PermFailException;
+import org.apache.james.jdkim.exceptions.TempFailException;
 import org.xbill.DNS.Lookup;
 import org.xbill.DNS.Record;
 import org.xbill.DNS.Resolver;

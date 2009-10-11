@@ -17,41 +17,18 @@
  * under the License.                                           *
  ****************************************************************/
 
-package org.apache.james.jdkim;
+package org.apache.james.jdkim.exceptions;
 
-import java.security.PublicKey;
-import java.util.List;
-import java.util.regex.Pattern;
+public class FailException extends Exception {
 
-public interface PublicKeyRecord {
+	private static final long serialVersionUID = 1584103235607992818L;
 
-	public final static String ANY = ";any;";
+	public FailException(String error) {
+		super(error);
+	}
 
-	public abstract void validate();
-
-	public abstract boolean isHashMethodSupported(CharSequence hash);
-
-	public abstract boolean isKeyTypeSupported(CharSequence hash);
-
-	/**
-	 * @return null if "any", otherwise a list of supported methods
-	 */
-	public abstract List/* String */getAcceptableHashMethods();
-
-	/**
-	 * @return null if "any", otherwise a list of supported methods
-	 */
-	public abstract List/* String */getAcceptableKeyTypes();
-
-	public abstract Pattern getGranularityPattern();
-
-	public abstract PublicKey getPublicKey();
-
-	
-	public abstract List getFlags();
-	
-	public abstract boolean isTesting();
-	
-	public abstract boolean isDenySubdomains();
+	public FailException(String string, Exception e) {
+		super(string, e);
+	}
 
 }

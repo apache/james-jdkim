@@ -32,6 +32,14 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.List;
 
 import org.apache.commons.codec.binary.Base64;
+import org.apache.james.jdkim.api.BodyHasher;
+import org.apache.james.jdkim.api.Headers;
+import org.apache.james.jdkim.api.SignatureRecord;
+import org.apache.james.jdkim.exceptions.FailException;
+import org.apache.james.jdkim.exceptions.PermFailException;
+import org.apache.james.jdkim.impl.BodyHasherImpl;
+import org.apache.james.jdkim.impl.Message;
+import org.apache.james.jdkim.tagvalue.SignatureRecordImpl;
 import org.apache.james.mime4j.MimeException;
 
 public class DKIMSigner extends DKIMCommon {
@@ -43,7 +51,15 @@ public class DKIMSigner extends DKIMCommon {
 		this.privateKey = privateKey;
 		this.signatureRecordTemplate = signatureRecordTemplate;
 	}
-	
+
+	public SignatureRecord newSignatureRecord(String record) {
+		return new SignatureRecordImpl(record);
+	}
+
+	public BodyHasher newBodyHasher(SignatureRecord signRecord) throws NoSuchAlgorithmException {
+		return new BodyHasherImpl(signRecord);
+	}
+
 	public String sign(InputStream is)
 			throws IOException, FailException {
 		Message message;
@@ -64,7 +80,7 @@ public class DKIMSigner extends DKIMCommon {
 			*/
 			SignatureRecord srt = newSignatureRecord(signatureRecordTemplate);
 			try {
-				BodyHashJob bhj = DKIMCommon.prepareBodyHashJob(srt, "DKIM-Signature: "+signatureRecordTemplate);
+				BodyHasher bhj = newBodyHasher(srt);
 
 				// simultaneous computation of all the hashes.
 				DKIMCommon.streamCopy(message.getBodyInputStream(), bhj.getOutputStream());
@@ -79,9 +95,9 @@ public class DKIMSigner extends DKIMCommon {
 		}
 	}
 
-	public String sign(Headers message, BodyHashJob bhj)
+	public String sign(Headers message, BodyHasher bhj)
 			throws PermFailException {
-		byte[] computedHash = bhj.getDigesterOutputStream().getDigest();
+		byte[] computedHash = bhj.getDigest();
 		String newField = "DKIM-Signature: "+signatureRecordTemplate.replaceAll("bh=[^;]*", "bh="+new String(Base64.encodeBase64(computedHash)));
 
 		List headers = bhj.getSignatureRecord().getHeaders();

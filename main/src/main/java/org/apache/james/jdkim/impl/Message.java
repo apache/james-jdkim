@@ -17,7 +17,7 @@
  * under the License.                                           *
  ****************************************************************/
 
-package org.apache.james.jdkim;
+package org.apache.james.jdkim.impl;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -28,6 +28,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.james.jdkim.api.Headers;
 import org.apache.james.mime4j.MimeException;
 import org.apache.james.mime4j.io.EOLConvertingInputStream;
 import org.apache.james.mime4j.parser.MimeEntityConfig;

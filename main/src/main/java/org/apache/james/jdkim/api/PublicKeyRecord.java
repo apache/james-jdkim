@@ -17,26 +17,41 @@
  * under the License.                                           *
  ****************************************************************/
 
-package org.apache.james.jdkim;
+package org.apache.james.jdkim.api;
 
+import java.security.PublicKey;
 import java.util.List;
+import java.util.regex.Pattern;
 
-public interface Headers {
+public interface PublicKeyRecord {
+
+	public final static String ANY = ";any;";
+
+	public abstract void validate();
+
+	public abstract boolean isHashMethodSupported(CharSequence hash);
+
+	public abstract boolean isKeyTypeSupported(CharSequence hash);
 
 	/**
-	 * Gets the fields of this header. The returned list will not be modifiable.
-	 * 
-	 * @return the list of <code>Field</code> objects.
+	 * @return null if "any", otherwise a list of supported methods
 	 */
-	public abstract List/* String */ getFields();
+	public abstract List/* String */getAcceptableHashMethods();
 
 	/**
-	 * Gets all <code>Field</code>s having the specified field name.
-	 * 
-	 * @param name
-	 *            the field name (e.g. From, Subject).
-	 * @return the list of fields.
+	 * @return null if "any", otherwise a list of supported methods
 	 */
-	public abstract List/* String */ getFields(final String name);
+	public abstract List/* String */getAcceptableKeyTypes();
+
+	public abstract Pattern getGranularityPattern();
+
+	public abstract PublicKey getPublicKey();
+
+	
+	public abstract List getFlags();
+	
+	public abstract boolean isTesting();
+	
+	public abstract boolean isDenySubdomains();
 
 }

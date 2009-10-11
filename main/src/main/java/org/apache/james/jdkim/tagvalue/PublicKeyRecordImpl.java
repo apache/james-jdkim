@@ -31,7 +31,7 @@ import java.util.List;
 import java.util.regex.Pattern;
 
 import org.apache.commons.codec.binary.Base64;
-import org.apache.james.jdkim.PublicKeyRecord;
+import org.apache.james.jdkim.api.PublicKeyRecord;
 
 public class PublicKeyRecordImpl extends TagValue implements PublicKeyRecord {
 	
@@ -73,7 +73,7 @@ public class PublicKeyRecordImpl extends TagValue implements PublicKeyRecord {
 	}
 
 	/**
-	 * @see org.apache.james.jdkim.PublicKeyRecord#isHashMethodSupported(java.lang.CharSequence)
+	 * @see org.apache.james.jdkim.api.PublicKeyRecord#isHashMethodSupported(java.lang.CharSequence)
 	 */
 	public boolean isHashMethodSupported(CharSequence hash) {
 		List hashes = getAcceptableHashMethods();
@@ -82,7 +82,7 @@ public class PublicKeyRecordImpl extends TagValue implements PublicKeyRecord {
 	}
 
 	/**
-	 * @see org.apache.james.jdkim.PublicKeyRecord#isKeyTypeSupported(java.lang.CharSequence)
+	 * @see org.apache.james.jdkim.api.PublicKeyRecord#isKeyTypeSupported(java.lang.CharSequence)
 	 */
 	public boolean isKeyTypeSupported(CharSequence hash) {
 		List hashes = getAcceptableKeyTypes();
@@ -90,14 +90,14 @@ public class PublicKeyRecordImpl extends TagValue implements PublicKeyRecord {
 	}
 	
 	/**
-	 * @see org.apache.james.jdkim.PublicKeyRecord#getAcceptableHashMethods()
+	 * @see org.apache.james.jdkim.api.PublicKeyRecord#getAcceptableHashMethods()
 	 */
 	public List/* String */ getAcceptableHashMethods() {
 		if (ANY.equals(getValue("h"))) return null;
 		return stringToColonSeparatedList(getValue("h").toString(), hyphenatedWordPattern);
 	}
 	/**
-	 * @see org.apache.james.jdkim.PublicKeyRecord#getAcceptableKeyTypes()
+	 * @see org.apache.james.jdkim.api.PublicKeyRecord#getAcceptableKeyTypes()
 	 */
 	public List/* String */ getAcceptableKeyTypes() {
 		return stringToColonSeparatedList(getValue("k").toString(), hyphenatedWordPattern);
@@ -105,7 +105,7 @@ public class PublicKeyRecordImpl extends TagValue implements PublicKeyRecord {
 
 
 	/**
-	 * @see org.apache.james.jdkim.PublicKeyRecord#getGranularityPattern()
+	 * @see org.apache.james.jdkim.api.PublicKeyRecord#getGranularityPattern()
 	 */
 	public Pattern getGranularityPattern() {
 		String g = getValue("g").toString();
@@ -148,7 +148,7 @@ public class PublicKeyRecordImpl extends TagValue implements PublicKeyRecord {
 
 
 	/**
-	 * @see org.apache.james.jdkim.PublicKeyRecord#getPublicKey()
+	 * @see org.apache.james.jdkim.api.PublicKeyRecord#getPublicKey()
 	 */
 	public PublicKey getPublicKey() {
 		try {

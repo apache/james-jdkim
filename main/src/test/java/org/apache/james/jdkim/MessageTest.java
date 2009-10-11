@@ -29,6 +29,7 @@ import java.util.List;
 
 import junit.framework.TestCase;
 
+import org.apache.james.jdkim.impl.Message;
 import org.apache.james.mime4j.MimeException;
 
 public class MessageTest extends TestCase {

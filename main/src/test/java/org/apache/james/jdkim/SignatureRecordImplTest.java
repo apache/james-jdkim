@@ -19,11 +19,81 @@
 
 package org.apache.james.jdkim;
 
+import org.apache.james.jdkim.api.SignatureRecord;
 import org.apache.james.jdkim.tagvalue.SignatureRecordImpl;
 
 import junit.framework.TestCase;
 
 public class SignatureRecordImplTest extends TestCase {
+
+	public void testQPDecode() {
+		assertEquals("",SignatureRecordImpl.dkimQuotedPrintableDecode(""));
+		assertEquals("@",SignatureRecordImpl.dkimQuotedPrintableDecode("=40"));
+		assertEquals("\r\n",SignatureRecordImpl.dkimQuotedPrintableDecode("=0D=0A"));
+		assertEquals("\0CIAO\0",SignatureRecordImpl.dkimQuotedPrintableDecode("=00CIAO=00"));
+		assertEquals("thisisatest",SignatureRecordImpl.dkimQuotedPrintableDecode("this\r\n\tis\r\n a\r\n  \t test"));
+	}
+	
+	public void testQPWhiteSpaces() {
+		assertEquals("thisisatest",SignatureRecordImpl.dkimQuotedPrintableDecode("this is a test"));
+		assertEquals("thisisatest",SignatureRecordImpl.dkimQuotedPrintableDecode("this\r\n is a test"));
+	}
+	
+	public void testQPInvalid() {
+		try {
+			SignatureRecordImpl.dkimQuotedPrintableDecode("=");
+			fail("invalid sequence parsed.");
+		} catch (IllegalArgumentException e) {
+		}
+		try {
+			SignatureRecordImpl.dkimQuotedPrintableDecode("==");
+			fail("invalid sequence parsed.");
+		} catch (IllegalArgumentException e) {
+		}
+		try {
+			SignatureRecordImpl.dkimQuotedPrintableDecode("=2 3");
+			fail("invalid sequence parsed.");
+		} catch (IllegalArgumentException e) {
+		}
+		try {
+			SignatureRecordImpl.dkimQuotedPrintableDecode("=3");
+			fail("invalid sequence parsed.");
+		} catch (IllegalArgumentException e) {
+		}
+		try {
+			SignatureRecordImpl.dkimQuotedPrintableDecode("=3a");
+			fail("invalid sequence parsed.");
+		} catch (IllegalArgumentException e) {
+		}
+		try {
+			SignatureRecordImpl.dkimQuotedPrintableDecode("==20");
+			fail("invalid sequence parsed.");
+		} catch (IllegalArgumentException e) {
+		}
+		try {
+			SignatureRecordImpl.dkimQuotedPrintableDecode("=20=");
+			fail("invalid sequence parsed.");
+		} catch (IllegalArgumentException e) {
+		}
+		try {
+			SignatureRecordImpl.dkimQuotedPrintableDecode("=3x");
+			fail("invalid sequence parsed.");
+		} catch (IllegalArgumentException e) {
+		}
+		try {
+			SignatureRecordImpl.dkimQuotedPrintableDecode("this\r\nis a test");
+			fail("invalid sequence parsed.");
+		} catch (IllegalArgumentException e) {
+		}
+	}
+	
+	// TODO check bytes > 128
+	/*
+	public void test8bit() {
+		assertEquals("PROVA\144CIAO\144",Main.dkimQuotedPrintableDecode("PROVA=90CIAO=90"));
+	}
+	*/
+
 
 	/* when we moved from Sun's Base64 to CommonsCodec the decoding changed behaviour.
 	 * it does no more fail on bad encoded data.

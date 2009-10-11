@@ -17,49 +17,17 @@
  * under the License.                                           *
  ****************************************************************/
 
-package org.apache.james.jdkim;
+package org.apache.james.jdkim.api;
 
 import java.io.OutputStream;
 
-import org.apache.james.jdkim.canon.DigestOutputStream;
 
-public class BodyHashJob {
+public interface BodyHasher {
 
-	private SignatureRecord sign;
-	private DigestOutputStream digesterOS;
-	private OutputStream out;
-	private String field;
+	public abstract OutputStream getOutputStream();
 
-	public OutputStream getOutputStream() {
-		return out;
-	}
+	public abstract SignatureRecord getSignatureRecord();
 
-	public SignatureRecord getSignatureRecord() {
-		return sign;
-	}
-
-	public DigestOutputStream getDigesterOutputStream() {
-		return digesterOS;
-	}
-
-	public void setSignatureRecord(SignatureRecord sign) {
-		this.sign = sign;
-	}
-
-	public void setDigestOutputStream(DigestOutputStream dout) {
-		this.digesterOS = dout;
-	}
-
-	public void setOutputStream(OutputStream out) {
-		this.out = out;
-	}
-
-	public void setField(String f) {
-		this.field = f;
-	}
-	
-	public String getField() {
-		return this.field;
-	}
+	public abstract byte[] getDigest();
 
 }

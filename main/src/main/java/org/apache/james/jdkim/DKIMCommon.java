@@ -22,8 +22,6 @@ package org.apache.james.jdkim;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.security.Signature;
 import java.security.SignatureException;
 import java.util.HashMap;
@@ -31,18 +29,14 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.james.jdkim.canon.DebugOutputStream;
-import org.apache.james.jdkim.canon.DigestOutputStream;
-import org.apache.james.jdkim.canon.LimitedOutputStream;
-import org.apache.james.jdkim.canon.RelaxedBodyCanonicalizer;
-import org.apache.james.jdkim.canon.SimpleBodyCanonicalizer;
-import org.apache.james.jdkim.tagvalue.SignatureRecordImpl;
+import org.apache.james.jdkim.api.Headers;
+import org.apache.james.jdkim.api.SignatureRecord;
 
-public class DKIMCommon {
+public abstract class DKIMCommon {
 
 	private static final boolean DEEP_DEBUG = false;
 
-	public static void updateSignature(Signature signature, boolean relaxed,
+	protected static void updateSignature(Signature signature, boolean relaxed,
 			CharSequence header, String fv) throws SignatureException {
 		if (relaxed) {
 			if (DEEP_DEBUG)
@@ -99,22 +93,6 @@ public class DKIMCommon {
 				signatureStub);
 	}
 
-	public SignatureRecord newSignatureRecord(String record) {
-		return new SignatureRecordImpl(record);
-	}
-
-	static OutputStream prepareCanonicalizerOutputStream(int limit,
-			boolean relaxedBody, OutputStream dout) {
-		OutputStream out = dout;
-		if (limit != -1)
-			out = new LimitedOutputStream(out, limit);
-		if (relaxedBody)
-			out = new RelaxedBodyCanonicalizer(out);
-		else
-			out = new SimpleBodyCanonicalizer(out);
-		return out;
-	}
-
 	public static void streamCopy(InputStream bodyIs, OutputStream out)
 			throws IOException {
 		byte[] buffer = new byte[2048];
@@ -124,36 +102,6 @@ public class DKIMCommon {
 		}
 		bodyIs.close();
 		out.close();
-	}
-
-	public static BodyHashJob prepareBodyHashJob(SignatureRecord sign,
-			String f) throws NoSuchAlgorithmException {
-		MessageDigest md = MessageDigest.getInstance(sign.getHashAlgo().toString());
-		
-		BodyHashJob bhj = new BodyHashJob();
-
-		int limit = sign.getBodyHashLimit();
-
-		// TODO enhance this to use a lookup service.
-		boolean relaxedBody = "relaxed".equals(sign
-				.getBodyCanonicalisationMethod());
-
-		DigestOutputStream dout = new DigestOutputStream(md);
-		
-		OutputStream out = dout;
-		if (DEEP_DEBUG) out = new DebugOutputStream(out);
-		out = DKIMCommon.prepareCanonicalizerOutputStream(limit,
-				relaxedBody, out);
-
-		bhj.setSignatureRecord(sign);
-		bhj.setDigestOutputStream(dout);
-		bhj.setOutputStream(out);
-		bhj.setField(f);
-		return bhj;
-	}
-
-	public DKIMCommon() {
-		super();
 	}
 
 }
