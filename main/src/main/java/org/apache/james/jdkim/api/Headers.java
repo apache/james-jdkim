@@ -32,7 +32,7 @@ public interface Headers {
 
     /**
      * Gets all <code>Field</code>s having the specified field name in a case
-     * insesitive way.
+     * insensitive way.
      * 
      * @param name
      *                the field name (e.g. From, Subject).
