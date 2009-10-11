@@ -38,8 +38,6 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
     }
 
     protected void init() {
-        super.init();
-
         mandatoryTags.add("v");
         mandatoryTags.add("a");
         mandatoryTags.add("b");
@@ -48,7 +46,7 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
         mandatoryTags.add("h");
         mandatoryTags.add("s");
 
-        defaults.put("c", "simple/simple");
+        defaults.put("c", SIMPLE+"/"+SIMPLE);
         defaults.put("l", ALL);
         defaults.put("q", "dns/txt");
     }
@@ -282,7 +280,7 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
         if (pSlash != -1) {
             return c.substring(pSlash + 1);
         } else {
-            return "simple";
+            return SIMPLE;
         }
     }
 
@@ -308,5 +306,20 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
         }
         return res;
     }
+
+    public void setSignature(byte[] newSignature) {
+        String signature = new String(Base64.encodeBase64(newSignature));
+        setValue("b", signature);
+    }
+
+    public void setBodyHash(byte[] newBodyHash) {
+        String bodyHash = new String(Base64.encodeBase64(newBodyHash));
+        setValue("bh", bodyHash);
+    }
+
+    public String toUnsignedString() {
+        return toString().replaceFirst("b=[^;]*", "b=");
+    }
+
 
 }

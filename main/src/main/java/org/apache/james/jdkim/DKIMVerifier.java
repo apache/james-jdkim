@@ -247,7 +247,8 @@ public class DKIMVerifier extends DKIMCommon {
             try {
                 int pos = signatureField.indexOf(':');
                 if (pos > 0) {
-                    String v = signatureField.substring(pos + 1, signatureField.length());
+                    String v = signatureField.substring(pos + 1, signatureField
+                            .length());
                     SignatureRecord signatureRecord;
                     try {
                         signatureRecord = newSignatureRecord(v);
@@ -265,7 +266,9 @@ public class DKIMVerifier extends DKIMCommon {
 
                     List signedHeadersList = signatureRecord.getHeaders();
 
-                    signatureVerify(messageHeaders, signatureField, signatureRecord, publicKeyRecord, signedHeadersList);
+                    byte[] decoded = signatureRecord.getSignature();
+                    signatureVerify(messageHeaders, signatureRecord, decoded,
+                            publicKeyRecord, signedHeadersList);
 
                     // we track all canonicalizations+limit+bodyHash we
                     // see so to be able to check all of them in a single
@@ -299,7 +302,8 @@ public class DKIMVerifier extends DKIMCommon {
         if (bodyHashJobs.size() == 0) {
             throw prepareException(signatureExceptions);
         } else if (bodyHashJobs.size() == 1) {
-            o = ((BodyHasher) bodyHashJobs.values().iterator().next()).getOutputStream();
+            o = ((BodyHasher) bodyHashJobs.values().iterator().next())
+                    .getOutputStream();
         } else {
             o = new CompoundOutputStream(outputStreams);
         }
@@ -308,9 +312,8 @@ public class DKIMVerifier extends DKIMCommon {
         DKIMCommon.streamCopy(bodyInputStream, o);
 
         List/* SignatureRecord */verifiedSignatures = new LinkedList();
-        for (Iterator i = bodyHashJobs.keySet().iterator(); i.hasNext();) {
-            String fval = (String) i.next();
-            BodyHasher bhj = (BodyHasher) bodyHashJobs.get(fval);
+        for (Iterator i = bodyHashJobs.values().iterator(); i.hasNext();) {
+            BodyHasher bhj = (BodyHasher) i.next();
 
             byte[] computedHash = bhj.getDigest();
             byte[] expectedBodyHash = bhj.getSignatureRecord().getBodyHash();
@@ -318,7 +321,7 @@ public class DKIMVerifier extends DKIMCommon {
             if (!Arrays.equals(expectedBodyHash, computedHash)) {
                 signatureExceptions
                         .put(
-                                fval,
+                                "DKIM-Signature:"+bhj.getSignatureRecord().toString(),
                                 new PermFailException(
                                         "Computed bodyhash is different from the expected one"));
             } else {
@@ -354,29 +357,25 @@ public class DKIMVerifier extends DKIMCommon {
             // TODO loops signatureExceptions to give a more complete
             // response, using nested exception or a compound exception.
             // System.out.println(signatureExceptions);
-            return new PermFailException("found "
-                    + signatureExceptions.size() + " invalid signatures");
+            return new PermFailException("found " + signatureExceptions.size()
+                    + " invalid signatures");
         }
     }
 
-    private void signatureVerify(Headers h, String dkimSignature,
-            SignatureRecord sign, PublicKeyRecord key, List headers)
+    private void signatureVerify(Headers h, SignatureRecord sign,
+            byte[] decoded, PublicKeyRecord key, List headers)
             throws NoSuchAlgorithmException, InvalidKeyException,
             SignatureException, PermFailException {
-        byte[] decoded = sign.getSignature();
-
-        String signatureStub = dkimSignature.replaceAll("b=[^;]*", "b=");
 
         Signature signature = Signature.getInstance(sign.getHashMethod()
                 .toString().toUpperCase()
                 + "with" + sign.getHashKeyType().toString().toUpperCase());
         signature.initVerify(key.getPublicKey());
 
-        signatureCheck(h, sign, headers, signatureStub, signature);
+        signatureCheck(h, sign, headers, signature);
 
         if (!signature.verify(decoded))
-            throw new PermFailException(
-                    "Header signature does not verify");
+            throw new PermFailException("Header signature does not verify");
     }
 
 }

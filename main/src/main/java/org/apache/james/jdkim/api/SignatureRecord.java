@@ -21,14 +21,15 @@ package org.apache.james.jdkim.api;
 
 import java.util.List;
 
+
+/**
+ * A complete SignatureRecord, including the signature and "formatted".
+ */
 public interface SignatureRecord {
 
     public final static String RELAXED = "relaxed";
     public final static String SIMPLE = "simple";
-
     public final static String ALL = ";all;";
-
-    public abstract void validate();
 
     public abstract List/* CharSequence */getHeaders();
 
@@ -50,12 +51,20 @@ public interface SignatureRecord {
 
     public abstract int getBodyHashLimit();
 
-    public abstract byte[] getSignature();
-
     public abstract String getHeaderCanonicalisationMethod();
 
     public abstract String getBodyCanonicalisationMethod();
 
     public abstract List getRecordLookupMethods();
+
+    public abstract void validate();
+
+    public abstract byte[] getSignature();
+    
+    public abstract void setSignature(byte[] newSignature);
+    
+    public abstract void setBodyHash(byte[] newBodyHash);
+    
+    public abstract String toUnsignedString();
 
 }

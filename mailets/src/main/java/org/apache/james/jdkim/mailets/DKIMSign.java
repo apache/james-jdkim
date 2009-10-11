@@ -120,7 +120,7 @@ public class DKIMSign extends GenericMailet {
     public void service(Mail mail) throws MessagingException {
         DKIMSigner signer = new DKIMSigner(signatureTemplate, privateKey);
         SignatureRecord signRecord = signer
-                .newSignatureRecord(signatureTemplate);
+                .newSignatureRecordTemplate(signatureTemplate);
         try {
             BodyHasher bhj = signer.newBodyHasher(signRecord);
             MimeMessage message = mail.getMessage();

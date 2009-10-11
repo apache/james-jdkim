@@ -28,6 +28,7 @@ import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 import org.apache.commons.codec.binary.Base64;
@@ -50,10 +51,13 @@ public class PublicKeyRecordImpl extends TagValue implements PublicKeyRecord {
         super(data);
     }
 
-    protected void init() {
+    protected Map newTagValue() {
         // extensions may override this to use TreeMaps in order to keep track
         // of orders
-        tagValues = new LinkedHashMap();
+        return new LinkedHashMap();
+    }
+
+    protected void init() {
         mandatoryTags.add("p");
         defaults.put("v", "DKIM1");
         defaults.put("g", "*");
@@ -68,10 +72,9 @@ public class PublicKeyRecordImpl extends TagValue implements PublicKeyRecord {
     // in the same way?
     public void validate() {
         super.validate();
-        if (tagValues.containsKey("v")) {
+        if (containsTag("v")) {
             // if "v" is specified it must be the first tag
-            String firstKey = (String) ((LinkedHashMap) tagValues).keySet()
-                    .iterator().next();
+            String firstKey = (String) tagSet().iterator().next();
             if (!"v".equals(firstKey))
                 throw new IllegalStateException(
                         "Existing v= tag MUST be the first in the record list ("

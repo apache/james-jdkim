@@ -52,7 +52,7 @@ public class DKIMSigner extends DKIMCommon {
         this.signatureRecordTemplate = signatureRecordTemplate;
     }
 
-    public SignatureRecord newSignatureRecord(String record) {
+    public SignatureRecord newSignatureRecordTemplate(String record) {
         return new SignatureRecordImpl(record);
     }
 
@@ -70,7 +70,7 @@ public class DKIMSigner extends DKIMCommon {
                 throw new PermFailException("MIME parsing exception: "
                         + e1.getMessage(), e1);
             }
-            SignatureRecord srt = newSignatureRecord(signatureRecordTemplate);
+            SignatureRecord srt = newSignatureRecordTemplate(signatureRecordTemplate);
             try {
                 BodyHasher bhj = newBodyHasher(srt);
 
@@ -92,10 +92,9 @@ public class DKIMSigner extends DKIMCommon {
     public String sign(Headers message, BodyHasher bhj)
             throws PermFailException {
         byte[] computedHash = bhj.getDigest();
-        String newField = "DKIM-Signature: "
-                + signatureRecordTemplate.replaceAll("bh=[^;]*", "bh="
-                        + new String(Base64.encodeBase64(computedHash)));
-
+        
+        bhj.getSignatureRecord().setBodyHash(computedHash);
+        
         List headers = bhj.getSignatureRecord().getHeaders();
         try {
             // TODO handle b= in SignatureRecord.
@@ -105,11 +104,12 @@ public class DKIMSigner extends DKIMCommon {
             // with the right test representation.
             // we need a method to "regenerate the text representation" and to
             // retrieve it when it is valid.
-            byte[] signatureHash = signatureSign(message, newField, bhj
+            byte[] signatureHash = signatureSign(message, bhj
                     .getSignatureRecord(), privateKey, headers);
-            newField = newField.replaceAll("b=[^;]*", "b="
-                    + new String(Base64.encodeBase64(signatureHash)));
-            return newField;
+
+            bhj.getSignatureRecord().setSignature(signatureHash);
+
+            return "DKIM-Signature:"+bhj.getSignatureRecord().toString();
         } catch (InvalidKeyException e) {
             throw new PermFailException("Invalid key: " + e.getMessage(), e);
         } catch (NoSuchAlgorithmException e) {
@@ -121,8 +121,7 @@ public class DKIMSigner extends DKIMCommon {
         }
     }
 
-    private byte[] signatureSign(Headers h, String signatureStub,
-            SignatureRecord sign, PrivateKey key, List headers)
+    private byte[] signatureSign(Headers h, SignatureRecord sign, PrivateKey key, List headers)
             throws NoSuchAlgorithmException, InvalidKeyException,
             SignatureException, PermFailException {
 
@@ -130,7 +129,8 @@ public class DKIMSigner extends DKIMCommon {
                 .toString().toUpperCase()
                 + "with" + sign.getHashKeyType().toString().toUpperCase());
         signature.initSign(key);
-        signatureCheck(h, sign, headers, signatureStub, signature);
+
+        signatureCheck(h, sign, headers, signature);
         return signature.sign();
     }
 

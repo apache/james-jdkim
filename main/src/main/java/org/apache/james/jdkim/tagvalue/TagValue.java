@@ -45,11 +45,19 @@ public class TagValue {
             + "((\r\n[\t ]|[\t ])+" + tval + ")*)?$");
 
     // we may use a TreeMap because we may need to know original order.
-    protected Map/* String, CharSequence */tagValues;
+    private Map/* String, CharSequence */tagValues;
 
     protected Set/* String */mandatoryTags = new HashSet();
     protected Map/* String, CharSequence */defaults = new HashMap();
+    private String stringRepresentation = null;
 
+    protected Set tagSet() {
+        return tagValues.keySet();
+    }
+    protected boolean containsTag(String tag) {
+        return tagValues.containsKey(tag);
+    }
+    
     protected CharSequence trimFWS(CharSequence data, int tStart, int tStop,
             boolean trimWSP) {
         if (DEBUG)
@@ -108,14 +116,18 @@ public class TagValue {
     }
 
     public TagValue(String data) {
+        tagValues = newTagValue();
         init();
         parse(data);
     }
 
-    protected void init() {
+    protected Map newTagValue() {
         // extensions may override this to use TreeMaps in order to keep track
         // of orders
-        tagValues = new HashMap();
+        return new HashMap();
+    }
+
+    protected void init() {
     }
 
     /**
@@ -171,6 +183,7 @@ public class TagValue {
             tagValues.put(tagString, value);
             i = next;
         }
+        this.stringRepresentation  = data;
     }
 
     public int hashCode() {
@@ -208,6 +221,12 @@ public class TagValue {
         else
             return val;
     }
+    
+    protected void setValue(String tag, String value) {
+        stringRepresentation = null;
+        tagValues.put(tag, value);
+    }
+
 
     protected CharSequence getDefault(String key) {
         return (CharSequence) defaults.get(key);
@@ -250,6 +269,14 @@ public class TagValue {
     }
 
     public String toString() {
+        if (stringRepresentation == null) {
+            updateStringRepresentation();
+        }
+        return stringRepresentation;
+    }
+    
+    private void updateStringRepresentation() {
+        // calculate a new string representation
         StringBuffer res = new StringBuffer();
         Set s = getTags();
         for (Iterator i = s.iterator(); i.hasNext();) {
@@ -259,7 +286,8 @@ public class TagValue {
             res.append(getValue(tag));
             res.append("; ");
         }
-        return res.toString();
+        // TODO add folding
+        stringRepresentation = res.toString();
     }
 
 }

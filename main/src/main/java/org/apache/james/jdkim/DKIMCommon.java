@@ -60,7 +60,7 @@ public abstract class DKIMCommon {
     }
 
     protected static void signatureCheck(Headers h, SignatureRecord sign,
-            List headers, String signatureStub, Signature signature)
+            List headers, Signature signature)
             throws SignatureException, PermFailException {
 
         boolean relaxedHeaders = SignatureRecord.RELAXED.equals(sign
@@ -97,6 +97,7 @@ public abstract class DKIMCommon {
             }
         }
 
+        String signatureStub = "DKIM-Signature:" + sign.toUnsignedString();
         updateSignature(signature, relaxedHeaders, "dkim-signature",
                 signatureStub);
     }
