@@ -25,50 +25,55 @@ import java.io.OutputStream;
 import java.security.MessageDigest;
 
 /**
- * DigestOutputStream is used as a filter stream or as the ending stream
- * in order to calculate a digest of a stream.
+ * DigestOutputStream is used as a filter stream or as the ending stream in
+ * order to calculate a digest of a stream.
  */
 public class DigestOutputStream extends FilterOutputStream {
-	
-	private MessageDigest md;
 
-	public DigestOutputStream(MessageDigest md) {
-		this(md, null);
-	}
+    private MessageDigest md;
 
-	public DigestOutputStream(MessageDigest md, OutputStream out) {
-		super(out);
-		this.md = md;
-	}
+    public DigestOutputStream(MessageDigest md) {
+        this(md, null);
+    }
 
-	public void write(int arg0) throws IOException {
-		md.update((byte) arg0);
-		if (out != null) out.write(arg0);
-	}
+    public DigestOutputStream(MessageDigest md, OutputStream out) {
+        super(out);
+        this.md = md;
+    }
 
-	public void write(byte[] b, int off, int len) throws IOException {
-		md.update(b, off, len);
-		if (out != null) out.write(b, off, len);
-	}
+    public void write(int arg0) throws IOException {
+        md.update((byte) arg0);
+        if (out != null)
+            out.write(arg0);
+    }
 
-	public void close() throws IOException {
-		if (out != null) super.close();
-	}
+    public void write(byte[] b, int off, int len) throws IOException {
+        md.update(b, off, len);
+        if (out != null)
+            out.write(b, off, len);
+    }
 
-	public void flush() throws IOException {
-		if (out != null) super.flush();
-	}
+    public void close() throws IOException {
+        if (out != null)
+            super.close();
+    }
 
-	public void write(byte[] b) throws IOException {
-		md.update(b);
-		if (out != null) out.write(b);
-	}
-	
-	/**
-	 * @return the stream digest as a byte array
-	 */
-	public byte[] getDigest() {
-		return md.digest();
-	}
-	
+    public void flush() throws IOException {
+        if (out != null)
+            super.flush();
+    }
+
+    public void write(byte[] b) throws IOException {
+        md.update(b);
+        if (out != null)
+            out.write(b);
+    }
+
+    /**
+     * @return the stream digest as a byte array
+     */
+    public byte[] getDigest() {
+        return md.digest();
+    }
+
 }

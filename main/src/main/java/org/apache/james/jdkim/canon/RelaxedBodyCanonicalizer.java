@@ -29,72 +29,72 @@ import java.io.OutputStream;
  */
 public class RelaxedBodyCanonicalizer extends FilterOutputStream {
 
-	private boolean pendingSpaces;
+    private boolean pendingSpaces;
 
-	public RelaxedBodyCanonicalizer(OutputStream out) {
-		super(new SimpleBodyCanonicalizer(out));
-		pendingSpaces = false;
-	}
+    public RelaxedBodyCanonicalizer(OutputStream out) {
+        super(new SimpleBodyCanonicalizer(out));
+        pendingSpaces = false;
+    }
 
-	public void write(byte[] buffer, int off, int len) throws IOException {
-		int start = off;
-		int end = len + off;
-		for (int k = off; k < end; k++) {
-			if (pendingSpaces) {
-				if (buffer[k] != ' ' && buffer[k] != '\t') {
-					if (buffer[k] != '\r')
-						out.write(' ');
-					pendingSpaces = false;
-					len = len - k + start;
-					start = k;
-				}
-			} else {
-				if (buffer[k] == ' ' || buffer[k] == '\t') {
-					if (k + 1 < end && buffer[k] == ' ' && buffer[k + 1] != ' '
-							&& buffer[k + 1] != '\t' && buffer[k + 1] != '\r') {
-						// optimization: we skip single spaces
-						// make sure we optimize only when we are on a space.
-					} else {
-						// compute everything from start to end;
-						out.write(buffer, start, k - start);
-						pendingSpaces = true;
-					}
-				}
-			}
-		}
-		if (!pendingSpaces) {
-			out.write(buffer, start, len);
-		}
-	}
+    public void write(byte[] buffer, int off, int len) throws IOException {
+        int start = off;
+        int end = len + off;
+        for (int k = off; k < end; k++) {
+            if (pendingSpaces) {
+                if (buffer[k] != ' ' && buffer[k] != '\t') {
+                    if (buffer[k] != '\r')
+                        out.write(' ');
+                    pendingSpaces = false;
+                    len = len - k + start;
+                    start = k;
+                }
+            } else {
+                if (buffer[k] == ' ' || buffer[k] == '\t') {
+                    if (k + 1 < end && buffer[k] == ' ' && buffer[k + 1] != ' '
+                            && buffer[k + 1] != '\t' && buffer[k + 1] != '\r') {
+                        // optimization: we skip single spaces
+                        // make sure we optimize only when we are on a space.
+                    } else {
+                        // compute everything from start to end;
+                        out.write(buffer, start, k - start);
+                        pendingSpaces = true;
+                    }
+                }
+            }
+        }
+        if (!pendingSpaces) {
+            out.write(buffer, start, len);
+        }
+    }
 
-	public void write(int b) throws IOException {
-		if (pendingSpaces) {
-			if (b != ' ' && b != '\t') {
-				if (b != '\r')
-					out.write(' ');
-				pendingSpaces = false;
-				out.write(b);
-			}
-		} else {
-			if (b == ' ' || b == '\t') {
-				pendingSpaces = true;
-			} else {
-				out.write(b);
-			}
-		}
-	}
+    public void write(int b) throws IOException {
+        if (pendingSpaces) {
+            if (b != ' ' && b != '\t') {
+                if (b != '\r')
+                    out.write(' ');
+                pendingSpaces = false;
+                out.write(b);
+            }
+        } else {
+            if (b == ' ' || b == '\t') {
+                pendingSpaces = true;
+            } else {
+                out.write(b);
+            }
+        }
+    }
 
-	public void close() throws IOException {
-		complete();
-		super.close();
-	}
+    public void close() throws IOException {
+        complete();
+        super.close();
+    }
 
-	/**
-	 * Called internally to make sure we output the buffered whitespace if any.
-	 */
-	private void complete() throws IOException {
-		if (pendingSpaces)
-			out.write(' ');
-	}
+    /**
+     * Called internally to make sure we output the buffered whitespace if any.
+     */
+    private void complete() throws IOException {
+        if (pendingSpaces)
+            out.write(' ');
+    }
 
 }

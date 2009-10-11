@@ -35,78 +35,81 @@ import org.apache.james.jdkim.exceptions.PermFailException;
 
 public abstract class DKIMCommon {
 
-	private static final boolean DEEP_DEBUG = false;
+    private static final boolean DEEP_DEBUG = false;
 
-	protected static void updateSignature(Signature signature, boolean relaxed,
-			CharSequence header, String fv) throws SignatureException {
-		if (relaxed) {
-			if (DEEP_DEBUG)
-				System.out
-						.println("#" + header.toString().toLowerCase() + ":-");
-			signature.update(header.toString().toLowerCase().getBytes());
-			signature.update(":".getBytes());
-			String headerValue = fv.substring(fv.indexOf(':') + 1);
-			headerValue = headerValue.replaceAll("\r\n[\t ]", " ");
-			headerValue = headerValue.replaceAll("[\t ]+", " ");
-			headerValue = headerValue.trim();
-			signature.update(headerValue.getBytes());
-			if (DEEP_DEBUG)
-				System.out.println("#" + headerValue + "#");
-		} else {
-			signature.update(fv.getBytes());
-			if (DEEP_DEBUG)
-				System.out.println("#" + fv + "#");
-		}
-	}
+    protected static void updateSignature(Signature signature, boolean relaxed,
+            CharSequence header, String fv) throws SignatureException {
+        if (relaxed) {
+            if (DEEP_DEBUG)
+                System.out
+                        .println("#" + header.toString().toLowerCase() + ":-");
+            signature.update(header.toString().toLowerCase().getBytes());
+            signature.update(":".getBytes());
+            String headerValue = fv.substring(fv.indexOf(':') + 1);
+            headerValue = headerValue.replaceAll("\r\n[\t ]", " ");
+            headerValue = headerValue.replaceAll("[\t ]+", " ");
+            headerValue = headerValue.trim();
+            signature.update(headerValue.getBytes());
+            if (DEEP_DEBUG)
+                System.out.println("#" + headerValue + "#");
+        } else {
+            signature.update(fv.getBytes());
+            if (DEEP_DEBUG)
+                System.out.println("#" + fv + "#");
+        }
+    }
 
-	protected static void signatureCheck(Headers h, SignatureRecord sign,
-			List headers, String signatureStub, Signature signature)
-			throws SignatureException, PermFailException {
+    protected static void signatureCheck(Headers h, SignatureRecord sign,
+            List headers, String signatureStub, Signature signature)
+            throws SignatureException, PermFailException {
 
-		boolean relaxedHeaders = SignatureRecord.RELAXED.equals(sign
-				.getHeaderCanonicalisationMethod());
-		if (!relaxedHeaders && !SignatureRecord.SIMPLE.equals(sign
-				.getHeaderCanonicalisationMethod())) {
-			throw new PermFailException("Unsupported canonicalization algorythm: "+sign
-				.getHeaderCanonicalisationMethod());
-		}
+        boolean relaxedHeaders = SignatureRecord.RELAXED.equals(sign
+                .getHeaderCanonicalisationMethod());
+        if (!relaxedHeaders
+                && !SignatureRecord.SIMPLE.equals(sign
+                        .getHeaderCanonicalisationMethod())) {
+            throw new PermFailException(
+                    "Unsupported canonicalization algorythm: "
+                            + sign.getHeaderCanonicalisationMethod());
+        }
 
-		// NOTE: this could be improved by using iterators.
-		// NOTE: this relies on the list returned by Message being in insertion order
-		Map/* String, Integer */processedHeader = new HashMap();
+        // NOTE: this could be improved by using iterators.
+        // NOTE: this relies on the list returned by Message being in insertion
+        // order
+        Map/* String, Integer */processedHeader = new HashMap();
 
-		for (Iterator i = headers.iterator(); i.hasNext();) {
-			CharSequence header = (CharSequence) i.next();
-			// TODO check this getter is case insensitive
-			List hl = h.getFields(header.toString());
-			if (hl != null && hl.size() > 0) {
-				Integer done = (Integer) processedHeader.get(header.toString());
-				if (done == null)
-					done = new Integer(0); /* Integer.valueOf(0) */
-				int doneHeaders = done.intValue() + 1;
-				if (doneHeaders <= hl.size()) {
-					String fv = (String) hl.get(hl.size() - doneHeaders);
-					updateSignature(signature, relaxedHeaders, header, fv);
-					signature.update("\r\n".getBytes());
-					processedHeader.put(header.toString(), new Integer(
-							doneHeaders));
-				}
-			}
-		}
+        for (Iterator i = headers.iterator(); i.hasNext();) {
+            CharSequence header = (CharSequence) i.next();
+            // TODO check this getter is case insensitive
+            List hl = h.getFields(header.toString());
+            if (hl != null && hl.size() > 0) {
+                Integer done = (Integer) processedHeader.get(header.toString());
+                if (done == null)
+                    done = new Integer(0); /* Integer.valueOf(0) */
+                int doneHeaders = done.intValue() + 1;
+                if (doneHeaders <= hl.size()) {
+                    String fv = (String) hl.get(hl.size() - doneHeaders);
+                    updateSignature(signature, relaxedHeaders, header, fv);
+                    signature.update("\r\n".getBytes());
+                    processedHeader.put(header.toString(), new Integer(
+                            doneHeaders));
+                }
+            }
+        }
 
-		updateSignature(signature, relaxedHeaders, "dkim-signature",
-				signatureStub);
-	}
+        updateSignature(signature, relaxedHeaders, "dkim-signature",
+                signatureStub);
+    }
 
-	public static void streamCopy(InputStream bodyIs, OutputStream out)
-			throws IOException {
-		byte[] buffer = new byte[2048];
-		int read;
-		while ((read = bodyIs.read(buffer)) > 0) {
-			out.write(buffer, 0, read);
-		}
-		bodyIs.close();
-		out.close();
-	}
+    public static void streamCopy(InputStream bodyIs, OutputStream out)
+            throws IOException {
+        byte[] buffer = new byte[2048];
+        int read;
+        while ((read = bodyIs.read(buffer)) > 0) {
+            out.write(buffer, 0, read);
+        }
+        bodyIs.close();
+        out.close();
+    }
 
 }

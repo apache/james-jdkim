@@ -21,14 +21,14 @@ package org.apache.james.jdkim.exceptions;
 
 public class FailException extends Exception {
 
-	private static final long serialVersionUID = 1584103235607992818L;
+    private static final long serialVersionUID = 1584103235607992818L;
 
-	public FailException(String error) {
-		super(error);
-	}
+    public FailException(String error) {
+        super(error);
+    }
 
-	public FailException(String string, Exception e) {
-		super(string, e);
-	}
+    public FailException(String string, Exception e) {
+        super(string, e);
+    }
 
 }

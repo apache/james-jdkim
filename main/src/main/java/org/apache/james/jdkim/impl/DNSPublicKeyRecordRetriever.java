@@ -35,73 +35,81 @@ import org.xbill.DNS.Type;
 
 public class DNSPublicKeyRecordRetriever implements PublicKeyRecordRetriever {
 
-	// The resolver used for the lookup
+    // The resolver used for the lookup
     protected Resolver resolver;
-	
-	public DNSPublicKeyRecordRetriever() {
-		this(Lookup.getDefaultResolver());
-	}
 
-	public DNSPublicKeyRecordRetriever(Resolver resolver) {
-		this.resolver = resolver;
-	}
+    public DNSPublicKeyRecordRetriever() {
+        this(Lookup.getDefaultResolver());
+    }
 
-	public List/* String */ getRecords(CharSequence methodAndOptions, CharSequence selector, CharSequence token) throws TempFailException, PermFailException {
-		if (!"dns/txt".equals(methodAndOptions)) throw new PermFailException("Only dns/txt is supported: "+methodAndOptions+" options unsupported.");
-		try {
-            Lookup query = new Lookup(selector+"._domainkey."+token, Type.TXT);
+    public DNSPublicKeyRecordRetriever(Resolver resolver) {
+        this.resolver = resolver;
+    }
+
+    public List/* String */getRecords(CharSequence methodAndOptions,
+            CharSequence selector, CharSequence token)
+            throws TempFailException, PermFailException {
+        if (!"dns/txt".equals(methodAndOptions))
+            throw new PermFailException("Only dns/txt is supported: "
+                    + methodAndOptions + " options unsupported.");
+        try {
+            Lookup query = new Lookup(selector + "._domainkey." + token,
+                    Type.TXT);
             query.setResolver(resolver);
 
             Record[] rr = query.run();
             int queryResult = query.getResult();
-            
 
             if (queryResult == Lookup.TRY_AGAIN) {
                 throw new TempFailException(query.getErrorString());
             }
-            
-            List/* String */ records = convertRecordsToList(rr);
+
+            List/* String */records = convertRecordsToList(rr);
             return records;
-		} catch (TextParseException e) {
-			// TODO log
-			return null;
-		}
-	}
+        } catch (TextParseException e) {
+            // TODO log
+            return null;
+        }
+    }
 
     /**
-     * Convert the given TXT Record array to a String List 
+     * Convert the given TXT Record array to a String List
      * 
-     * @param rr Record array
+     * @param rr
+     *                Record array
      * @return list
      */
-	public static List/* String */ convertRecordsToList(Record[] rr) {
-        List/* String */ records;
+    public static List/* String */convertRecordsToList(Record[] rr) {
+        List/* String */records;
         if (rr != null && rr.length > 0) {
             records = new ArrayList/* String */();
             for (int i = 0; i < rr.length; i++) {
                 switch (rr[i].getType()) {
-                    case Type.TXT:
-                        TXTRecord txt = (TXTRecord) rr[i];
-                        if (txt.getStrings().size() == 1) {
-                            // This was required until dnsjava 2.0.6 because dnsjava was escaping 
-                        	// the result like it was doublequoted (JDKIM-7).
-                            // records.add(((String)txt.getStrings().get(0)).replaceAll("\\\\", ""));
-                            records.add(((String)txt.getStrings().get(0)));
-                        } else {
-                            StringBuffer sb = new StringBuffer();
-                            for (Iterator/* String */ it = txt.getStrings().iterator(); it
-                                    .hasNext();) {
-                                String k = (String) it.next();
-                                // This was required until dnsjava 2.0.6 because dnsjava was escaping 
-                            	// the result like it was doublequoted (JDKIM-7).
-                                // k = k.replaceAll("\\\\", "");
-                                sb.append(k);
-                            }
-                            records.add(sb.toString());
+                case Type.TXT:
+                    TXTRecord txt = (TXTRecord) rr[i];
+                    if (txt.getStrings().size() == 1) {
+                        // This was required until dnsjava 2.0.6 because dnsjava
+                        // was escaping
+                        // the result like it was doublequoted (JDKIM-7).
+                        // records.add(((String)txt.getStrings().get(0)).replaceAll("\\\\",
+                        // ""));
+                        records.add(((String) txt.getStrings().get(0)));
+                    } else {
+                        StringBuffer sb = new StringBuffer();
+                        for (Iterator/* String */it = txt.getStrings()
+                                .iterator(); it.hasNext();) {
+                            String k = (String) it.next();
+                            // This was required until dnsjava 2.0.6 because
+                            // dnsjava was escaping
+                            // the result like it was doublequoted (JDKIM-7).
+                            // k = k.replaceAll("\\\\", "");
+                            sb.append(k);
                         }
-                        break;
-                    default:
-                        return null;
+                        records.add(sb.toString());
+                    }
+                    break;
+                default:
+                    return null;
                 }
             }
         } else {

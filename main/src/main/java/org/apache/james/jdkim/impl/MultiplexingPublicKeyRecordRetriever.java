@@ -27,33 +27,39 @@ import org.apache.james.jdkim.api.PublicKeyRecordRetriever;
 import org.apache.james.jdkim.exceptions.PermFailException;
 import org.apache.james.jdkim.exceptions.TempFailException;
 
-public class MultiplexingPublicKeyRecordRetriever implements PublicKeyRecordRetriever {
-	
-	private Map/* String, PublicKeyRecordRetriever */ retrievers;
-	
-	public MultiplexingPublicKeyRecordRetriever() {
-		retrievers = new HashMap();
-	}
-	public MultiplexingPublicKeyRecordRetriever(String methodName, PublicKeyRecordRetriever pkrr) {
-		this();
-		addRetriever(methodName, pkrr);
-	}
-	
-	public void addRetriever(String methodName, PublicKeyRecordRetriever pkrr) {
-		retrievers.put(methodName, pkrr);
-	}
+public class MultiplexingPublicKeyRecordRetriever implements
+        PublicKeyRecordRetriever {
 
-	public List getRecords(CharSequence methodAndOption,
-			CharSequence selector, CharSequence token)
-			throws TempFailException, PermFailException {
-		int pos = methodAndOption.toString().indexOf('/');
-		String method = pos != -1 ? methodAndOption.subSequence(0, pos).toString() : methodAndOption.toString();
-		PublicKeyRecordRetriever pkrr = (PublicKeyRecordRetriever) retrievers.get(method);
-		if (pkrr != null) {
-			return pkrr.getRecords(methodAndOption, selector, token);
-		} else {
-			throw new PermFailException("Unknown public key record retrieving method: "+methodAndOption);
-		}
-	}
-	
+    private Map/* String, PublicKeyRecordRetriever */retrievers;
+
+    public MultiplexingPublicKeyRecordRetriever() {
+        retrievers = new HashMap();
+    }
+
+    public MultiplexingPublicKeyRecordRetriever(String methodName,
+            PublicKeyRecordRetriever pkrr) {
+        this();
+        addRetriever(methodName, pkrr);
+    }
+
+    public void addRetriever(String methodName, PublicKeyRecordRetriever pkrr) {
+        retrievers.put(methodName, pkrr);
+    }
+
+    public List getRecords(CharSequence methodAndOption, CharSequence selector,
+            CharSequence token) throws TempFailException, PermFailException {
+        int pos = methodAndOption.toString().indexOf('/');
+        String method = pos != -1 ? methodAndOption.subSequence(0, pos)
+                .toString() : methodAndOption.toString();
+        PublicKeyRecordRetriever pkrr = (PublicKeyRecordRetriever) retrievers
+                .get(method);
+        if (pkrr != null) {
+            return pkrr.getRecords(methodAndOption, selector, token);
+        } else {
+            throw new PermFailException(
+                    "Unknown public key record retrieving method: "
+                            + methodAndOption);
+        }
+    }
+
 }

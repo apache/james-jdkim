@@ -26,43 +26,45 @@ import java.security.NoSuchAlgorithmException;
 
 public class LimitedOutputStreamTest extends AbstractOutputStreamTestCase {
 
-	private byte[] testData;
-	private byte[] expectedData;
+    private byte[] testData;
+    private byte[] expectedData;
 
-	protected void setUp() throws Exception {
-		testData = "this  is a \r\n  canonicalization \ttest\r\n\r\n\r\n".getBytes();
-		expectedData = "this  is a \r\n  canonicalizatio".getBytes();
-	}
+    protected void setUp() throws Exception {
+        testData = "this  is a \r\n  canonicalization \ttest\r\n\r\n\r\n"
+                .getBytes();
+        expectedData = "this  is a \r\n  canonicalizatio".getBytes();
+    }
 
-	public void testSingleBytes() throws NoSuchAlgorithmException, IOException {
-		ByteArrayOutputStream bos = new ByteArrayOutputStream();
-		LimitedOutputStream os = new LimitedOutputStream(bos, 30);
-		for (int i = 0; i < testData.length; i++) {
-			assertEquals(i >= 30, os.isLimited());
-			if (i == 30) {
-				assertArrayEquals(expectedData, bos.toByteArray());
-			}
-			os.write(testData[i]);
-		}
-		os.close();
-		assertEquals(30, os.getComputedBytes());
-		assertArrayEquals(expectedData, bos.toByteArray());
-	}
+    public void testSingleBytes() throws NoSuchAlgorithmException, IOException {
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        LimitedOutputStream os = new LimitedOutputStream(bos, 30);
+        for (int i = 0; i < testData.length; i++) {
+            assertEquals(i >= 30, os.isLimited());
+            if (i == 30) {
+                assertArrayEquals(expectedData, bos.toByteArray());
+            }
+            os.write(testData[i]);
+        }
+        os.close();
+        assertEquals(30, os.getComputedBytes());
+        assertArrayEquals(expectedData, bos.toByteArray());
+    }
 
-	public void testChunks() throws NoSuchAlgorithmException, IOException {
-		ByteArrayOutputStream bos = new ByteArrayOutputStream();
-		LimitedOutputStream os = new LimitedOutputStream(bos, 30);
-		chunker(testData, os);
-		assertEquals(30, os.getComputedBytes());
-		assertArrayEquals(expectedData, bos.toByteArray());
-	}
+    public void testChunks() throws NoSuchAlgorithmException, IOException {
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        LimitedOutputStream os = new LimitedOutputStream(bos, 30);
+        chunker(testData, os);
+        assertEquals(30, os.getComputedBytes());
+        assertArrayEquals(expectedData, bos.toByteArray());
+    }
 
-	protected OutputStream newInstance(ByteArrayOutputStream bos) {
-		return new LimitedOutputStream(bos, 30);
-	}
+    protected OutputStream newInstance(ByteArrayOutputStream bos) {
+        return new LimitedOutputStream(bos, 30);
+    }
 
-	public void testExtensiveChunks() throws NoSuchAlgorithmException, IOException {
-		extensiveChunker(testData, expectedData);
-	}
+    public void testExtensiveChunks() throws NoSuchAlgorithmException,
+            IOException {
+        extensiveChunker(testData, expectedData);
+    }
 
 }

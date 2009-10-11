@@ -22,40 +22,40 @@ package org.apache.james.jdkim.api;
 import java.util.List;
 
 public interface SignatureRecord {
-	
-	public final static String RELAXED = "relaxed";
-	public final static String SIMPLE = "simple";
 
-	public final static String ALL = ";all;";
+    public final static String RELAXED = "relaxed";
+    public final static String SIMPLE = "simple";
 
-	public abstract void validate();
+    public final static String ALL = ";all;";
 
-	public abstract List/* CharSequence */getHeaders();
+    public abstract void validate();
 
-	public abstract CharSequence getIdentityLocalPart();
+    public abstract List/* CharSequence */getHeaders();
 
-	public abstract CharSequence getIdentity();
+    public abstract CharSequence getIdentityLocalPart();
 
-	public abstract CharSequence getHashKeyType();
+    public abstract CharSequence getIdentity();
 
-	public abstract CharSequence getHashMethod();
-	
-	public abstract CharSequence getHashAlgo();
+    public abstract CharSequence getHashKeyType();
 
-	public abstract CharSequence getSelector();
+    public abstract CharSequence getHashMethod();
 
-	public abstract CharSequence getDToken();
-	
-	public abstract byte[] getBodyHash();
-	
-	public abstract int getBodyHashLimit();
+    public abstract CharSequence getHashAlgo();
 
-	public abstract byte[] getSignature();
-	
-	public abstract String getHeaderCanonicalisationMethod();
-	
-	public abstract String getBodyCanonicalisationMethod();
+    public abstract CharSequence getSelector();
 
-	public abstract List getRecordLookupMethods();
+    public abstract CharSequence getDToken();
+
+    public abstract byte[] getBodyHash();
+
+    public abstract int getBodyHashLimit();
+
+    public abstract byte[] getSignature();
+
+    public abstract String getHeaderCanonicalisationMethod();
+
+    public abstract String getBodyCanonicalisationMethod();
+
+    public abstract List getRecordLookupMethods();
 
 }

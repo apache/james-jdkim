@@ -21,14 +21,14 @@ package org.apache.james.jdkim.exceptions;
 
 public class PermFailException extends FailException {
 
-	private static final long serialVersionUID = 1304736020453821093L;
+    private static final long serialVersionUID = 1304736020453821093L;
 
-	public PermFailException(String error) {
-		super(error);
-	}
+    public PermFailException(String error) {
+        super(error);
+    }
 
-	public PermFailException(String string, Exception e) {
-		super(string, e);
-	}
+    public PermFailException(String string, Exception e) {
+        super(string, e);
+    }
 
 }

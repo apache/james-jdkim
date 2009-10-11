@@ -27,42 +27,46 @@ import java.util.Arrays;
 
 public class DigestOutputStreamTest extends AbstractOutputStreamTestCase {
 
-	private byte[] testData;
-	private byte[] expectedDigest;
+    private byte[] testData;
+    private byte[] expectedDigest;
 
-	protected void setUp() throws Exception {
-		testData = new byte[4096];
-		for (int i = 0; i < testData.length; i++) {
-			testData[i] = (byte)((i*i*4095+(testData.length-i)*17) % 128 );
-		}
-		MessageDigest md = MessageDigest.getInstance("sha-256");
-		md.update(testData);
-		expectedDigest = md.digest();
-	}
+    protected void setUp() throws Exception {
+        testData = new byte[4096];
+        for (int i = 0; i < testData.length; i++) {
+            testData[i] = (byte) ((i * i * 4095 + (testData.length - i) * 17) % 128);
+        }
+        MessageDigest md = MessageDigest.getInstance("sha-256");
+        md.update(testData);
+        expectedDigest = md.digest();
+    }
 
-	public void testSingleBytes() throws NoSuchAlgorithmException, IOException {
-		DigestOutputStream dos = new DigestOutputStream(MessageDigest.getInstance("sha-256"));
-		for (int i = 0; i < testData.length; i++) {
-			dos.write(testData[i]);
-		}
-		dos.close();
-		byte[] digest = dos.getDigest();
-		assertTrue(Arrays.equals(expectedDigest, digest));
-	}
+    public void testSingleBytes() throws NoSuchAlgorithmException, IOException {
+        DigestOutputStream dos = new DigestOutputStream(MessageDigest
+                .getInstance("sha-256"));
+        for (int i = 0; i < testData.length; i++) {
+            dos.write(testData[i]);
+        }
+        dos.close();
+        byte[] digest = dos.getDigest();
+        assertTrue(Arrays.equals(expectedDigest, digest));
+    }
 
-	public void testChunks() throws NoSuchAlgorithmException, IOException {
-		DigestOutputStream dos = new DigestOutputStream(MessageDigest.getInstance("sha-256"));
-		chunker(testData, dos);
-		byte[] digest = dos.getDigest();
-		assertTrue(Arrays.equals(expectedDigest, digest));
-	}
+    public void testChunks() throws NoSuchAlgorithmException, IOException {
+        DigestOutputStream dos = new DigestOutputStream(MessageDigest
+                .getInstance("sha-256"));
+        chunker(testData, dos);
+        byte[] digest = dos.getDigest();
+        assertTrue(Arrays.equals(expectedDigest, digest));
+    }
 
-	public void testChunksAndPassthrough() throws NoSuchAlgorithmException, IOException {
-		ByteArrayOutputStream bos = new ByteArrayOutputStream();
-		DigestOutputStream dos = new DigestOutputStream(MessageDigest.getInstance("sha-256"), bos);
-		chunker(testData, dos);
-		byte[] digest = dos.getDigest();
-		assertTrue(Arrays.equals(expectedDigest, digest));
-		assertTrue(Arrays.equals(testData, bos.toByteArray()));
-	}
+    public void testChunksAndPassthrough() throws NoSuchAlgorithmException,
+            IOException {
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        DigestOutputStream dos = new DigestOutputStream(MessageDigest
+                .getInstance("sha-256"), bos);
+        chunker(testData, dos);
+        byte[] digest = dos.getDigest();
+        assertTrue(Arrays.equals(expectedDigest, digest));
+        assertTrue(Arrays.equals(testData, bos.toByteArray()));
+    }
 }

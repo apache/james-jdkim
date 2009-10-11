@@ -25,20 +25,18 @@ import java.io.OutputStream;
 
 public class DebugOutputStream extends FilterOutputStream {
 
-	public DebugOutputStream(OutputStream arg0) {
-		super(arg0);
-	}
+    public DebugOutputStream(OutputStream arg0) {
+        super(arg0);
+    }
 
-	public void write(byte[] b, int off, int len) throws IOException {
-		System.out.println("DW:["+new String(b, off, len)+"]");
-		out.write(b, off, len);
-	}
+    public void write(byte[] b, int off, int len) throws IOException {
+        System.out.println("DW:[" + new String(b, off, len) + "]");
+        out.write(b, off, len);
+    }
 
-	public void write(int b) throws IOException {
-		System.out.println("Dw:["+(char)b+"]");
-		out.write(b);
-	}
-	
-	
+    public void write(int b) throws IOException {
+        System.out.println("Dw:[" + (char) b + "]");
+        out.write(b);
+    }
 
 }

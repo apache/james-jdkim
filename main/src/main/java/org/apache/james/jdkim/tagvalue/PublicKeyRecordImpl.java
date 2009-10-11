@@ -34,137 +34,164 @@ import org.apache.commons.codec.binary.Base64;
 import org.apache.james.jdkim.api.PublicKeyRecord;
 
 public class PublicKeyRecordImpl extends TagValue implements PublicKeyRecord {
-	
-	private static final String atom = "[a-zA-Z0-9!#$%&'*+/=?^_`{}|~-]+";
-	// TODO this should support CFWS: are they supported in DKIM for real?
-	private static final String dotAtomText = "("+atom+")?\\*?("+atom+")?";
-	private static final Pattern granularityPattern = Pattern.compile("^"+dotAtomText+"$");
 
-	// SPEC: hyphenated-word =  ALPHA [ *(ALPHA / DIGIT / "-") (ALPHA / DIGIT) ]
-	private static Pattern hyphenatedWordPattern = Pattern.compile("^[a-zA-Z]([a-zA-Z0-9-]*[a-zA-Z0-9])?$");
+    private static final String atom = "[a-zA-Z0-9!#$%&'*+/=?^_`{}|~-]+";
+    // TODO this should support CFWS: are they supported in DKIM for real?
+    private static final String dotAtomText = "(" + atom + ")?\\*?(" + atom
+            + ")?";
+    private static final Pattern granularityPattern = Pattern.compile("^"
+            + dotAtomText + "$");
 
-	public PublicKeyRecordImpl(String data) {
-		super(data);
-	}
-	
-	protected void init() {
-		// extensions may override this to use TreeMaps in order to keep track of orders
-		tagValues = new LinkedHashMap();
-		mandatoryTags.add("p");
-		defaults.put("v", "DKIM1");
-		defaults.put("g", "*");
-		defaults.put("h", ANY);
-		defaults.put("k", "rsa");
-		defaults.put("s", "*");
-		defaults.put("t", "");
-	}
-	
-	// TODO do we treat v=NONDKIM1 records, syntax error records and v=DKIM1 in the middle records
-	//       in the same way?
-	public void validate() {
-		super.validate();
-		if (tagValues.containsKey("v")) {
-			// if "v" is specified it must be the first tag
-			String firstKey = (String) ((LinkedHashMap) tagValues).keySet().iterator().next();
-			if (!"v".equals(firstKey)) throw new IllegalStateException("Existing v= tag MUST be the first in the record list ("+firstKey+")");
-		}
-		if (!"DKIM1".equals(getValue("v"))) throw new IllegalStateException("Unknown version for v= (expected DKIM1): "+getValue("v"));
-		if ("".equals(getValue("p"))) throw new IllegalStateException("Revoked key. 'p=' in record");
-	}
+    // SPEC: hyphenated-word = ALPHA [ *(ALPHA / DIGIT / "-") (ALPHA / DIGIT) ]
+    private static Pattern hyphenatedWordPattern = Pattern
+            .compile("^[a-zA-Z]([a-zA-Z0-9-]*[a-zA-Z0-9])?$");
 
-	/**
-	 * @see org.apache.james.jdkim.api.PublicKeyRecord#isHashMethodSupported(java.lang.CharSequence)
-	 */
-	public boolean isHashMethodSupported(CharSequence hash) {
-		List hashes = getAcceptableHashMethods();
-		if (hashes == null) return true;
-		return isInListCaseInsensitive(hash, hashes);
-	}
+    public PublicKeyRecordImpl(String data) {
+        super(data);
+    }
 
-	/**
-	 * @see org.apache.james.jdkim.api.PublicKeyRecord#isKeyTypeSupported(java.lang.CharSequence)
-	 */
-	public boolean isKeyTypeSupported(CharSequence hash) {
-		List hashes = getAcceptableKeyTypes();
-		return isInListCaseInsensitive(hash, hashes);
-	}
-	
-	/**
-	 * @see org.apache.james.jdkim.api.PublicKeyRecord#getAcceptableHashMethods()
-	 */
-	public List/* String */ getAcceptableHashMethods() {
-		if (ANY.equals(getValue("h"))) return null;
-		return stringToColonSeparatedList(getValue("h").toString(), hyphenatedWordPattern);
-	}
-	/**
-	 * @see org.apache.james.jdkim.api.PublicKeyRecord#getAcceptableKeyTypes()
-	 */
-	public List/* String */ getAcceptableKeyTypes() {
-		return stringToColonSeparatedList(getValue("k").toString(), hyphenatedWordPattern);
-	}
+    protected void init() {
+        // extensions may override this to use TreeMaps in order to keep track
+        // of orders
+        tagValues = new LinkedHashMap();
+        mandatoryTags.add("p");
+        defaults.put("v", "DKIM1");
+        defaults.put("g", "*");
+        defaults.put("h", ANY);
+        defaults.put("k", "rsa");
+        defaults.put("s", "*");
+        defaults.put("t", "");
+    }
 
+    // TODO do we treat v=NONDKIM1 records, syntax error records and v=DKIM1 in
+    // the middle records
+    // in the same way?
+    public void validate() {
+        super.validate();
+        if (tagValues.containsKey("v")) {
+            // if "v" is specified it must be the first tag
+            String firstKey = (String) ((LinkedHashMap) tagValues).keySet()
+                    .iterator().next();
+            if (!"v".equals(firstKey))
+                throw new IllegalStateException(
+                        "Existing v= tag MUST be the first in the record list ("
+                                + firstKey + ")");
+        }
+        if (!"DKIM1".equals(getValue("v")))
+            throw new IllegalStateException(
+                    "Unknown version for v= (expected DKIM1): " + getValue("v"));
+        if ("".equals(getValue("p")))
+            throw new IllegalStateException("Revoked key. 'p=' in record");
+    }
 
-	/**
-	 * @see org.apache.james.jdkim.api.PublicKeyRecord#getGranularityPattern()
-	 */
-	public Pattern getGranularityPattern() {
-		String g = getValue("g").toString();
-		int pStar = g.indexOf('*');
-		if (VALIDATION) {
-			if (!granularityPattern.matcher(g).matches()) throw new IllegalStateException("Syntax error in granularity: "+g);
-		}
-		if (g.length() == 0) {
-			// TODO this works but smells too much as an hack.
-			// in case of "g=" with nothing specified then we return a pattern that won't match
-			// SPEC: An empty "g=" value never matches any addresses.
-			return Pattern.compile("@");
-		} else if (pStar != -1) {
-			if (g.indexOf('*',pStar+1) != -1) throw new IllegalStateException("Invalid granularity using more than one wildcard: "+g);
-			String pattern = "^\\Q"+g.subSequence(0, pStar).toString()+"\\E.*\\Q"+g.subSequence(pStar+1, g.length()).toString()+"\\E$";
-			return Pattern.compile(pattern);
-		} else {
-			// TODO we need some escaping. On Java 5 we have Pattern.quote that is better
-			return Pattern.compile("^\\Q"+g+"\\E$");
-		}
-	}
+    /**
+     * @see org.apache.james.jdkim.api.PublicKeyRecord#isHashMethodSupported(java.lang.CharSequence)
+     */
+    public boolean isHashMethodSupported(CharSequence hash) {
+        List hashes = getAcceptableHashMethods();
+        if (hashes == null)
+            return true;
+        return isInListCaseInsensitive(hash, hashes);
+    }
 
-	public List getFlags() {
-		String flags = getValue("t").toString();
-		String[] flagsStrings = flags.split(":");
-		List res = new ArrayList();
-		for (int i = 0; i < flagsStrings.length; i++) {
-			res.add(trimFWS(flagsStrings[i], 0, flagsStrings[i].length()-1, true).toString());
-		}
-		return res;
-	}
+    /**
+     * @see org.apache.james.jdkim.api.PublicKeyRecord#isKeyTypeSupported(java.lang.CharSequence)
+     */
+    public boolean isKeyTypeSupported(CharSequence hash) {
+        List hashes = getAcceptableKeyTypes();
+        return isInListCaseInsensitive(hash, hashes);
+    }
 
-	public boolean isDenySubdomains() {
-		return getFlags().contains("s");
-	}
+    /**
+     * @see org.apache.james.jdkim.api.PublicKeyRecord#getAcceptableHashMethods()
+     */
+    public List/* String */getAcceptableHashMethods() {
+        if (ANY.equals(getValue("h")))
+            return null;
+        return stringToColonSeparatedList(getValue("h").toString(),
+                hyphenatedWordPattern);
+    }
 
-	public boolean isTesting() {
-		return getFlags().contains("y");
-	}
+    /**
+     * @see org.apache.james.jdkim.api.PublicKeyRecord#getAcceptableKeyTypes()
+     */
+    public List/* String */getAcceptableKeyTypes() {
+        return stringToColonSeparatedList(getValue("k").toString(),
+                hyphenatedWordPattern);
+    }
 
+    /**
+     * @see org.apache.james.jdkim.api.PublicKeyRecord#getGranularityPattern()
+     */
+    public Pattern getGranularityPattern() {
+        String g = getValue("g").toString();
+        int pStar = g.indexOf('*');
+        if (VALIDATION) {
+            if (!granularityPattern.matcher(g).matches())
+                throw new IllegalStateException("Syntax error in granularity: "
+                        + g);
+        }
+        if (g.length() == 0) {
+            // TODO this works but smells too much as an hack.
+            // in case of "g=" with nothing specified then we return a pattern
+            // that won't match
+            // SPEC: An empty "g=" value never matches any addresses.
+            return Pattern.compile("@");
+        } else if (pStar != -1) {
+            if (g.indexOf('*', pStar + 1) != -1)
+                throw new IllegalStateException(
+                        "Invalid granularity using more than one wildcard: "
+                                + g);
+            String pattern = "^\\Q" + g.subSequence(0, pStar).toString()
+                    + "\\E.*\\Q"
+                    + g.subSequence(pStar + 1, g.length()).toString() + "\\E$";
+            return Pattern.compile(pattern);
+        } else {
+            // TODO we need some escaping. On Java 5 we have Pattern.quote that
+            // is better
+            return Pattern.compile("^\\Q" + g + "\\E$");
+        }
+    }
 
-	/**
-	 * @see org.apache.james.jdkim.api.PublicKeyRecord#getPublicKey()
-	 */
-	public PublicKey getPublicKey() {
-		try {
-			String p = getValue("p").toString();
-			byte[] key = Base64.decodeBase64( p.getBytes() );
-			KeyFactory keyFactory;
-			keyFactory = KeyFactory.getInstance(getValue("k").toString());
-			X509EncodedKeySpec pubSpec = new X509EncodedKeySpec(key);
-			RSAPublicKey rsaKey;
-			rsaKey = (RSAPublicKey) keyFactory.generatePublic(pubSpec);
-			return rsaKey;
-		} catch (NoSuchAlgorithmException e) {
-			throw new IllegalStateException("Unknown algorithm: "+e.getMessage());
-		} catch (InvalidKeySpecException e) {
-			throw new IllegalStateException("Invalid key spec: "+e.getMessage());
-		}
-	}
+    public List getFlags() {
+        String flags = getValue("t").toString();
+        String[] flagsStrings = flags.split(":");
+        List res = new ArrayList();
+        for (int i = 0; i < flagsStrings.length; i++) {
+            res.add(trimFWS(flagsStrings[i], 0, flagsStrings[i].length() - 1,
+                    true).toString());
+        }
+        return res;
+    }
+
+    public boolean isDenySubdomains() {
+        return getFlags().contains("s");
+    }
+
+    public boolean isTesting() {
+        return getFlags().contains("y");
+    }
+
+    /**
+     * @see org.apache.james.jdkim.api.PublicKeyRecord#getPublicKey()
+     */
+    public PublicKey getPublicKey() {
+        try {
+            String p = getValue("p").toString();
+            byte[] key = Base64.decodeBase64(p.getBytes());
+            KeyFactory keyFactory;
+            keyFactory = KeyFactory.getInstance(getValue("k").toString());
+            X509EncodedKeySpec pubSpec = new X509EncodedKeySpec(key);
+            RSAPublicKey rsaKey;
+            rsaKey = (RSAPublicKey) keyFactory.generatePublic(pubSpec);
+            return rsaKey;
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("Unknown algorithm: "
+                    + e.getMessage());
+        } catch (InvalidKeySpecException e) {
+            throw new IllegalStateException("Invalid key spec: "
+                    + e.getMessage());
+        }
+    }
 
 }

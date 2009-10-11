@@ -29,40 +29,45 @@ import org.apache.james.jdkim.exceptions.PermFailException;
 import org.apache.james.jdkim.exceptions.TempFailException;
 
 /**
- * This is a mock public key record retriever that store the "registry" in a local map.
+ * This is a mock public key record retriever that store the "registry" in a
+ * local map.
  */
-public class MockPublicKeyRecordRetriever implements
-		PublicKeyRecordRetriever {
-	private static final String _DOMAINKEY = "._domainkey.";
-	private Map/* String, List<String> */ records = new HashMap();
-	
-	public void addRecord(String selector, String token, String record) {
-		String key = selector+_DOMAINKEY+token;
-		List l = (List) records.get(key);
-		if (l == null) {
-			l = new LinkedList();
-			records.put(key, l);
-		}
-		if (record != null) {
-			l.add(record);
-		}
-	}
-	
-	public MockPublicKeyRecordRetriever() {	
-		
-	}
-	
-	public MockPublicKeyRecordRetriever(String record, CharSequence selector, CharSequence token) {	
-		addRecord(selector.toString(), token.toString(), record);
-	}
+public class MockPublicKeyRecordRetriever implements PublicKeyRecordRetriever {
+    private static final String _DOMAINKEY = "._domainkey.";
+    private Map/* String, List<String> */records = new HashMap();
 
-	public List getRecords(CharSequence methodAndOptions, CharSequence selector, CharSequence token)
-			throws TempFailException, PermFailException {
-		if ("dns/txt".equals(methodAndOptions)) {
-			String search = selector+_DOMAINKEY+token;
-			List res = (List) records.get(search);
-			if (res == null || res.size() > 0) return res;
-			else throw new TempFailException("Timout or servfail");
-		} else throw new PermFailException("Unsupported method");
-	}
+    public void addRecord(String selector, String token, String record) {
+        String key = selector + _DOMAINKEY + token;
+        List l = (List) records.get(key);
+        if (l == null) {
+            l = new LinkedList();
+            records.put(key, l);
+        }
+        if (record != null) {
+            l.add(record);
+        }
+    }
+
+    public MockPublicKeyRecordRetriever() {
+
+    }
+
+    public MockPublicKeyRecordRetriever(String record, CharSequence selector,
+            CharSequence token) {
+        addRecord(selector.toString(), token.toString(), record);
+    }
+
+    public List getRecords(CharSequence methodAndOptions,
+            CharSequence selector, CharSequence token)
+            throws TempFailException, PermFailException {
+        if ("dns/txt".equals(methodAndOptions)) {
+            String search = selector + _DOMAINKEY + token;
+            List res = (List) records.get(search);
+            if (res == null || res.size() > 0)
+                return res;
+            else
+                throw new TempFailException("Timout or servfail");
+        } else
+            throw new PermFailException("Unsupported method");
+    }
 }

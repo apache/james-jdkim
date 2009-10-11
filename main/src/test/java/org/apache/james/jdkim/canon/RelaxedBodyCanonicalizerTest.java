@@ -25,28 +25,29 @@ import java.security.NoSuchAlgorithmException;
 
 public class RelaxedBodyCanonicalizerTest extends AbstractOutputStreamTestCase {
 
-	private byte[] testData;
-	private byte[] expectedData;
+    private byte[] testData;
+    private byte[] expectedData;
 
-	protected void setUp() throws Exception {
-		testData = "this  is a \r\n  canonicalization \ttest\r\n\r\n\r\n".getBytes();
-		expectedData = "this is a\r\n canonicalization test\r\n".getBytes();
-	}
+    protected void setUp() throws Exception {
+        testData = "this  is a \r\n  canonicalization \ttest\r\n\r\n\r\n"
+                .getBytes();
+        expectedData = "this is a\r\n canonicalization test\r\n".getBytes();
+    }
 
-	public void testSingleBytes() throws NoSuchAlgorithmException, IOException {
-		ByteArrayOutputStream bos = new ByteArrayOutputStream();
-		RelaxedBodyCanonicalizer os = new RelaxedBodyCanonicalizer(bos);
-		for (int i = 0; i < testData.length; i++) {
-			os.write(testData[i]);
-		}
-		os.close();
-		assertArrayEquals(expectedData, bos.toByteArray());
-	}
+    public void testSingleBytes() throws NoSuchAlgorithmException, IOException {
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        RelaxedBodyCanonicalizer os = new RelaxedBodyCanonicalizer(bos);
+        for (int i = 0; i < testData.length; i++) {
+            os.write(testData[i]);
+        }
+        os.close();
+        assertArrayEquals(expectedData, bos.toByteArray());
+    }
 
-	public void testChunks() throws NoSuchAlgorithmException, IOException {
-		ByteArrayOutputStream bos = new ByteArrayOutputStream();
-		RelaxedBodyCanonicalizer os = new RelaxedBodyCanonicalizer(bos);
-		chunker(testData, os);
-		assertArrayEquals(expectedData, bos.toByteArray());
-	}
+    public void testChunks() throws NoSuchAlgorithmException, IOException {
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        RelaxedBodyCanonicalizer os = new RelaxedBodyCanonicalizer(bos);
+        chunker(testData, os);
+        assertArrayEquals(expectedData, bos.toByteArray());
+    }
 }

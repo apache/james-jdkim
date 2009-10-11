@@ -21,13 +21,12 @@ package org.apache.james.jdkim.api;
 
 import java.io.OutputStream;
 
-
 public interface BodyHasher {
 
-	public abstract OutputStream getOutputStream();
+    public abstract OutputStream getOutputStream();
 
-	public abstract SignatureRecord getSignatureRecord();
+    public abstract SignatureRecord getSignatureRecord();
 
-	public abstract byte[] getDigest();
+    public abstract byte[] getDigest();
 
 }

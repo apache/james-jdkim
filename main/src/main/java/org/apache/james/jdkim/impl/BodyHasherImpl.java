@@ -33,79 +33,80 @@ import org.apache.james.jdkim.canon.SimpleBodyCanonicalizer;
 
 public class BodyHasherImpl implements BodyHasher {
 
-	private static final boolean DEEP_DEBUG = false;
-	private SignatureRecord sign;
-	private DigestOutputStream digesterOS;
-	private OutputStream out;
+    private static final boolean DEEP_DEBUG = false;
+    private SignatureRecord sign;
+    private DigestOutputStream digesterOS;
+    private OutputStream out;
 
-	public BodyHasherImpl(SignatureRecord sign) throws NoSuchAlgorithmException {
-		MessageDigest md = MessageDigest.getInstance(sign.getHashAlgo().toString());
-		
-		int limit = sign.getBodyHashLimit();
+    public BodyHasherImpl(SignatureRecord sign) throws NoSuchAlgorithmException {
+        MessageDigest md = MessageDigest.getInstance(sign.getHashAlgo()
+                .toString());
 
-		// TODO enhance this to use a lookup service.
-		boolean relaxedBody = "relaxed".equals(sign
-				.getBodyCanonicalisationMethod());
+        int limit = sign.getBodyHashLimit();
 
-		DigestOutputStream dout = new DigestOutputStream(md);
-		
-		OutputStream out = dout;
-		if (DEEP_DEBUG) out = new DebugOutputStream(out);
-		out = prepareCanonicalizerOutputStream(limit,
-				relaxedBody, out);
+        // TODO enhance this to use a lookup service.
+        boolean relaxedBody = "relaxed".equals(sign
+                .getBodyCanonicalisationMethod());
 
-		setSignatureRecord(sign);
-		setDigestOutputStream(dout);
-		setOutputStream(out);
-	}
+        DigestOutputStream dout = new DigestOutputStream(md);
 
-	static OutputStream prepareCanonicalizerOutputStream(int limit,
-			boolean relaxedBody, OutputStream dout) {
-		OutputStream out = dout;
-		if (limit != -1)
-			out = new LimitedOutputStream(out, limit);
-		if (relaxedBody)
-			out = new RelaxedBodyCanonicalizer(out);
-		else
-			out = new SimpleBodyCanonicalizer(out);
-		return out;
-	}
+        OutputStream out = dout;
+        if (DEEP_DEBUG)
+            out = new DebugOutputStream(out);
+        out = prepareCanonicalizerOutputStream(limit, relaxedBody, out);
 
-	/**
-	 * @see org.apache.james.jdkim.api.BodyHasher#getOutputStream()
-	 */
-	public OutputStream getOutputStream() {
-		return out;
-	}
+        setSignatureRecord(sign);
+        setDigestOutputStream(dout);
+        setOutputStream(out);
+    }
 
-	/**
-	 * @see org.apache.james.jdkim.api.BodyHasher#getSignatureRecord()
-	 */
-	public SignatureRecord getSignatureRecord() {
-		return sign;
-	}
+    static OutputStream prepareCanonicalizerOutputStream(int limit,
+            boolean relaxedBody, OutputStream dout) {
+        OutputStream out = dout;
+        if (limit != -1)
+            out = new LimitedOutputStream(out, limit);
+        if (relaxedBody)
+            out = new RelaxedBodyCanonicalizer(out);
+        else
+            out = new SimpleBodyCanonicalizer(out);
+        return out;
+    }
 
-	private DigestOutputStream getDigesterOutputStream() {
-		return digesterOS;
-	}
-	
-	/**
-	 * @see org.apache.james.jdkim.api.BodyHasher#getDigest()
-	 */
-	public byte[] getDigest() {
-		return getDigesterOutputStream().getDigest();
-	}
+    /**
+     * @see org.apache.james.jdkim.api.BodyHasher#getOutputStream()
+     */
+    public OutputStream getOutputStream() {
+        return out;
+    }
 
-	public void setSignatureRecord(SignatureRecord sign) {
-		this.sign = sign;
-	}
+    /**
+     * @see org.apache.james.jdkim.api.BodyHasher#getSignatureRecord()
+     */
+    public SignatureRecord getSignatureRecord() {
+        return sign;
+    }
 
-	public void setDigestOutputStream(DigestOutputStream dout) {
-		this.digesterOS = dout;
-	}
+    private DigestOutputStream getDigesterOutputStream() {
+        return digesterOS;
+    }
 
-	public void setOutputStream(OutputStream out) {
-		this.out = out;
-	}
+    /**
+     * @see org.apache.james.jdkim.api.BodyHasher#getDigest()
+     */
+    public byte[] getDigest() {
+        return getDigesterOutputStream().getDigest();
+    }
+
+    public void setSignatureRecord(SignatureRecord sign) {
+        this.sign = sign;
+    }
+
+    public void setDigestOutputStream(DigestOutputStream dout) {
+        this.digesterOS = dout;
+    }
+
+    public void setOutputStream(OutputStream out) {
+        this.out = out;
+    }
 
 }

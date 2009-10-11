@@ -27,43 +27,45 @@ import java.io.OutputStream;
  * Ignore writes until the given sequence is found.
  */
 public class HeaderSkippingOutputStream extends FilterOutputStream {
-	
-	boolean inHeaders = true;
-	byte[] skipTo = "\r\n\r\n".getBytes();
-	int pos = 0;
 
-	public HeaderSkippingOutputStream(OutputStream out) {
-		super(out);
-	}
+    boolean inHeaders = true;
+    byte[] skipTo = "\r\n\r\n".getBytes();
+    int pos = 0;
 
-	public void write(byte[] b, int off, int len) throws IOException {
-		if (inHeaders) {
-			for (int i = off; i < off+len; i++) {
-				if (b[i] == skipTo[pos]) {
-					pos++;
-					if (pos == skipTo.length) {
-						inHeaders = false;
-						if (len-i-1 > 0) out.write(b, i+1, len-i-1);
-						break;
-					}
-				} else pos = 0;
-			}
-		} else {
-			out.write(b, off, len);
-		}
-	}
+    public HeaderSkippingOutputStream(OutputStream out) {
+        super(out);
+    }
 
-	public void write(int b) throws IOException {
-		if (inHeaders) {
-			if (skipTo[pos] == b) {
-				pos++;
-				if (pos == skipTo.length) inHeaders = false;
-			} else pos = 0;
-		} else {
-			out.write(b);
-		}
-	}
-	
-	
+    public void write(byte[] b, int off, int len) throws IOException {
+        if (inHeaders) {
+            for (int i = off; i < off + len; i++) {
+                if (b[i] == skipTo[pos]) {
+                    pos++;
+                    if (pos == skipTo.length) {
+                        inHeaders = false;
+                        if (len - i - 1 > 0)
+                            out.write(b, i + 1, len - i - 1);
+                        break;
+                    }
+                } else
+                    pos = 0;
+            }
+        } else {
+            out.write(b, off, len);
+        }
+    }
+
+    public void write(int b) throws IOException {
+        if (inHeaders) {
+            if (skipTo[pos] == b) {
+                pos++;
+                if (pos == skipTo.length)
+                    inHeaders = false;
+            } else
+                pos = 0;
+        } else {
+            out.write(b);
+        }
+    }
 
 }

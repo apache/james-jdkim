@@ -30,45 +30,55 @@ import org.apache.mailet.Mail;
 import org.apache.mailet.base.GenericMailet;
 
 /**
- * Make sure the message stream is 7bit.
- * Every 8bit part is encoded to quoted-printable or base64 and the message is saved.
+ * Make sure the message stream is 7bit. Every 8bit part is encoded to
+ * quoted-printable or base64 and the message is saved.
  */
 public class ConvertTo7Bit extends GenericMailet {
 
-	public void service(Mail mail) throws MessagingException {
-		MimeMessage message = mail.getMessage();
-		try {
-			convertTo7Bit(message);
-			message.saveChanges();
-		} catch (IOException e) {
-			throw new MessagingException("IOException converting message to 7bit: "+e.getMessage(), e);
-		}
-	}
+    public void service(Mail mail) throws MessagingException {
+        MimeMessage message = mail.getMessage();
+        try {
+            convertTo7Bit(message);
+            message.saveChanges();
+        } catch (IOException e) {
+            throw new MessagingException(
+                    "IOException converting message to 7bit: " + e.getMessage(),
+                    e);
+        }
+    }
 
     /**
      * Converts a message to 7 bit.
      * 
      * @param part
      */
-    private void convertTo7Bit(MimePart part) throws MessagingException, IOException {
+    private void convertTo7Bit(MimePart part) throws MessagingException,
+            IOException {
         if (part.isMimeType("multipart/*")) {
             MimeMultipart parts = (MimeMultipart) part.getContent();
             int count = parts.getCount();
             for (int i = 0; i < count; i++) {
-                convertTo7Bit((MimePart)parts.getBodyPart(i));
+                convertTo7Bit((MimePart) parts.getBodyPart(i));
             }
         } else if ("8bit".equals(part.getEncoding())) {
-            // The content may already be in encoded the form (likely with mail created from a
-            // stream).  In that case, just changing the encoding to quoted-printable will mangle 
-            // the result when this is transmitted.  We must first convert the content into its 
-            // native format, set it back, and only THEN set the transfer encoding to force the 
+            // The content may already be in encoded the form (likely with mail
+            // created from a stream). In that case, just changing the encoding
+            // to quoted-printable will mangle the result when this is
+            // transmitted.
+            // We must first convert the content into its native format, set it
+            // back, and only THEN set the transfer encoding to force the
             // content to be encoded appropriately.
-            
+
             // if the part doesn't contain text it will be base64 encoded.
-            String contentTransferEncoding = part.isMimeType("text/*") ? "quoted-printable" : "base64";
-            part.setContent(part.getContent(), part.getContentType()); 
-            part.setHeader("Content-Transfer-Encoding", contentTransferEncoding);
-            part.addHeader("X-MIME-Autoconverted", "from 8bit to "+contentTransferEncoding+" by "+getMailetContext().getServerInfo());
+            String contentTransferEncoding = part.isMimeType("text/*") ? "quoted-printable"
+                    : "base64";
+            part.setContent(part.getContent(), part.getContentType());
+            part
+                    .setHeader("Content-Transfer-Encoding",
+                            contentTransferEncoding);
+            part.addHeader("X-MIME-Autoconverted", "from 8bit to "
+                    + contentTransferEncoding + " by "
+                    + getMailetContext().getServerInfo());
         }
     }
 

@@ -25,31 +25,36 @@ import java.util.Iterator;
 import java.util.List;
 
 public class CompoundOutputStream extends OutputStream {
-	
-	List/* OutputStream */ outputStreams;
 
-	public CompoundOutputStream(List outputStreams) {
-		this.outputStreams = outputStreams;
-	}
+    List/* OutputStream */outputStreams;
 
-	public void close() throws IOException {
-		for (Iterator i = outputStreams.iterator(); i.hasNext(); ) ((OutputStream) i.next()).close();
-	}
+    public CompoundOutputStream(List outputStreams) {
+        this.outputStreams = outputStreams;
+    }
 
-	public void flush() throws IOException {
-		for (Iterator i = outputStreams.iterator(); i.hasNext(); ) ((OutputStream) i.next()).flush();
-	}
+    public void close() throws IOException {
+        for (Iterator i = outputStreams.iterator(); i.hasNext();)
+            ((OutputStream) i.next()).close();
+    }
 
-	public void write(byte[] b, int off, int len) throws IOException {
-		for (Iterator i = outputStreams.iterator(); i.hasNext(); ) ((OutputStream) i.next()).write(b, off, len);
-	}
+    public void flush() throws IOException {
+        for (Iterator i = outputStreams.iterator(); i.hasNext();)
+            ((OutputStream) i.next()).flush();
+    }
 
-	public void write(byte[] b) throws IOException {
-		for (Iterator i = outputStreams.iterator(); i.hasNext(); ) ((OutputStream) i.next()).write(b);
-	}
+    public void write(byte[] b, int off, int len) throws IOException {
+        for (Iterator i = outputStreams.iterator(); i.hasNext();)
+            ((OutputStream) i.next()).write(b, off, len);
+    }
 
-	public void write(int b) throws IOException {
-		for (Iterator i = outputStreams.iterator(); i.hasNext(); ) ((OutputStream) i.next()).write(b);
-	}
+    public void write(byte[] b) throws IOException {
+        for (Iterator i = outputStreams.iterator(); i.hasNext();)
+            ((OutputStream) i.next()).write(b);
+    }
+
+    public void write(int b) throws IOException {
+        for (Iterator i = outputStreams.iterator(); i.hasNext();)
+            ((OutputStream) i.next()).write(b);
+    }
 
 }

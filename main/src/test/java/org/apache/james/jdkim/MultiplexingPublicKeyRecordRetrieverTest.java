@@ -33,56 +33,59 @@ import junit.framework.TestCase;
 
 public class MultiplexingPublicKeyRecordRetrieverTest extends TestCase {
 
-	private PublicKeyRecordRetriever myMethodRetriever = new PublicKeyRecordRetriever() {
+    private PublicKeyRecordRetriever myMethodRetriever = new PublicKeyRecordRetriever() {
 
-		public List getRecords(CharSequence methodAndOption,
-				CharSequence selector, CharSequence token)
-				throws TempFailException, PermFailException {
-			List l = new ArrayList();
-			l.add(selector.toString());
-			l.add(token.toString());
-			return l;
-		}
-		
-	};
+        public List getRecords(CharSequence methodAndOption,
+                CharSequence selector, CharSequence token)
+                throws TempFailException, PermFailException {
+            List l = new ArrayList();
+            l.add(selector.toString());
+            l.add(token.toString());
+            return l;
+        }
 
-	public void testMultiplexingPublicKeyRecordRetriever() {
-		MultiplexingPublicKeyRecordRetriever pkrr = new MultiplexingPublicKeyRecordRetriever();
-		try {
-			pkrr.getRecords("method", "selector", "token");
-			fail("method is unknown");
-		} catch (FailException e) {
-		}
-	}
+    };
 
-	public void testMultiplexingPublicKeyRecordRetrieverStringPublicKeyRecordRetriever() throws TempFailException, PermFailException {
-		MultiplexingPublicKeyRecordRetriever pkrr = new MultiplexingPublicKeyRecordRetriever("mymethod", myMethodRetriever);
-		check(pkrr, "mymethod");
-	}
+    public void testMultiplexingPublicKeyRecordRetriever() {
+        MultiplexingPublicKeyRecordRetriever pkrr = new MultiplexingPublicKeyRecordRetriever();
+        try {
+            pkrr.getRecords("method", "selector", "token");
+            fail("method is unknown");
+        } catch (FailException e) {
+        }
+    }
 
-	private void check(MultiplexingPublicKeyRecordRetriever pkrr, String method)
-			throws TempFailException, PermFailException {
-		List l = pkrr.getRecords(method, "selector", "token");
-		Iterator i = l.iterator();
-		assertEquals("selector", i.next());
-		assertEquals("token", i.next());
-		try {
-			l = pkrr.getRecords("anothermethod", "selector", "token");
-			fail("anothermethod is not declared");
-		} catch (FailException e) {
-		}
-	}
+    public void testMultiplexingPublicKeyRecordRetrieverStringPublicKeyRecordRetriever()
+            throws TempFailException, PermFailException {
+        MultiplexingPublicKeyRecordRetriever pkrr = new MultiplexingPublicKeyRecordRetriever(
+                "mymethod", myMethodRetriever);
+        check(pkrr, "mymethod");
+    }
 
-	public void testAddRetriever() throws TempFailException, PermFailException {
-		MultiplexingPublicKeyRecordRetriever pkrr = new MultiplexingPublicKeyRecordRetriever();
-		pkrr.addRetriever("mymethod", myMethodRetriever);
-		check(pkrr, "mymethod");
-	}
+    private void check(MultiplexingPublicKeyRecordRetriever pkrr, String method)
+            throws TempFailException, PermFailException {
+        List l = pkrr.getRecords(method, "selector", "token");
+        Iterator i = l.iterator();
+        assertEquals("selector", i.next());
+        assertEquals("token", i.next());
+        try {
+            l = pkrr.getRecords("anothermethod", "selector", "token");
+            fail("anothermethod is not declared");
+        } catch (FailException e) {
+        }
+    }
 
-	public void testAddRetrieverWithOptions() throws TempFailException, PermFailException {
-		MultiplexingPublicKeyRecordRetriever pkrr = new MultiplexingPublicKeyRecordRetriever();
-		pkrr.addRetriever("mymethod", myMethodRetriever);
-		check(pkrr, "mymethod/option");
-	}
+    public void testAddRetriever() throws TempFailException, PermFailException {
+        MultiplexingPublicKeyRecordRetriever pkrr = new MultiplexingPublicKeyRecordRetriever();
+        pkrr.addRetriever("mymethod", myMethodRetriever);
+        check(pkrr, "mymethod");
+    }
+
+    public void testAddRetrieverWithOptions() throws TempFailException,
+            PermFailException {
+        MultiplexingPublicKeyRecordRetriever pkrr = new MultiplexingPublicKeyRecordRetriever();
+        pkrr.addRetriever("mymethod", myMethodRetriever);
+        check(pkrr, "mymethod/option");
+    }
 
 }

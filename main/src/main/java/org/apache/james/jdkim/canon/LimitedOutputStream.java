@@ -24,52 +24,55 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 /**
- * Pass data to the underlying system until a given amount of bytes
- * is reached.
+ * Pass data to the underlying system until a given amount of bytes is reached.
  */
 public class LimitedOutputStream extends FilterOutputStream {
 
-	private int limit;
-	private int computedBytes;
+    private int limit;
+    private int computedBytes;
 
-	/**
-	 * @param out an output stream that will receive the "trucated" stream.
-	 * @param limit a positive integer of the number of bytes to be passed to the underlying stream
-	 */
-	public LimitedOutputStream(OutputStream out, int limit) {
-		super(out);
-		this.limit = limit;
-		this.computedBytes = 0;
-	}
+    /**
+     * @param out
+     *                an output stream that will receive the "trucated" stream.
+     * @param limit
+     *                a positive integer of the number of bytes to be passed to
+     *                the underlying stream
+     */
+    public LimitedOutputStream(OutputStream out, int limit) {
+        super(out);
+        this.limit = limit;
+        this.computedBytes = 0;
+    }
 
-	public void write(byte[] b, int off, int len) throws IOException {
-		if (len > limit - computedBytes) {
-			len = limit - computedBytes;
-		}
-		if (len > 0) {
-			out.write(b, off, len);
-			computedBytes += len;
-		}
-	}
+    public void write(byte[] b, int off, int len) throws IOException {
+        if (len > limit - computedBytes) {
+            len = limit - computedBytes;
+        }
+        if (len > 0) {
+            out.write(b, off, len);
+            computedBytes += len;
+        }
+    }
 
-	public void write(int b) throws IOException {
-		if (computedBytes < limit) {
-			out.write(b);
-			computedBytes++;
-		}
-	}
-	
-	/**
-	 * @return the number of bytes passed to the underlying stream
-	 */
-	public int getComputedBytes() {
-		return computedBytes;
-	}
-	
-	/**
-	 * @return true if the limit has been reached and no data is being passed to the underlying stream.
-	 */
-	public boolean isLimited() {
-		return computedBytes >= limit;
-	}
+    public void write(int b) throws IOException {
+        if (computedBytes < limit) {
+            out.write(b);
+            computedBytes++;
+        }
+    }
+
+    /**
+     * @return the number of bytes passed to the underlying stream
+     */
+    public int getComputedBytes() {
+        return computedBytes;
+    }
+
+    /**
+     * @return true if the limit has been reached and no data is being passed to
+     *         the underlying stream.
+     */
+    public boolean isLimited() {
+        return computedBytes >= limit;
+    }
 }

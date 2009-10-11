@@ -21,10 +21,10 @@ package org.apache.james.jdkim.exceptions;
 
 public class TempFailException extends FailException {
 
-	private static final long serialVersionUID = 1304733570453821093L;
+    private static final long serialVersionUID = 1304733570453821093L;
 
-	public TempFailException(String error) {
-		super(error);
-	}
+    public TempFailException(String error) {
+        super(error);
+    }
 
 }

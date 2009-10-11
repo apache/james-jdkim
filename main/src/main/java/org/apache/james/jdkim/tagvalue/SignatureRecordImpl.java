@@ -27,257 +27,286 @@ import java.util.regex.Pattern;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.james.jdkim.api.SignatureRecord;
 
-
 public class SignatureRecordImpl extends TagValue implements SignatureRecord {
 
-	// TODO ftext is defined as a sequence of at least one in %d33-57 or %d59-126
-	private static Pattern hdrNamePattern = Pattern.compile("^[^: \r\n\t]+$");
+    // TODO ftext is defined as a sequence of at least one in %d33-57 or
+    // %d59-126
+    private static Pattern hdrNamePattern = Pattern.compile("^[^: \r\n\t]+$");
 
-	public SignatureRecordImpl(String data) {
-		super(data);
-	}
-	
-	protected void init() {
-		super.init();
-		
-		mandatoryTags.add("v");
-		mandatoryTags.add("a");
-		mandatoryTags.add("b");
-		mandatoryTags.add("bh");
-		mandatoryTags.add("d");
-		mandatoryTags.add("h");
-		mandatoryTags.add("s");
+    public SignatureRecordImpl(String data) {
+        super(data);
+    }
 
-		defaults.put("c", "simple/simple");
-		defaults.put("l", ALL);
-		defaults.put("q", "dns/txt");
-	}
-	
-	/**
-	 * @see org.apache.james.jdkim.api.SignatureRecord#validate()
-	 */
-	public void validate() throws IllegalStateException {
-		super.validate();
-		// TODO: what about v=0.5 and no v= at all?
-		// do specs allow parsing? what should we check?
-		if (!"1".equals(getValue("v"))) throw new IllegalStateException("Invalid DKIM-Signature version (expected '1'): "+getValue("v"));
-		if (getValue("h").length() == 0) throw new IllegalStateException("Tag h= cannot be empty.");
-		if (!getIdentity().toString().toLowerCase().endsWith(("@"+getValue("d")).toLowerCase())
-				&& !getIdentity().toString().toLowerCase().endsWith(("."+getValue("d")).toLowerCase())) throw new IllegalStateException("Domain mismatch");
+    protected void init() {
+        super.init();
 
-		// when "x=" exists and signature expired then return PERMFAIL (signature expired)
-		if (getValue("x") != null) {
-			long expiration = Long.parseLong(getValue("x").toString());
-			long lifetime = (expiration - System.currentTimeMillis() / 1000);
-			String measure = "s";
-			if (lifetime < 0) {
-				lifetime = -lifetime;
-				if (lifetime > 600) {
-					lifetime = lifetime / 60;
-					measure = "m";
-					if (lifetime > 600) {
-						lifetime = lifetime / 60;
-						measure = "h";
-						if (lifetime > 120) {
-							lifetime = lifetime / 24;
-							measure = "d";
-							if (lifetime > 90) {
-								lifetime = lifetime / 30;
-								measure =" months";
-								if (lifetime > 24) {
-									lifetime = lifetime / 12;
-									measure = " years";
-								}
-							}
-						}
-					}
-				}
-				throw new IllegalStateException("Signature is expired since "+lifetime+measure+".");
-			}
-		}
-		
-		// when "h=" does not contain "from" return PERMFAIL (From field not signed).
-		if (!isInListCaseInsensitive("from", getHeaders())) throw new IllegalStateException("From field not signed");
-		// TODO support ignoring signature for certain d values (externally to this class).
-	}
-	
-	/**
-	 * @see org.apache.james.jdkim.api.SignatureRecord#getHeaders()
-	 */
-	public List/* CharSequence */ getHeaders() {
-		return stringToColonSeparatedList(getValue("h").toString(), hdrNamePattern);
-	}
+        mandatoryTags.add("v");
+        mandatoryTags.add("a");
+        mandatoryTags.add("b");
+        mandatoryTags.add("bh");
+        mandatoryTags.add("d");
+        mandatoryTags.add("h");
+        mandatoryTags.add("s");
 
-	// If i= is unspecified the default is @d
-	protected CharSequence getDefault(String tag) {
-		if ("i".equals(tag)) {
-			return "@"+getValue("d");
-		} else return super.getDefault(tag);
-	}
+        defaults.put("c", "simple/simple");
+        defaults.put("l", ALL);
+        defaults.put("q", "dns/txt");
+    }
 
-	/**
-	 * @see org.apache.james.jdkim.api.SignatureRecord#getIdentityLocalPart()
-	 */
-	public CharSequence getIdentityLocalPart() {
-		String identity = getIdentity().toString();
-		int pAt = identity.indexOf('@');
-		return identity.subSequence(0, pAt);
-	}
-	
-	public CharSequence getIdentity() {
-		return dkimQuotedPrintableDecode(getValue("i"));
-	}
-	
+    /**
+     * @see org.apache.james.jdkim.api.SignatureRecord#validate()
+     */
+    public void validate() throws IllegalStateException {
+        super.validate();
+        // TODO: what about v=0.5 and no v= at all?
+        // do specs allow parsing? what should we check?
+        if (!"1".equals(getValue("v")))
+            throw new IllegalStateException(
+                    "Invalid DKIM-Signature version (expected '1'): "
+                            + getValue("v"));
+        if (getValue("h").length() == 0)
+            throw new IllegalStateException("Tag h= cannot be empty.");
+        if (!getIdentity().toString().toLowerCase().endsWith(
+                ("@" + getValue("d")).toLowerCase())
+                && !getIdentity().toString().toLowerCase().endsWith(
+                        ("." + getValue("d")).toLowerCase()))
+            throw new IllegalStateException("Domain mismatch");
 
-	public static String dkimQuotedPrintableDecode(CharSequence input) throws IllegalArgumentException {
-		StringBuffer sb = new StringBuffer(input.length());
-		// TODO should we fail on WSP that is not part of FWS?
-		// the specification in 2.6 DKIM-Quoted-Printable is not
-		// clear
-		int state = 0;
-		int start = 0;
-		int d = 0;
-		boolean lastWasNL = false;
-		for (int i = 0; i < input.length(); i++) {
-			if (lastWasNL && input.charAt(i) != ' ' && input.charAt(i) != '\t' ) {
-				throw new IllegalArgumentException("Unexpected LF not part of an FWS");
-			}
-			lastWasNL = false;
-			switch (state) {
-			case 0:
-				switch (input.charAt(i)) {
-				case ' ':
-				case '\t':
-				case '\r':
-				case '\n':
-						if ('\n' == input.charAt(i)) lastWasNL = true;
-					sb.append(input.subSequence(start, i));
-					start = i+1;
-					// ignoring whitespace by now.
-					break;
-				case '=':
-					sb.append(input.subSequence(start, i));
-					state = 1;
-					break;
-				}
-				break;
-			case 1:
-			case 2:
-				if (input.charAt(i) >= '0' && input.charAt(i) <= '9' || input.charAt(i) >= 'A' && input.charAt(i) <= 'F') {
-					int v = Arrays.binarySearch("0123456789ABCDEF".getBytes(), (byte) input.charAt(i));
-					if (state == 1) {
-						state = 2;
-						d = v;
-					} else {
-						d = d*16+v;
-						sb.append((char) d);
-						state = 0;
-						start = i+1;
-					}
-				} else {
-					throw new IllegalArgumentException("Invalid input sequence at "+i);
-				}
-			}
-		}
-		if (state != 0) {
-			throw new IllegalArgumentException("Invalid quoted printable termination");
-		}
-		sb.append(input.subSequence(start, input.length()));
-		return sb.toString();
-	}
+        // when "x=" exists and signature expired then return PERMFAIL
+        // (signature expired)
+        if (getValue("x") != null) {
+            long expiration = Long.parseLong(getValue("x").toString());
+            long lifetime = (expiration - System.currentTimeMillis() / 1000);
+            String measure = "s";
+            if (lifetime < 0) {
+                lifetime = -lifetime;
+                if (lifetime > 600) {
+                    lifetime = lifetime / 60;
+                    measure = "m";
+                    if (lifetime > 600) {
+                        lifetime = lifetime / 60;
+                        measure = "h";
+                        if (lifetime > 120) {
+                            lifetime = lifetime / 24;
+                            measure = "d";
+                            if (lifetime > 90) {
+                                lifetime = lifetime / 30;
+                                measure = " months";
+                                if (lifetime > 24) {
+                                    lifetime = lifetime / 12;
+                                    measure = " years";
+                                }
+                            }
+                        }
+                    }
+                }
+                throw new IllegalStateException("Signature is expired since "
+                        + lifetime + measure + ".");
+            }
+        }
 
-	/**
-	 * @see org.apache.james.jdkim.api.SignatureRecord#getHashKeyType()
-	 */
-	public CharSequence getHashKeyType() {
-		String a = getValue("a").toString();
-		int pHyphen = a.indexOf('-');
-		// TODO x-sig-a-tag-h   = ALPHA *(ALPHA / DIGIT)
-		if (pHyphen == -1) throw new IllegalStateException("Invalid hash algorythm (key type): "+a);
-		return a.subSequence(0, pHyphen);
-	}
-	
-	/**
-	 * @see org.apache.james.jdkim.api.SignatureRecord#getHashMethod()
-	 */
-	public CharSequence getHashMethod() {
-		String a = getValue("a").toString();
-		int pHyphen = a.indexOf('-');
-		// TODO x-sig-a-tag-h   = ALPHA *(ALPHA / DIGIT)
-		if (pHyphen == -1) throw new IllegalStateException("Invalid hash method: "+a);
-		return a.subSequence(pHyphen+1, a.length());
-	}
-	
-	/**
-	 * @see org.apache.james.jdkim.api.SignatureRecord#getHashAlgo()
-	 */
-	public CharSequence getHashAlgo() {
-		String a = getValue("a").toString();
-		int pHyphen = a.indexOf('-');
-		if (pHyphen == -1) throw new IllegalStateException("Invalid hash method: "+a);
-		if (a.length() > pHyphen+3 && a.charAt(pHyphen+1) == 's' && a.charAt(pHyphen+2) == 'h' && a.charAt(pHyphen+3) == 'a') {
-			return "sha-"+a.subSequence(pHyphen+4, a.length());
-		} else return a.subSequence(pHyphen+1, a.length());
-	}
-	
-	/**
-	 * @see org.apache.james.jdkim.api.SignatureRecord#getSelector()
-	 */
-	public CharSequence getSelector() {
-		return getValue("s");
-	}
+        // when "h=" does not contain "from" return PERMFAIL (From field not
+        // signed).
+        if (!isInListCaseInsensitive("from", getHeaders()))
+            throw new IllegalStateException("From field not signed");
+        // TODO support ignoring signature for certain d values (externally to
+        // this class).
+    }
 
-	/**
-	 * @see org.apache.james.jdkim.api.SignatureRecord#getDToken()
-	 */
-	public CharSequence getDToken() {
-		return getValue("d");
-	}
+    /**
+     * @see org.apache.james.jdkim.api.SignatureRecord#getHeaders()
+     */
+    public List/* CharSequence */getHeaders() {
+        return stringToColonSeparatedList(getValue("h").toString(),
+                hdrNamePattern);
+    }
 
-	public byte[] getBodyHash() {
-		return Base64.decodeBase64(getValue("bh").toString().getBytes());
-	}
+    // If i= is unspecified the default is @d
+    protected CharSequence getDefault(String tag) {
+        if ("i".equals(tag)) {
+            return "@" + getValue("d");
+        } else
+            return super.getDefault(tag);
+    }
 
-	public byte[] getSignature() {
-		return Base64.decodeBase64(getValue("b").toString().getBytes());
-	}
+    /**
+     * @see org.apache.james.jdkim.api.SignatureRecord#getIdentityLocalPart()
+     */
+    public CharSequence getIdentityLocalPart() {
+        String identity = getIdentity().toString();
+        int pAt = identity.indexOf('@');
+        return identity.subSequence(0, pAt);
+    }
 
-	public int getBodyHashLimit() {
-		String limit = getValue("l").toString();
-		if (ALL.equals(limit)) return -1;
-		else return Integer.parseInt(limit);
-	}
+    public CharSequence getIdentity() {
+        return dkimQuotedPrintableDecode(getValue("i"));
+    }
 
-	public String getBodyCanonicalisationMethod() {
-		String c = getValue("c").toString();
-		int pSlash = c.toString().indexOf("/");
-		if (pSlash != -1) {
-			return c.substring(pSlash+1);
-		} else {
-			return "simple";
-		}
-	}
+    public static String dkimQuotedPrintableDecode(CharSequence input)
+            throws IllegalArgumentException {
+        StringBuffer sb = new StringBuffer(input.length());
+        // TODO should we fail on WSP that is not part of FWS?
+        // the specification in 2.6 DKIM-Quoted-Printable is not
+        // clear
+        int state = 0;
+        int start = 0;
+        int d = 0;
+        boolean lastWasNL = false;
+        for (int i = 0; i < input.length(); i++) {
+            if (lastWasNL && input.charAt(i) != ' ' && input.charAt(i) != '\t') {
+                throw new IllegalArgumentException(
+                        "Unexpected LF not part of an FWS");
+            }
+            lastWasNL = false;
+            switch (state) {
+            case 0:
+                switch (input.charAt(i)) {
+                case ' ':
+                case '\t':
+                case '\r':
+                case '\n':
+                    if ('\n' == input.charAt(i))
+                        lastWasNL = true;
+                    sb.append(input.subSequence(start, i));
+                    start = i + 1;
+                    // ignoring whitespace by now.
+                    break;
+                case '=':
+                    sb.append(input.subSequence(start, i));
+                    state = 1;
+                    break;
+                }
+                break;
+            case 1:
+            case 2:
+                if (input.charAt(i) >= '0' && input.charAt(i) <= '9'
+                        || input.charAt(i) >= 'A' && input.charAt(i) <= 'F') {
+                    int v = Arrays.binarySearch("0123456789ABCDEF".getBytes(),
+                            (byte) input.charAt(i));
+                    if (state == 1) {
+                        state = 2;
+                        d = v;
+                    } else {
+                        d = d * 16 + v;
+                        sb.append((char) d);
+                        state = 0;
+                        start = i + 1;
+                    }
+                } else {
+                    throw new IllegalArgumentException(
+                            "Invalid input sequence at " + i);
+                }
+            }
+        }
+        if (state != 0) {
+            throw new IllegalArgumentException(
+                    "Invalid quoted printable termination");
+        }
+        sb.append(input.subSequence(start, input.length()));
+        return sb.toString();
+    }
 
-	public String getHeaderCanonicalisationMethod() {
-		String c = getValue("c").toString();
-		int pSlash = c.toString().indexOf("/");
-		if (pSlash != -1) {
-			return c.substring(0, pSlash);
-		} else {
-			return c;
-		}
-	}
-	
-	public List getRecordLookupMethods() {
-		String flags = getValue("q").toString();
-		String[] flagsStrings = flags.split(":");
-		List res = new LinkedList();
-		for (int i = 0; i < flagsStrings.length; i++) {
-			// TODO add validation method[/option]
-			// if (VALIDATION)
-			res.add(trimFWS(flagsStrings[i], 0, flagsStrings[i].length()-1, true).toString());
-		}
-		return res;
-	}
+    /**
+     * @see org.apache.james.jdkim.api.SignatureRecord#getHashKeyType()
+     */
+    public CharSequence getHashKeyType() {
+        String a = getValue("a").toString();
+        int pHyphen = a.indexOf('-');
+        // TODO x-sig-a-tag-h = ALPHA *(ALPHA / DIGIT)
+        if (pHyphen == -1)
+            throw new IllegalStateException(
+                    "Invalid hash algorythm (key type): " + a);
+        return a.subSequence(0, pHyphen);
+    }
+
+    /**
+     * @see org.apache.james.jdkim.api.SignatureRecord#getHashMethod()
+     */
+    public CharSequence getHashMethod() {
+        String a = getValue("a").toString();
+        int pHyphen = a.indexOf('-');
+        // TODO x-sig-a-tag-h = ALPHA *(ALPHA / DIGIT)
+        if (pHyphen == -1)
+            throw new IllegalStateException("Invalid hash method: " + a);
+        return a.subSequence(pHyphen + 1, a.length());
+    }
+
+    /**
+     * @see org.apache.james.jdkim.api.SignatureRecord#getHashAlgo()
+     */
+    public CharSequence getHashAlgo() {
+        String a = getValue("a").toString();
+        int pHyphen = a.indexOf('-');
+        if (pHyphen == -1)
+            throw new IllegalStateException("Invalid hash method: " + a);
+        if (a.length() > pHyphen + 3 && a.charAt(pHyphen + 1) == 's'
+                && a.charAt(pHyphen + 2) == 'h' && a.charAt(pHyphen + 3) == 'a') {
+            return "sha-" + a.subSequence(pHyphen + 4, a.length());
+        } else
+            return a.subSequence(pHyphen + 1, a.length());
+    }
+
+    /**
+     * @see org.apache.james.jdkim.api.SignatureRecord#getSelector()
+     */
+    public CharSequence getSelector() {
+        return getValue("s");
+    }
+
+    /**
+     * @see org.apache.james.jdkim.api.SignatureRecord#getDToken()
+     */
+    public CharSequence getDToken() {
+        return getValue("d");
+    }
+
+    public byte[] getBodyHash() {
+        return Base64.decodeBase64(getValue("bh").toString().getBytes());
+    }
+
+    public byte[] getSignature() {
+        return Base64.decodeBase64(getValue("b").toString().getBytes());
+    }
+
+    public int getBodyHashLimit() {
+        String limit = getValue("l").toString();
+        if (ALL.equals(limit))
+            return -1;
+        else
+            return Integer.parseInt(limit);
+    }
+
+    public String getBodyCanonicalisationMethod() {
+        String c = getValue("c").toString();
+        int pSlash = c.toString().indexOf("/");
+        if (pSlash != -1) {
+            return c.substring(pSlash + 1);
+        } else {
+            return "simple";
+        }
+    }
+
+    public String getHeaderCanonicalisationMethod() {
+        String c = getValue("c").toString();
+        int pSlash = c.toString().indexOf("/");
+        if (pSlash != -1) {
+            return c.substring(0, pSlash);
+        } else {
+            return c;
+        }
+    }
+
+    public List getRecordLookupMethods() {
+        String flags = getValue("q").toString();
+        String[] flagsStrings = flags.split(":");
+        List res = new LinkedList();
+        for (int i = 0; i < flagsStrings.length; i++) {
+            // TODO add validation method[/option]
+            // if (VALIDATION)
+            res.add(trimFWS(flagsStrings[i], 0, flagsStrings[i].length() - 1,
+                    true).toString());
+        }
+        return res;
+    }
 
 }
