@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!-- 
+/****************************************************************
+ * Licensed to the Apache Software Foundation (ASF) under one   *
+ * or more contributor license agreements.  See the NOTICE file *
+ * distributed with this work for additional information        *
+ * regarding copyright ownership.  The ASF licenses this file   *
+ * to you under the Apache License, Version 2.0 (the            *
+ * "License"); you may not use this file except in compliance   *
+ * with the License.  You may obtain a copy of the License at   *
+ *                                                              *
+ *   http://www.apache.org/licenses/LICENSE-2.0                 *
+ *                                                              *
+ * Unless required by applicable law or agreed to in writing,   *
+ * software distributed under the License is distributed on an  *
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY       *
+ * KIND, either express or implied.  See the License for the    *
+ * specific language governing permissions and limitations      *
+ * under the License.                                           *
+ ****************************************************************/
+
+ -->
+<document>
+    <properties>
+        <title>jDKIM Library</title>
+    </properties>
+    <body>
+        <section name="Java DKIM Library">
+		<p>This is a DKIM implementation library written in Java.</p>
+		<p>The architecture is interface based and pluggable. You can tweak it almost in every behaviour.</p>
+		<p>The architecture is thought to handle multiple signatures with performance in mind: body hashing
+for multiple signatures is computed concurrently in a single stream run.
+		</p>
+		<p>The whole internal verification/signing is dove via OutputStream leaving much more flexibility than
+the use of InputStream. As the InputStream approach is easier from the user side the default
+implementation simply prepare the OutputStream and copy the supplied InputStream to the OutputStream.</p>
+
+<p>In order to reduce depencencies and to not reinvent the wheel the resulting library includes a
+"shaded" version of the commons-codec 1.4 classes needed to do Base64 encoding/decoding.</p>
+		
+        </section>
+    </body>
+</document>

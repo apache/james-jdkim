@@ -32,7 +32,7 @@
   <description>
     A Java implementation for the DKIM specification.
   </description>
-  <url>http://james.apache.org/jdkim</url>
+  <url>http://james.apache.org/jdkim/main</url>
   <inceptionYear>2008</inceptionYear>
 
   <distributionManagement>
