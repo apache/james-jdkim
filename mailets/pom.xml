@@ -10,7 +10,7 @@
   <artifactId>apache-jdkim-mailets</artifactId>
   <name>jDKIM Mailets for Apache James</name>
   <version>0.1-SNAPSHOT</version>
-  <url>http://james.apache.org/jdkim/mailets</url>
+  <url>http://james.apache.org/jdkim/mailets/</url>
   <description>
     Mailets integrating DKIM functions 
   </description>
