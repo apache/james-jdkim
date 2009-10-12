@@ -97,6 +97,12 @@
       <version>1.1.1</version>
     </dependency>
 
+    <dependency>
+      <groupId>ca.juliusdavies</groupId>
+      <artifactId>not-yet-commons-ssl</artifactId>
+      <version>0.3.11</version>
+    </dependency>
+
   </dependencies>
 
   

@@ -19,7 +19,9 @@
 
 package org.apache.james.jdkim.mailets;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.spec.InvalidKeySpecException;
@@ -34,6 +36,7 @@ import javax.mail.Header;
 import javax.mail.MessagingException;
 import javax.mail.internet.MimeMessage;
 
+import org.apache.commons.ssl.PKCS8Key;
 import org.apache.james.jdkim.DKIMSigner;
 import org.apache.james.jdkim.api.BodyHasher;
 import org.apache.james.jdkim.api.Headers;
@@ -44,13 +47,31 @@ import org.apache.mailet.base.GenericMailet;
 
 /**
  * This mailet sign a message using the DKIM protocol
+ * If the privateKey is encoded using a password then you can pass
+ * the password as privateKeyPassword parameter.
  * 
  * Sample configuration:
  * 
  * <pre><code>
  * &lt;mailet match=&quot;All&quot; class=&quot;DKIMSign&quot;&gt;
  *   &lt;signatureTemplate&gt;v=1; s=selector; d=example.com; h=from:to:received:received; a=rsa-sha256; bh=; b=;&lt;/signatureTemplate&gt;
- *   &lt;privateKey&gt;MIICdgIBADANBgkqhkiG9w0BAQEFAASCAmAwggJcAgEAAoGBANgNpgpfPBVjCpZsuGa4nrppMA3zCYNH6t8cTwd+eRI5rHSgihMznOq5mtMujfTzvRgx9jPHB8HqP83PdB3CtQP+3RgxgmJQrJYmcIp9lcckEn7J9Eevuhb5RbdxWj0IbZsF8jGwifBh7XvmD1SPKe0mla56p0QijVzZuG/0ynrpAgMBAAECgYEAjxdzCdmLRKrk3z3AX6AU2GdEQWjeuwkNoJjyKod0DkMOWevdptv/KGKnDQj/UeWALp8gbah7Fc5cVaX5RKCpG3WRO32NeFUUTGDyY2SjZR6UDAW2yXwJGNVxhA5x514f9Yz+ZeODbBSqpl6cGaUqUPq81vvSMUl5VoMn/ufuPwECQQD02QfYPhmCP8g4BVhxxlgfvj5WA7R7tWRSNCT3C0naPpwaono9+PSuhUgxRbOgFvxh8StHyXomdVBt/LzeAl6JAkEA4eTejDsmMCfxe47JnHbgpxNphYpSQBB9FZgMUU5hAXgpX3EtIS3JxjSSOx3EYoO51ZywBOWUXNcMJAXoNM0hYQJAQDnZ4/BOMqtWctN8IsQbg6Acq+Vm53hqa2HAPIlagwQfYKE0HaN7U3gkusAE4T6GT466gqcoAoSNZ3x/cmD+uQJAePyZCaiAephaKSA/8VJmXnXyNXjxNqjeJduq9T0yjZPrLNg0IKoigMsVax41WcJNnRBv4h+IR/VR5lVXmjgn4QJANq02dLdX2phQqOP+Ss1EP9TT7t6HxLbKUuoPdGVKf0q1gZEyAC1Re2I4SLMEfpt3+ivMj1X2zDzIHP5mogfblA==&lt;/privateKey&gt;
+ *   &lt;privateKey&gt;
+ *   -----BEGIN RSA PRIVATE KEY-----
+ *   MIICXAIBAAKBgQDYDaYKXzwVYwqWbLhmuJ66aTAN8wmDR+rfHE8HfnkSOax0oIoT
+ *   M5zquZrTLo30870YMfYzxwfB6j/Nz3QdwrUD/t0YMYJiUKyWJnCKfZXHJBJ+yfRH
+ *   r7oW+UW3cVo9CG2bBfIxsInwYe175g9UjyntJpWueqdEIo1c2bhv9Mp66QIDAQAB
+ *   AoGBAI8XcwnZi0Sq5N89wF+gFNhnREFo3rsJDaCY8iqHdA5DDlnr3abb/yhipw0I
+ *   /1HlgC6fIG2oexXOXFWl+USgqRt1kTt9jXhVFExg8mNko2UelAwFtsl8CRjVcYQO
+ *   cedeH/WM/mXjg2wUqqZenBmlKlD6vNb70jFJeVaDJ/7n7j8BAkEA9NkH2D4Zgj/I
+ *   OAVYccZYH74+VgO0e7VkUjQk9wtJ2j6cGqJ6Pfj0roVIMUWzoBb8YfErR8l6JnVQ
+ *   bfy83gJeiQJBAOHk3ow7JjAn8XuOyZx24KcTaYWKUkAQfRWYDFFOYQF4KV9xLSEt
+ *   ycY0kjsdxGKDudWcsATllFzXDCQF6DTNIWECQEA52ePwTjKrVnLTfCLEG4OgHKvl
+ *   Zud4amthwDyJWoMEH2ChNB2je1N4JLrABOE+hk+OuoKnKAKEjWd8f3Jg/rkCQHj8
+ *   mQmogHqYWikgP/FSZl518jV48Tao3iXbqvU9Mo2T6yzYNCCqIoDLFWseNVnCTZ0Q
+ *   b+IfiEf1UeZVV5o4J+ECQDatNnS3V9qYUKjj/krNRD/U0+7eh8S2ylLqD3RlSn9K
+ *   tYGRMgAtUXtiOEizBH6bd/orzI9V9sw8yBz+ZqIH25Q=
+ *   -----END RSA PRIVATE KEY-----
+ *   &lt;/privateKey&gt;
  * &lt;/mailet&gt;
  * </code></pre>
  * 
@@ -105,8 +126,14 @@ public class DKIMSign extends GenericMailet {
     public void init() throws MessagingException {
         signatureTemplate = getInitParameter("signatureTemplate");
         String privateKeyString = getInitParameter("privateKey");
+        String privateKeyPassword = getInitParameter("privateKeyPassword", null);
         try {
-            privateKey = DKIMSigner.getPrivateKey(privateKeyString);
+            PKCS8Key pkcs8 = new PKCS8Key(new ByteArrayInputStream(
+                    privateKeyString.getBytes()),
+                    privateKeyPassword != null ? privateKeyPassword
+                            .toCharArray() : null);
+            privateKey = pkcs8.getPrivateKey();
+            // privateKey = DKIMSigner.getPrivateKey(privateKeyString);
         } catch (NoSuchAlgorithmException e) {
             throw new MessagingException("Unknown private key algorythm: "
                     + e.getMessage(), e);
@@ -114,6 +141,9 @@ public class DKIMSign extends GenericMailet {
             throw new MessagingException(
                     "PrivateKey should be in base64 encoded PKCS8 (der) format: "
                             + e.getMessage(), e);
+        } catch (GeneralSecurityException e) {
+            throw new MessagingException("General security exception: "
+                    + e.getMessage(), e);
         }
     }
 
