@@ -108,29 +108,34 @@ public class DKIMVerifier extends DKIMCommon {
     }
 
     /**
-     * @see org.apache.james.jdkim.api.PublicKeyRecord#apply(org.apache.james.jdkim.api.SignatureRecord)
+     * asserts applicability of a signature record the a public key record.
+     * throws an 
+     * 
+     * @param pkr public key record
+     * @param sign signature record
+     * @throws PermFailException when the keys are not applicable
      */
-    public static void apply(PublicKeyRecord pkr, SignatureRecord sign) {
+    public static void apply(PublicKeyRecord pkr, SignatureRecord sign) throws PermFailException {
         if (!pkr.getGranularityPattern().matcher(sign.getIdentityLocalPart())
                 .matches()) {
-            throw new IllegalStateException("inapplicable key identity local="
+            throw new PermFailException("inapplicable key identity local="
                     + sign.getIdentityLocalPart() + " Pattern: "
                     + pkr.getGranularityPattern().pattern());
         }
 
         if (!pkr.isHashMethodSupported(sign.getHashMethod())) {
-            throw new IllegalStateException("inappropriate hash for a="
+            throw new PermFailException("inappropriate hash for a="
                     + sign.getHashKeyType() + "/" + sign.getHashMethod());
         }
         if (!pkr.isKeyTypeSupported(sign.getHashKeyType())) {
-            throw new IllegalStateException("inappropriate key type for a="
+            throw new PermFailException("inappropriate key type for a="
                     + sign.getHashKeyType() + "/" + sign.getHashMethod());
         }
 
         if (pkr.isDenySubdomains()) {
             if (!sign.getIdentity().toString().toLowerCase().endsWith(
                     ("@" + sign.getDToken()).toLowerCase())) {
-                throw new IllegalStateException(
+                throw new PermFailException(
                         "AUID in subdomain of SDID is not allowed by the public key record.");
             }
         }
@@ -166,9 +171,6 @@ public class DKIMVerifier extends DKIMCommon {
                 // TODO loggin
                 apply(tempKey, sign);
                 key = tempKey;
-            } catch (IllegalStateException e) {
-                lastPermFailure = new PermFailException("Inapplicable key: "
-                        + e.getMessage(), e);
             } catch (TempFailException tf) {
                 lastTempFailure = tf;
             } catch (PermFailException pf) {
