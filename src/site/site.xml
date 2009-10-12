@@ -29,6 +29,10 @@
     <href>http://www.apache.org/index.html</href>
   </bannerRight> 
   <body>
+    <head>
+      <link rel="meta" title="DOAP" href="${project.url}/doap_maven-doap-plugin.rdf" type="application/rdf+xml"/>
+    </head>
+    
     <menu name="jdkim">
       <item name="Overview" href="/index.html"/>
     </menu>

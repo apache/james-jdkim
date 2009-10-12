@@ -25,7 +25,7 @@
   </parent>
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.apache.james.jdkim</groupId>
-  <artifactId>apache-jdkim</artifactId>
+  <artifactId>apache-jdkim-library</artifactId>
   <name>Apache JAMES jDKIM</name>
   <version>0.1-SNAPSHOT</version>
   <packaging>jar</packaging>

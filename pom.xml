@@ -39,6 +39,7 @@
     <module>stage</module>
     <module>main</module>
     <module>mailets</module>
+    <module>assemble</module>
   </modules>
 
   <distributionManagement>
@@ -81,7 +82,56 @@
         <artifactId>maven-site-plugin</artifactId>
         <version>2.0.1</version>
       </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>emma-maven-plugin</artifactId>
+        <version>1.0-alpha-2</version>
+        <inherited>true</inherited>
+      </plugin>
+      <plugin> 
+        <groupId>org.codehaus.mojo</groupId> 
+        <artifactId>surefire-report-maven-plugin</artifactId> 
+        <inherited>true</inherited>
+      </plugin>
     </plugins>
   </reporting>
+  
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-doap-plugin</artifactId>
+        <configuration>
+         <doapOptions>
+           <programmingLanguage>java</programmingLanguage>
+         </doapOptions>
+         <asfExtOptions>
+           <included>true</included>
+           <name>Apache JAMES</name>
+           <pmc>http://james.apache.org</pmc>
+           <chair>Norman Maurer</chair>
+           <charter>Apache JAMES is dedicated to email related code in Java</charter>
+           <standards>
+	         <standard>
+	           <title>DomainKeys Identified Mail (DKIM) Signatures</title>
+	           <url>http://www.ietf.org/rfc/rfc4871.txt</url>
+	           <id>RFC 4871</id>
+	           <body>IETF</body>
+	         </standard>
+	       </standards>
+         </asfExtOptions>
+        </configuration>
+        <executions>
+          <execution>
+            <id>site</id>
+            <phase>site</phase>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
   
 </project>
