@@ -1,0 +1,32 @@
+Release 0.1
+-------------------
+
+jDKIM is a DKIM implementation library written in Java. It provides both verification and signing
+and also provides Mailets for the Apache JAMES project.
+
+The 0.1 release is the first release. It requires Java 1.4 at runtime but for full compliance with
+the DKIM specification the JVM running the library must support SHA256withRSA cypher suite.
+The default Sun Java 1.4 does not support this suite, so either you move to Java 1.5+ or you 
+install a third party cryptography provider like BouncyCastle and configure it appropriately in 
+your JVM.
+
+The architecture is thought to handle multiple signatures with performance in mind: body hashing
+for multiple signatures is computed concurrently in a single stream run.
+
+The whole internal verification/signing is dove via OutputStream leaving much more flexibility than
+the use of InputStream. As the InputStream approach is easier from the user side the default
+implementation simply prepare the OutputStream and copy the supplied InputStream to the OutputStream.
+
+In order to reduce depencencies and to not reinvent the wheel the resulting library includes a
+"shaded" version of the commons-codec 1.4 classes needed to do Base64 encoding/decoding.
+
+Notes
+-----
+
+ * jDKIM API is still considered unstable and is likely to change in future releases
+ * Code is likely to be updated to Java 1.5 before a final release.
+ * Default parsing is done using mime4j 0.5 parser (0.6 is Java 5 only, so we stuck to 0.5).
+ * The mailet does rely on javamail parsing instead of mime4j.
+ * Make sure to use dnsjava 2.0.7 or greater as 2.0.6 has a bug in TXT record escaping. 
+ 
+
