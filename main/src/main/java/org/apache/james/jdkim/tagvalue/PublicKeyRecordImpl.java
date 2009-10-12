@@ -68,8 +68,7 @@ public class PublicKeyRecordImpl extends TagValue implements PublicKeyRecord {
     }
 
     // TODO do we treat v=NONDKIM1 records, syntax error records and v=DKIM1 in
-    // the middle records
-    // in the same way?
+    // the middle records in the same way?
     public void validate() {
         super.validate();
         if (containsTag("v")) {

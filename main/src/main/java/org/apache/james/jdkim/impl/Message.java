@@ -36,8 +36,6 @@ import org.apache.james.mime4j.parser.MimeTokenStream;
 
 /**
  * The header of an entity (see RFC 2045).
- * 
- * TODO: we have to handle correct ordered extraction for fields.
  */
 public class Message implements Headers {
 

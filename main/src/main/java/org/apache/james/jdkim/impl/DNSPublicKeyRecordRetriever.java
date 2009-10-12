@@ -46,6 +46,9 @@ public class DNSPublicKeyRecordRetriever implements PublicKeyRecordRetriever {
         this.resolver = resolver;
     }
 
+    /**
+     * @see org.apache.james.jdkim.api.PublicKeyRecordRetriever#getRecords(java.lang.CharSequence, java.lang.CharSequence, java.lang.CharSequence)
+     */
     public List/* String */getRecords(CharSequence methodAndOptions,
             CharSequence selector, CharSequence token)
             throws TempFailException, PermFailException {

@@ -57,7 +57,7 @@ public class DKIMSigner extends DKIMCommon {
     }
 
     public BodyHasher newBodyHasher(SignatureRecord signRecord)
-            throws NoSuchAlgorithmException {
+            throws PermFailException {
         return new BodyHasherImpl(signRecord);
     }
 
@@ -71,18 +71,14 @@ public class DKIMSigner extends DKIMCommon {
                         + e1.getMessage(), e1);
             }
             SignatureRecord srt = newSignatureRecordTemplate(signatureRecordTemplate);
-            try {
-                BodyHasher bhj = newBodyHasher(srt);
 
-                // computation of the body hash.
-                DKIMCommon.streamCopy(message.getBodyInputStream(), bhj
-                        .getOutputStream());
+            BodyHasher bhj = newBodyHasher(srt);
 
-                return sign(message, bhj);
-            } catch (NoSuchAlgorithmException e) {
-                throw new PermFailException("Unknown algorythm: "
-                        + e.getMessage(), e);
-            }
+            // computation of the body hash.
+            DKIMCommon.streamCopy(message.getBodyInputStream(), bhj
+                    .getOutputStream());
+
+            return sign(message, bhj);
 
         } finally {
             is.close();

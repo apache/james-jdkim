@@ -30,6 +30,7 @@ import org.apache.james.jdkim.canon.DigestOutputStream;
 import org.apache.james.jdkim.canon.LimitedOutputStream;
 import org.apache.james.jdkim.canon.RelaxedBodyCanonicalizer;
 import org.apache.james.jdkim.canon.SimpleBodyCanonicalizer;
+import org.apache.james.jdkim.exceptions.PermFailException;
 
 public class BodyHasherImpl implements BodyHasher {
 
@@ -38,15 +39,28 @@ public class BodyHasherImpl implements BodyHasher {
     private DigestOutputStream digesterOS;
     private OutputStream out;
 
-    public BodyHasherImpl(SignatureRecord sign) throws NoSuchAlgorithmException {
-        MessageDigest md = MessageDigest.getInstance(sign.getHashAlgo()
-                .toString());
+    public BodyHasherImpl(SignatureRecord sign) throws PermFailException {
+        MessageDigest md;
+        try {
+            md = MessageDigest.getInstance(sign.getHashAlgo().toString());
+        } catch (NoSuchAlgorithmException e) {
+            throw new PermFailException("Unsupported algorythm: "
+                    + sign.getHashAlgo(), e);
+        }
 
         int limit = sign.getBodyHashLimit();
 
         // TODO enhance this to use a lookup service.
-        boolean relaxedBody = "relaxed".equals(sign
+        boolean relaxedBody = SignatureRecord.RELAXED.equals(sign
                 .getBodyCanonicalisationMethod());
+
+        if (!relaxedBody
+                && !SignatureRecord.SIMPLE.equals(sign
+                        .getBodyCanonicalisationMethod())) {
+            throw new PermFailException(
+                    "Unsupported body canonicalization method: "
+                            + sign.getBodyCanonicalisationMethod());
+        }
 
         DigestOutputStream dout = new DigestOutputStream(md);
 

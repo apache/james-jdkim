@@ -138,9 +138,6 @@ public class DKIMSign extends GenericMailet {
             // on top.
             // message.addHeaderLine(signatureHeader);
             prependHeader(message, signatureHeader);
-        } catch (NoSuchAlgorithmException e) {
-            throw new MessagingException(
-                    "Unknown algorythm: " + e.getMessage(), e);
         } catch (PermFailException e) {
             throw new MessagingException("PermFail while signing: "
                     + e.getMessage(), e);

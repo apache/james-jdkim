@@ -73,7 +73,7 @@ public class DKIMVerifier extends DKIMCommon {
     }
 
     public BodyHasher newBodyHasher(SignatureRecord signRecord)
-            throws NoSuchAlgorithmException {
+            throws PermFailException {
         return new BodyHasherImpl(signRecord);
     }
 
@@ -333,6 +333,7 @@ public class DKIMVerifier extends DKIMCommon {
             throw prepareException(signatureExceptions);
         } else {
             // TODO list good and bad signatures.
+            // remove system out.
             for (Iterator i = signatureExceptions.keySet().iterator(); i
                     .hasNext();) {
                 String f = (String) i.next();
