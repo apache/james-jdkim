@@ -1,4 +1,4 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<?xml version="1.0"?><project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <!--
     Licensed to the Apache Software Foundation (ASF) under one
     or more contributor license agreements.  See the NOTICE file
@@ -22,7 +22,7 @@
   <artifactId>not-yet-commons-ssl</artifactId>
   <name>Not Yet Commons SSL</name>
   <version>0.3.11</version>
-  <packaging>jar</packaging>
+  <description>A Java SSL component library</description>
   <url>http://juliusdavies.ca/commons-ssl</url>
   <licenses>
     <license>
@@ -30,4 +30,8 @@
       <url>http://juliusdavies.ca/commons-ssl/LICENSE.txt</url>
     </license>
   </licenses>
+  <scm>
+    <connection>http://juliusdavies.ca/svn/not-yet-commons-ssl/tags/commons-ssl-0.3.11/</connection>
+    <url>http://juliusdavies.ca/svn/viewvc.cgi/not-yet-commons-ssl/tags/commons-ssl-0.3.11/</url>
+  </scm>
 </project>
