@@ -22,7 +22,7 @@
   <groupId>org.apache.james.jdkim</groupId>
   <artifactId>apache-jdkim-project</artifactId>
   <name>Apache JAMES DomainKey Project</name>
-  <version>0.1-SNAPSHOT</version>
+  <version>0.2-SNAPSHOT</version>
   <packaging>pom</packaging>
   <description>
     Apache JAMES jDKIM Project

@@ -3,13 +3,13 @@
   <parent>
     <artifactId>apache-jdkim-project</artifactId>
     <groupId>org.apache.james.jdkim</groupId>
-    <version>0.1-SNAPSHOT</version>
+    <version>0.2-SNAPSHOT</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.apache.james.jdkim</groupId>
   <artifactId>apache-jdkim-mailets</artifactId>
   <name>jDKIM Mailets for Apache James</name>
-  <version>0.1-SNAPSHOT</version>
+  <version>0.2-SNAPSHOT</version>
   <url>http://james.apache.org/jdkim/mailets/</url>
   <description>
     Mailets integrating DKIM functions 
@@ -26,12 +26,12 @@
     <dependency>
       <groupId>org.apache.james.jdkim</groupId>
       <artifactId>apache-jdkim-library</artifactId>
-      <version>0.1-SNAPSHOT</version>
+      <version>0.2-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>org.apache.james.jdkim</groupId>
       <artifactId>apache-jdkim-library</artifactId>
-      <version>0.1-SNAPSHOT</version>
+      <version>0.2-SNAPSHOT</version>
       <type>test-jar</type>
       <scope>test</scope>
     </dependency>

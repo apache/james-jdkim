@@ -24,7 +24,7 @@
   <name>Apache JAMES jDKIM Stage Repository</name>
   <description>Local maven repository for Apache JAMES jDKIM</description>
   <packaging>pom</packaging>
-  <version>0.1-SNAPSHOT</version>
+  <version>0.2-SNAPSHOT</version>
   <repositories>
     <repository>
       <id>jdkim-local-repository</id>
