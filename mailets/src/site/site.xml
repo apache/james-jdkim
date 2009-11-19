@@ -29,11 +29,11 @@
     <href>http://www.apache.org/index.html</href>
   </bannerRight> 
   <body>
-    <menu ref="jDKIM" inherit="top" />
-
+    <!-- 
     <menu name="jDKIM Mailets">
       <item name="Overview" href="/index.html"/>
     </menu>
+    -->
     
     <menu ref="reports" />
   </body>
