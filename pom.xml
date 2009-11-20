@@ -130,9 +130,16 @@
       <dependency>
         <groupId>org.apache.james</groupId>
         <artifactId>apache-mailet-base</artifactId>
+        <version>1.0</version>
         <scope>test</scope>
         <classifier>tests</classifier>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.james</groupId>
+        <artifactId>apache-mailet-base</artifactId>
         <version>1.0</version>
+        <type>test-jar</type>
+        <scope>test</scope>
       </dependency>
       <dependency>
         <groupId>org.apache.james</groupId>
