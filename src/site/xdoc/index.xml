@@ -33,7 +33,7 @@
 			</p>
 
 			<p>
-				The 0.1 release is the first release. It requires Java
+				The 0.2 release is the first release. It requires Java
 				1.4 at runtime but for full compliance with the DKIM
 				specification the JVM running the library must support
 				SHA256withRSA cypher suite. The default Sun Java 1.4
@@ -41,6 +41,14 @@
 				1.5+ or you install a third party cryptography provider
 				like BouncyCastle and configure it appropriately in your
 				JVM.
+			</p>
+			
+			<p>
+				Please make sure you use dnsjava <strong>2.0.7 or greater</strong>
+				as 2.0.6 and previous versions don't handle correctly some TXT 
+				record escaping that are very common in DKIM public key records.
+				Failure to include such an updated dnsjava will prevent jDKIM
+				from correctly verify signatures.
 			</p>
 
 			<p>
