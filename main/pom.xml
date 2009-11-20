@@ -58,59 +58,49 @@
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
       <version>3.8.1</version>
-      <scope>test</scope>
     </dependency>
 
     <dependency>
       <groupId>javax.mail</groupId>
       <artifactId>mail</artifactId>
-      <version>1.4.1</version>
     </dependency>
     <dependency>
       <groupId>javax.activation</groupId>
       <artifactId>activation</artifactId>
-      <version>1.1.1</version>
     </dependency>
 
     <dependency>
       <groupId>commons-codec</groupId>
       <artifactId>commons-codec</artifactId>
-      <version>1.4</version>
     </dependency>
 
     <dependency>
     	<groupId>org.apache.james</groupId>
     	<artifactId>apache-mailet-base</artifactId>
-    	<version>1.0</version>
     </dependency>
     <dependency>
     	<groupId>org.apache.james</groupId>
     	<artifactId>apache-mailet-base</artifactId>
     	<scope>test</scope>
     	<classifier>tests</classifier>
-    	<version>1.0</version>
     </dependency>
     <dependency>
     	<groupId>org.apache.james</groupId>
     	<artifactId>apache-mailet</artifactId>
-    	<version>2.4</version>
     </dependency>
 
     <dependency>
       <groupId>org.apache.james</groupId>
       <artifactId>apache-mime4j</artifactId>
-      <version>0.5</version>
     </dependency>
     <dependency>
     	<groupId>log4j</groupId>
     	<artifactId>log4j</artifactId>
     	<scope>runtime</scope>
-    	<version>1.2.14</version>
     </dependency>
     <dependency>
       <groupId>dnsjava</groupId>
       <artifactId>dnsjava</artifactId>
-      <version>2.0.7</version>
     </dependency>
   
   </dependencies>
