@@ -37,7 +37,6 @@
   <inceptionYear>2009</inceptionYear>
   
   <modules>
-    <module>stage</module>
     <module>main</module>
     <module>mailets</module>
     <module>assemble</module>
