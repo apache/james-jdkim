@@ -339,13 +339,13 @@ public class DKIMVerifier extends DKIMCommon {
             for (Iterator i = signatureExceptions.keySet().iterator(); i
                     .hasNext();) {
                 String f = (String) i.next();
-                System.out.println("DKIM-Error: "
+                System.out.println("DKIM-Error:"
                         + ((FailException) signatureExceptions.get(f))
                                 .getMessage() + " FIELD: " + f);
             }
             for (Iterator i = verifiedSignatures.iterator(); i.hasNext();) {
                 SignatureRecord sr = (SignatureRecord) i.next();
-                System.out.println("DKIM-Pass: " + sr);
+                System.out.println("DKIM-Pass:" + sr);
             }
             return verifiedSignatures;
         }

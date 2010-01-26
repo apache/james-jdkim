@@ -25,15 +25,6 @@ import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.interfaces.RSAKey;
 import java.security.spec.InvalidKeySpecException;
-import java.util.List;
-import java.util.Properties;
-
-import javax.mail.Address;
-import javax.mail.MessagingException;
-import javax.mail.Session;
-import javax.mail.Transport;
-import javax.mail.internet.InternetAddress;
-import javax.mail.internet.MimeMessage;
 
 import junit.framework.TestCase;
 
@@ -43,11 +34,7 @@ import org.apache.james.jdkim.exceptions.FailException;
 import org.apache.james.jdkim.exceptions.PermFailException;
 import org.apache.james.jdkim.exceptions.TempFailException;
 import org.apache.james.jdkim.impl.DNSPublicKeyRecordRetriever;
-import org.apache.james.jdkim.tagvalue.SignatureRecordImpl;
 import org.apache.james.jdkim.tagvalue.TagValue;
-import org.apache.mailet.HostAddress;
-
-import com.sun.mail.smtp.SMTPTransport;
 
 public class DNSPublicKeyRetrieverTest extends TestCase {
 
@@ -118,56 +105,15 @@ public class DNSPublicKeyRetrieverTest extends TestCase {
         DKIMSigner signer = new DKIMSigner(
                 "v=1; s=selector; d=example.com; h=from:to; a=rsa-sha256; bh=; b=;",
                 privKey);
-        String message = "From: io@bago.org\r\nTo: io@bago.org\r\n\r\nbody\r\n";
+        String message = "From: test@example.com\r\nTo: test@example.com\r\n\r\nbody\r\n";
         String res = signer.sign(new ByteArrayInputStream(message.getBytes()));
         System.out.println(res);
         String signedMessage = res + "\r\n"
-                + "From: io@bago.org\r\nTo: io@bago.org\r\n\r\nbody\r\n";
+                + "From: test@example.com\r\nTo: test@example.com\r\n\r\nbody\r\n";
 
         new DKIMVerifier(mockPublicKeyRecordRetriever)
                 .verify(new ByteArrayInputStream(signedMessage.getBytes()));
 
     }
-
-    /*
-     * public void testDONOTCOMMITME() throws NoSuchAlgorithmException,
-     * InvalidKeySpecException, IOException, FailException, MessagingException {
-     * List records = new DNSPublicKeyRecordRetriever().getRecords("dns/txt",
-     * "selector1", "emailsimulator.com"); PublicKeyRecord key = new
-     * DKIMVerifier().publicKeySelector(records);
-     * System.out.println(key.toString()); key.validate(); String
-     * privateKeyPKCS8 =
-     * "MIICdgIBADANBgkqhkiG9w0BAQEFAASCAmAwggJcAgEAAoGBANgNpgpfPBVjCpZsuGa4nrppMA3zCYNH6t8cTwd+eRI5rHSgihMznOq5mtMujfTzvRgx9jPHB8HqP83PdB3CtQP+3RgxgmJQrJYmcIp9lcckEn7J9Eevuhb5RbdxWj0IbZsF8jGwifBh7XvmD1SPKe0mla56p0QijVzZuG/0ynrpAgMBAAECgYEAjxdzCdmLRKrk3z3AX6AU2GdEQWjeuwkNoJjyKod0DkMOWevdptv/KGKnDQj/UeWALp8gbah7Fc5cVaX5RKCpG3WRO32NeFUUTGDyY2SjZR6UDAW2yXwJGNVxhA5x514f9Yz+ZeODbBSqpl6cGaUqUPq81vvSMUl5VoMn/ufuPwECQQD02QfYPhmCP8g4BVhxxlgfvj5WA7R7tWRSNCT3C0naPpwaono9+PSuhUgxRbOgFvxh8StHyXomdVBt/LzeAl6JAkEA4eTejDsmMCfxe47JnHbgpxNphYpSQBB9FZgMUU5hAXgpX3EtIS3JxjSSOx3EYoO51ZywBOWUXNcMJAXoNM0hYQJAQDnZ4/BOMqtWctN8IsQbg6Acq+Vm53hqa2HAPIlagwQfYKE0HaN7U3gkusAE4T6GT466gqcoAoSNZ3x/cmD+uQJAePyZCaiAephaKSA/8VJmXnXyNXjxNqjeJduq9T0yjZPrLNg0IKoigMsVax41WcJNnRBv4h+IR/VR5lVXmjgn4QJANq02dLdX2phQqOP+Ss1EP9TT7t6HxLbKUuoPdGVKf0q1gZEyAC1Re2I4SLMEfpt3+ivMj1X2zDzIHP5mogfblA==";
-     * PrivateKey privKey = DKIMSigner.getPrivateKey(privateKeyPKCS8);
-     *  // Check that the private key modulus equals the public key modulus
-     * assertEquals(((RSAKey) privKey).getModulus(), ((RSAKey)
-     * key.getPublicKey()).getModulus());
-     *  // NOTE: this works both with "b=;" and "b=" but not with WSP/FWS after
-     * the b=". DKIMSigner signer = new DKIMSigner("v=1; c=simple/simple;
-     * s=selector1; d=emailsimulator.com; h=from:to:message-id:date; a=rsa-sha1;
-     * bh=; b=;", privKey); String message ="Date: Thu, 1 Oct 2009 17:15:28
-     * +0200 (CEST)\r\nFrom: <io@bago.org>\r\nMessage-Id:
-     * <test4325223452@localhost>\r\nSubject: prova11 bago.org\r\nTo:
-     * <vidocq@gmail.com>\r\n\r\nbody text\r\n"; String res = signer.sign(new
-     * ByteArrayInputStream(message.getBytes())); System.out.println(res);
-     * String signedMessage =res+"\r\n"+message;
-     * 
-     * new DKIMVerifier().verify(new
-     * ByteArrayInputStream(signedMessage.getBytes()));
-     * 
-     * System.out.println("-------------------------"); Properties props = new
-     * Properties(); props.put("mail.smtp.from", "io@bago.org"); Session session =
-     * Session.getDefaultInstance(props); MimeMessage m = new
-     * MimeMessage(session, new ByteArrayInputStream(signedMessage.getBytes()));
-     * m.writeTo(System.out);
-     * 
-     * HostAddress ha = new HostAddress("vm3.void.it", "smtp://94.23.67.198");
-     * Transport transport = session.getTransport(ha);
-     * transport.connect("vm3.void.it", 6025, "bago", "bv678nt"); Address[]
-     * recipients = new Address[] { new InternetAddress("vidocq@gmail.com"), new
-     * InternetAddress("bago@ngi.it") }; transport.sendMessage(m, recipients);
-     * transport.close();
-     *  }
-     */
 
 }
