@@ -281,10 +281,11 @@ public class TagValue {
         Set s = getTags();
         for (Iterator i = s.iterator(); i.hasNext();) {
             String tag = (String) i.next();
+            res.append(" ");
             res.append(tag);
             res.append("=");
             res.append(getValue(tag));
-            res.append("; ");
+            res.append(";");
         }
         // TODO add folding
         stringRepresentation = res.toString();
