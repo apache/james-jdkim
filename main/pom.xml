@@ -306,6 +306,21 @@
   <reporting>
     <plugins>
       <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>rat-maven-plugin</artifactId>
+        <configuration>
+          <excludes>
+            <!-- test resources created by JAMES committers / we can't include ALv2 headers there -->
+            <exclude>src/test/resources/org/apache/james/jdkim/corpus/*</exclude>
+            <exclude>src/test/resources/org/apache/james/jdkim/Mail-DKIM/FAKE_DNS.dat</exclude>
+            <exclude>src/test/resources/org/apache/james/jdkim/Mail-DKIM/corpus/*</exclude>
+            <exclude>release.properties</exclude>
+            <exclude>dependency-reduced-pom.xml</exclude>
+            <exclude>**/.*/**/*</exclude>
+          </excludes>
+        </configuration>
+      </plugin>
+      <plugin>
         <artifactId>maven-javadoc-plugin</artifactId>
         <version>2.6.1</version>
       </plugin>
