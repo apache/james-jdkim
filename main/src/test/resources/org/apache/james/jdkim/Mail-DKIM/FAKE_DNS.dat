@@ -1,0 +1,23 @@
+# this file contains DNS records used by verifier.t
+#
+selector1._domainkey.messiah.edu  k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDhMlYqwtUA9UrrDcNp/IMtdFnytggDl5oIAzJ55oWzPILZE7eX4hLdP6WperHm1WJ9M32XsiKrr4TDbWfp4WjGWBnXf8QMi+WlDuEFOvwVRC/uWy+sAiEf3VcBR5KjGvDovPnGSnW8uDntSOY4HlkTJF/BTWnk29zKmlGyGnw9mQIDAQAB
+test1._domainkey.messiah.edu  v=DKIM1; t=y; s=email; p=MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBALgSoqXVSEmfcIsOzw7oRuCCOwsmtX/SJnTWxYyj2leFxfS/AVJ+dYfY+hXqMsT7l+MZvvh/R1WzN4MO/kI/7XsCAwEAAQ==
+test2._domainkey.messiah.edu  v=DKIM1; s=email:web:fine; x1 = extra ; t = y:n:extra; h=md5:sha1; p=MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBALgSoqXVSEmfcIsOzw7oRuCCOwsmtX/SJnTWxYyj2leFxfS/AVJ+dYfY+hXqMsT7l+MZvvh/R1WzN4MO/kI/7XsCAwEAAQ== ; 
+test3._domainkey.messiah.edu  v=DKIM1; g=jl*g; p=MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBALgSoqXVSEmfcIsOzw7oRuCCOwsmtX/SJnTWxYyj2leFxfS/AVJ+dYfY+hXqMsT7l+MZvvh/R1WzN4MO/kI/7XsCAwEAAQ==
+test4._domainkey.messiah.edu  v=DKIM1; g=; p=MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBALgSoqXVSEmfcIsOzw7oRuCCOwsmtX/SJnTWxYyj2leFxfS/AVJ+dYfY+hXqMsT7l+MZvvh/R1WzN4MO/kI/7XsCAwEAAQ==
+test5._domainkey.messiah.edu  v=DKIM1; t=s; p=MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBALgSoqXVSEmfcIsOzw7oRuCCOwsmtX/SJnTWxYyj2leFxfS/AVJ+dYfY+hXqMsT7l+MZvvh/R1WzN4MO/kI/7XsCAwEAAQ==
+testbad1._domainkey.messiah.edu  v=DKIM3; t=y; p=MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBALgSoqXVSEmfcIsOzw7oRuCCOwsmtX/SJnTWxYyj2leFxfS/AVJ+dYfY+hXqMsT7l+MZvvh/R1WzN4MO/kI/7XsCAwEAAQ==
+testbad2._domainkey.messiah.edu  k=rsa; t; p=MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBALgSoqXVSEmfcIsOzw7oRuCCOwsmtX/SJnTWxYyj2leFxfS/AVJ+dYfY+hXqMsT7l+MZvvh/R1WzN4MO/kI/7XsCAwEAAQ==
+testbad3._domainkey.messiah.edu  k=foobar; t=y; p=MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBALgSoqXVSEmfcIsOzw7oRuCCOwsmtX/SJnTWxYyj2leFxfS/AVJ+dYfY+hXqMsT7l+MZvvh/R1WzN4MO/kI/7XsCAwEAAQ==
+testbad4._domainkey.messiah.edu  v=DKIM1; s=chat; p=MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBALgSoqXVSEmfcIsOzw7oRuCCOwsmtX/SJnTWxYyj2leFxfS/AVJ+dYfY+hXqMsT7l+MZvvh/R1WzN4MO/kI/7XsCAwEAAQ==
+testbad7._domainkey.messiah.edu  v=DKIM1; h=bad; p=MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBALgSoqXVSEmfcIsOzw7oRuCCOwsmtX/SJnTWxYyj2leFxfS/AVJ+dYfY+hXqMsT7l+MZvvh/R1WzN4MO/kI/7XsCAwEAAQ==
+testbad8._domainkey.messiah.edu  v=DKIM1; g=*poe; p=MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBALgSoqXVSEmfcIsOzw7oRuCCOwsmtX/SJnTWxYyj2leFxfS/AVJ+dYfY+hXqMsT7l+MZvvh/R1WzN4MO/kI/7XsCAwEAAQ==
+testrevoked._domainkey.messiah.edu  k=rsa; t=y; p=
+s1024._domainkey.yahoo.com  k=rsa; t=y; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDrEee0Ri4Juz+QfiWYui/E9UGSXau/2P8LjnTD8V4Unn+2FAZVGE3kL23bzeoULYv4PeleB3gfmJiDJOKU3Ns5L4KJAUUHjFwDebt0NP+sBK0VKeTATL2Yr/S3bT/xhy+1xtj4RkdV7fVxTn56Lb4udUnwuxK4V5b5PdOKj/+XcwIDAQAB; n=A 1024 bit key;
+beta._domainkey.gmail.com  t=y; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC69TURXN3oNfz+G/m3g5rt4P6nsKmVgU1D6cw2X6BnxKJNlQKm10f8tMx6P6bN7juTR1BeD8ubaGqtzm2rWK4LiMJqhoQcwQziGbK1zp/MkdXZEWMCflLY6oUITrivK7JNOLXtZbdxJG2y/RAHGswKKyVhSP9niRsZF/IBr5p8uQIDAQAB
+jakla2._domainkey.ijs.si  v=DKIM1; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCvWSehCSmnxlhzM+P1Ai+7CgzeAcvkL3RdoHFq8JwtpKN3iLnp/s1yRwE/heAi4QQXxDRdlB0bJm5NxZOsckzK7tJM8EdkebMjyXeKOzBKoJaOIlsx4WC2qHqORB0RLqm4lqJFYZJpUypEpskeAGy7WBG7a+1hOlir9+Tf9xtOkwIDAQAB
+shan._domainkey.vmt2.cis.att.net  v=DKIM1; k=rsa; h=sha1:sha256:sha512;n=send%20comments%20to%20tony%40att%2Ecom; g=*; s=*;p=MHwwDQYJKoZIhvcNAQEBBQADawAwaAJhALSQ1y/+tHT1d9XvpiVap4Z+GFaydEmDgfC48m3wLLmDqfKBADWYIqrCnfKPvZPzGYzo+aJMEiAOTtiNxPWYToiTfJlTpn2YyEEz6OUIXw0uc+NfEQviN4QQr0jVX9yRjwIDAQAB
+foo._domainkey.vmt2.cis.att.net  v=DKIM1; k=rsa; n=send%20comments%20to%20tony%40att%2Ecom; g=*; s=*;p=MHwwDQYJKoZIhvcNAQEBBQADawAwaAJhALSQ1y/+tHT1d9XvpiVap4Z+GFaydEmDgfC48m3wLLmDqfKBADWYIqrCnfKPvZPzGYzo+aJMEiAOTtiNxPWYToiTfJlTpn2YyEEz6OUIXw0uc+NfEQviN4QQr0jVX9yRjwIDAQAB
+nonexistent._domainkey.messiah.edu NXDOMAIN
+test3._domainkey.blackhole.messiah.edu ~~Query timed out~~
+test3._domainkey.blackhole2.messiah.edu ~~SERVFAIL~~

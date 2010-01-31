@@ -87,12 +87,8 @@ public class PerlDKIMTest extends TestCase {
     protected void runTest() throws Throwable {
         MimeTokenStream stream = new MimeTokenStream();
         stream.setRecursionMode(MimeTokenStream.M_FLAT);
-        // String checkFile =
-        // "/org/apache/james/jdkim/bago/default_gfkresearch.com.eml";
 
         InputStream is = new FileInputStream(file);
-        // String msgoutFile = file.getAbsolutePath().substring(0,
-        // file.getAbsolutePath().lastIndexOf('.')) + ".out";
 
         pkr = getPublicRecordRetriever();
 

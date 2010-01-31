@@ -1,0 +1,18 @@
+DKIM-Signature: v=1; a=rsa-sha1; c=foobar; d=messiah.edu; h=date:from:subject; q=dns/txt; s=selector1; bh=q6DWKdHUzNbVPt6YBbD1KOai/b8=; b=keocS8z7y+utmOuSEa9Q3jpty3bD7ggJgVzh1As9IxLe1xdsLg6tsTgbSntF1Eo2OBwR3EEb1IfTnJ6YvranPVoau5xVF5ydSBjk65HDK/vl1jNrNR4JSkyxxsSFF1npfPZTA9pCEMskdU7mUPqHzC/AxOtm/npzviD83+VUPfA=
+DKIM-Signature: v=1; a=rsa-sha1; c=simple; d=messiah.edu; h=date:from:subject; q=dns/txt; s=selector1; bh=q6DWKdHUzNbVPt6YBbD1KOai/b8=; b=keocS8z7y+utmOuSEa9Q3jpty3bD7ggJgVzh1As9IxLe1xdsLg6tsTgbSntF1Eo2OBwR3EEb1IfTnJ6YvranPVoau5xVF5ydSBjk65HDK/vl1jNrNR4JSkyxxsSFF1npfPZTA9pCEMskdU7mUPqHzC/AxOtm/npzviD83+VUPfA=
+DKIM-Signature: v=1; a=rsa-sha1; c=simple; d=messiah.edu; h=date:from:subject; q=dns/txt; s=selector1; bh=q6DWKdHUzNbVPt6YBbD1KOai/b8=; b=shouldfailutmOuSEa9Q3jpty3bD7ggJgVzh1As9IxLe1xdsLg6tsTgbSntF1Eo2OBwR3EEb1IfTnJ6YvranPVoau5xVF5ydSBjk65HDK/vl1jNrNR4JSkyxxsSFF1npfPZTA9pCEMskdU7mUPqHzC/AxOtm/npzviD83+VUPfA=
+DKIM-Signature: synerr
+Date: Wed, 15 Feb 2006 17:32:54 -0500
+From: Jason Long <jlong@messiah.edu>
+Subject: dkim test (multiple_2)
+
+The quick brown fox jumped over the lazy dog.
+
+The first signature should be invalid (i.e. bad canonicalization)
+
+The second signature should pass
+
+The third signature should fail
+
+The fourth signature is unparseable.
+
