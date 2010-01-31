@@ -234,7 +234,7 @@ public class DKIMVerifier extends DKIMCommon {
         // System.out.println(message.getFields("DKIM-Signature"));
         List fields = messageHeaders.getFields("DKIM-Signature");
         // if (fields.size() > 1) throw new RuntimeException("here we are!");
-        if (fields.size() == 0) {
+        if (fields == null || fields.size() == 0) {
             throw new PermFailException("DKIM-Signature field not found");
         }
 
