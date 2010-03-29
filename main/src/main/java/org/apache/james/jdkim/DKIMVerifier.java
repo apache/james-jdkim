@@ -116,30 +116,33 @@ public class DKIMVerifier extends DKIMCommon {
      * @throws PermFailException when the keys are not applicable
      */
     public static void apply(PublicKeyRecord pkr, SignatureRecord sign) throws PermFailException {
-        if (!pkr.getGranularityPattern().matcher(sign.getIdentityLocalPart())
-                .matches()) {
-            throw new PermFailException("inapplicable key identity local="
-                    + sign.getIdentityLocalPart() + " Pattern: "
-                    + pkr.getGranularityPattern().pattern());
-        }
-
-        if (!pkr.isHashMethodSupported(sign.getHashMethod())) {
-            throw new PermFailException("inappropriate hash for a="
-                    + sign.getHashKeyType() + "/" + sign.getHashMethod());
-        }
-        if (!pkr.isKeyTypeSupported(sign.getHashKeyType())) {
-            throw new PermFailException("inappropriate key type for a="
-                    + sign.getHashKeyType() + "/" + sign.getHashMethod());
-        }
-
-        if (pkr.isDenySubdomains()) {
-            if (!sign.getIdentity().toString().toLowerCase().endsWith(
-                    ("@" + sign.getDToken()).toLowerCase())) {
-                throw new PermFailException(
-                        "AUID in subdomain of SDID is not allowed by the public key record.");
+        try {
+            if (!pkr.getGranularityPattern().matcher(sign.getIdentityLocalPart())
+                    .matches()) {
+                throw new PermFailException("inapplicable key identity local="
+                        + sign.getIdentityLocalPart() + " Pattern: "
+                        + pkr.getGranularityPattern().pattern());
             }
+    
+            if (!pkr.isHashMethodSupported(sign.getHashMethod())) {
+                throw new PermFailException("inappropriate hash for a="
+                        + sign.getHashKeyType() + "/" + sign.getHashMethod());
+            }
+            if (!pkr.isKeyTypeSupported(sign.getHashKeyType())) {
+                throw new PermFailException("inappropriate key type for a="
+                        + sign.getHashKeyType() + "/" + sign.getHashMethod());
+            }
+    
+            if (pkr.isDenySubdomains()) {
+                if (!sign.getIdentity().toString().toLowerCase().endsWith(
+                        ("@" + sign.getDToken()).toLowerCase())) {
+                    throw new PermFailException(
+                            "AUID in subdomain of SDID is not allowed by the public key record.");
+                }
+            }
+        } catch (IllegalStateException e) {
+            throw new PermFailException("Invalid public key: "+e.getMessage());
         }
-
     }
 
     /**
