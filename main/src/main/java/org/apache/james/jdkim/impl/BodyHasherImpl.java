@@ -47,6 +47,12 @@ public class BodyHasherImpl implements BodyHasher {
             throw new PermFailException("Unsupported algorythm: "
                     + sign.getHashAlgo(), e);
         }
+        
+        try {
+            sign.validate();
+        } catch (IllegalStateException e) {
+            throw new PermFailException("Invalid signature template", e);
+        }
 
         int limit = sign.getBodyHashLimit();
 
