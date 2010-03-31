@@ -121,27 +121,27 @@ public class DKIMVerifier extends DKIMCommon {
                     .matches()) {
                 throw new PermFailException("inapplicable key identity local="
                         + sign.getIdentityLocalPart() + " Pattern: "
-                        + pkr.getGranularityPattern().pattern());
+                        + pkr.getGranularityPattern().pattern(), sign.getIdentity().toString());
             }
     
             if (!pkr.isHashMethodSupported(sign.getHashMethod())) {
                 throw new PermFailException("inappropriate hash for a="
-                        + sign.getHashKeyType() + "/" + sign.getHashMethod());
+                        + sign.getHashKeyType() + "/" + sign.getHashMethod(), sign.getIdentity().toString());
             }
             if (!pkr.isKeyTypeSupported(sign.getHashKeyType())) {
                 throw new PermFailException("inappropriate key type for a="
-                        + sign.getHashKeyType() + "/" + sign.getHashMethod());
+                        + sign.getHashKeyType() + "/" + sign.getHashMethod(), sign.getIdentity().toString());
             }
     
             if (pkr.isDenySubdomains()) {
                 if (!sign.getIdentity().toString().toLowerCase().endsWith(
                         ("@" + sign.getDToken()).toLowerCase())) {
                     throw new PermFailException(
-                            "AUID in subdomain of SDID is not allowed by the public key record.");
+                            "AUID in subdomain of SDID is not allowed by the public key record.", sign.getIdentity().toString());
                 }
             }
         } catch (IllegalStateException e) {
-            throw new PermFailException("Invalid public key: "+e.getMessage());
+            throw new PermFailException("Invalid public key: "+e.getMessage(), sign.getIdentity().toString());
         }
     }
 
@@ -181,15 +181,18 @@ public class DKIMVerifier extends DKIMCommon {
             }
         }
         if (key == null) {
-            if (lastTempFailure != null)
+            if (lastTempFailure != null) {
+                if (sign != null) lastTempFailure.setRelatedRecordIdentity(sign.getIdentity().toString());
                 throw lastTempFailure;
-            else if (lastPermFailure != null)
+            } else if (lastPermFailure != null) {
+                if (sign != null) lastPermFailure.setRelatedRecordIdentity(sign.getIdentity().toString());
                 throw lastPermFailure;
-            // this is unexpected because the publicKeySelector always returns
+            }            // this is unexpected because the publicKeySelector always returns
             // null or exception
-            else
+            else {
                 throw new PermFailException(
-                        "no key for signature [unexpected condition]");
+                        "no key for signature [unexpected condition]", sign.getIdentity().toString());
+            }
         }
         return key;
     }

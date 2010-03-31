@@ -23,6 +23,8 @@ public class FailException extends Exception {
 
     private static final long serialVersionUID = 1584103235607992818L;
 
+    private String relatedRecordIdentity = null;
+
     public FailException(String error) {
         super(error);
     }
@@ -31,4 +33,11 @@ public class FailException extends Exception {
         super(string, e);
     }
 
+    public String getRelatedRecordIdentity() {
+        return relatedRecordIdentity;
+    }
+
+    public void setRelatedRecordIdentity(String relatedRecordIdentity) {
+        this.relatedRecordIdentity = relatedRecordIdentity;
+    }
 }
