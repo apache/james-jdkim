@@ -31,7 +31,6 @@ import junit.framework.TestCase;
 import junit.framework.TestSuite;
 
 import org.apache.james.jdkim.exceptions.FailException;
-import org.apache.james.mime4j.parser.MimeTokenStream;
 
 /**
  * Creates a TestSuite running the test for each .msg file in the test resouce
@@ -85,9 +84,6 @@ public class PerlDKIMTest extends TestCase {
     }
 
     protected void runTest() throws Throwable {
-        MimeTokenStream stream = new MimeTokenStream();
-        stream.setRecursionMode(MimeTokenStream.M_FLAT);
-
         InputStream is = new FileInputStream(file);
 
         pkr = getPublicRecordRetriever();

@@ -20,7 +20,6 @@
 package org.apache.james.jdkim;
 
 import org.apache.james.jdkim.exceptions.PermFailException;
-import org.apache.james.mime4j.parser.MimeTokenStream;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -49,9 +48,6 @@ public class FileBasedTest extends TestCase {
     }
 
     protected void runTest() throws Throwable {
-        MimeTokenStream stream = new MimeTokenStream();
-        stream.setRecursionMode(MimeTokenStream.M_FLAT);
-
         InputStream is = new FileInputStream(file);
         // String msgoutFile = file.getAbsolutePath().substring(0,
         // file.getAbsolutePath().lastIndexOf('.')) + ".out";
