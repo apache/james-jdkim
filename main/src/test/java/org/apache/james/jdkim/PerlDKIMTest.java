@@ -25,6 +25,8 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.URISyntaxException;
+import java.net.URL;
 
 import junit.framework.Test;
 import junit.framework.TestCase;
@@ -41,7 +43,7 @@ public class PerlDKIMTest extends TestCase {
     private File file;
     private MockPublicKeyRecordRetriever pkr;
 
-    public PerlDKIMTest(String testName) throws IOException {
+    public PerlDKIMTest(String testName) throws IOException, URISyntaxException {
         this(testName, PerlDKIMTestSuite.getFile(testName),
                 getPublicRecordRetriever());
     }
@@ -58,8 +60,7 @@ public class PerlDKIMTest extends TestCase {
         MockPublicKeyRecordRetriever pkr = new MockPublicKeyRecordRetriever();
         BufferedReader fakeDNSlist = new BufferedReader(
                 new InputStreamReader(
-                        new FileInputStream(
-                                "main\\src\\test\\resources\\org\\apache\\james\\jdkim\\Mail-DKIM\\FAKE_DNS.dat")));
+                        PerlDKIMTest.class.getResourceAsStream("/org/apache/james/jdkim/Mail-DKIM/FAKE_DNS.dat")));
         String line;
         while ((line = fakeDNSlist.readLine()) != null) {
             if (!line.startsWith("#")) {
@@ -117,34 +118,37 @@ public class PerlDKIMTest extends TestCase {
         }
     }
 
-    public static Test suite() throws IOException {
+    public static Test suite() throws IOException, URISyntaxException {
         return new PerlDKIMTestSuite();
     }
 
     static class PerlDKIMTestSuite extends TestSuite {
 
-        private static final File TESTS_FOLDER = new File(
-                "main\\src\\test\\resources\\org\\apache\\james\\jdkim\\Mail-DKIM\\corpus");
+        private static final String TESTS_FOLDER =  "/org/apache/james/jdkim/Mail-DKIM/corpus";
 
-        public PerlDKIMTestSuite() throws IOException {
-            super();
-            File dir = TESTS_FOLDER;
-            File[] files = dir.listFiles();
+        public PerlDKIMTestSuite() throws IOException, URISyntaxException {
+            URL resource = PerlDKIMTestSuite.class.getResource(TESTS_FOLDER);
+            if (resource != null) {
+                File dir = new File(resource.toURI());
+                File[] files = dir.listFiles();
 
-            if (files != null)
-                for (int i = 0; i < files.length; i++) {
-                    File f = files[i];
-                    if (f.getName().toLowerCase().endsWith(".txt")) {
-                        addTest(new PerlDKIMTest(f.getName().substring(0,
-                                f.getName().length() - 4), f,
-                                getPublicRecordRetriever()));
+                if (files != null)
+                    for (int i = 0; i < files.length; i++) {
+                        File f = files[i];
+                        if (f.getName().toLowerCase().endsWith(".txt")) {
+                            addTest(new PerlDKIMTest(f.getName().substring(0,
+                                    f.getName().length() - 4), f,
+                                    getPublicRecordRetriever()));
+                        }
                     }
-                }
+            }
         }
 
-        public static File getFile(String name) {
-            return new File(TESTS_FOLDER.getAbsolutePath() + File.separator
-                    + name + ".txt");
+        public static File getFile(String name) throws URISyntaxException {
+            URL resource =  PerlDKIMTestSuite.class.getResource(TESTS_FOLDER + File.separator + name + ".txt");
+            if (resource != null) {
+                return new File(resource.toURI());
+            } else return null;
         }
 
     }

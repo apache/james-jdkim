@@ -25,6 +25,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URISyntaxException;
+import java.net.URL;
 
 import junit.framework.Test;
 import junit.framework.TestCase;
@@ -38,7 +40,7 @@ public class FileBasedTest extends TestCase {
 
     private File file;
 
-    public FileBasedTest(String testName) {
+    public FileBasedTest(String testName) throws URISyntaxException {
         this(testName, FileBasedTestSuite.getFile(testName));
     }
 
@@ -250,33 +252,36 @@ public class FileBasedTest extends TestCase {
         }
     }
 
-    public static Test suite() throws IOException {
+    public static Test suite() throws IOException, URISyntaxException {
         return new FileBasedTestSuite();
     }
 
     static class FileBasedTestSuite extends TestSuite {
 
-        private static final File TESTS_FOLDER = new File(
-                "main\\src\\test\\resources\\org\\apache\\james\\jdkim\\corpus");
+        private static final String TESTS_FOLDER = "/org/apache/james/jdkim/corpus";
 
-        public FileBasedTestSuite() throws IOException {
-            super();
-            File dir = TESTS_FOLDER;
-            File[] files = dir.listFiles();
+        public FileBasedTestSuite() throws IOException, URISyntaxException {
+            URL resource = FileBasedTestSuite.class.getResource(TESTS_FOLDER);
+            if (resource != null) {
+                File dir = new File(resource.toURI());
+                File[] files = dir.listFiles();
 
-            if (files != null)
-                for (int i = 0; i < files.length; i++) {
-                    File f = files[i];
-                    if (f.getName().toLowerCase().endsWith(".eml")) {
-                        addTest(new FileBasedTest(f.getName().substring(0,
-                                f.getName().length() - 4), f));
+                if (files != null)
+                    for (int i = 0; i < files.length; i++) {
+                        File f = files[i];
+                        if (f.getName().toLowerCase().endsWith(".eml")) {
+                            addTest(new FileBasedTest(f.getName().substring(0,
+                                    f.getName().length() - 4), f));
+                        }
                     }
-                }
+            }
         }
 
-        public static File getFile(String name) {
-            return new File(TESTS_FOLDER.getAbsolutePath() + File.separator
-                    + name + ".eml");
+        public static File getFile(String name) throws URISyntaxException {
+            URL resource =  FileBasedTestSuite.class.getResource(TESTS_FOLDER + File.separator + name + ".eml");
+            if (resource != null) {
+                return new File(resource.toURI());
+            } else return null;
         }
 
     }
