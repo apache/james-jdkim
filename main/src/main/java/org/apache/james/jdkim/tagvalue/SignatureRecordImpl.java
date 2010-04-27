@@ -68,7 +68,7 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
                 ("@" + getValue("d")).toLowerCase())
                 && !getIdentity().toString().toLowerCase().endsWith(
                         ("." + getValue("d")).toLowerCase()))
-            throw new IllegalStateException("Domain mismatch");
+            throw new IllegalStateException("Identity (i=) domain mismatch: expected [optional]@[optional.]domain-from-d-attribute");
 
         // when "x=" exists and signature expired then return PERMFAIL
         // (signature expired)
