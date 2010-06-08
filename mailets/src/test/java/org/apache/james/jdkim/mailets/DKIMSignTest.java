@@ -22,6 +22,7 @@ package org.apache.james.jdkim.mailets;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.List;
 import java.util.Properties;
 
 import javax.mail.Address;
@@ -35,6 +36,7 @@ import junit.framework.TestCase;
 
 import org.apache.james.jdkim.DKIMVerifier;
 import org.apache.james.jdkim.MockPublicKeyRecordRetriever;
+import org.apache.james.jdkim.api.SignatureRecord;
 import org.apache.james.jdkim.exceptions.FailException;
 import org.apache.james.jdkim.exceptions.PermFailException;
 import org.apache.mailet.Mail;
@@ -64,7 +66,7 @@ public class DKIMSignTest extends TestCase {
 
     public void testDKIMSign() throws MessagingException, IOException,
             FailException {
-        String message = "Received: by 10.XX.XX.12 with SMTP id dfgskldjfhgkljsdfhgkljdhfg;\r\n\tTue, 06 Oct 2009 07:37:34 -0700 (PDT)\r\nReturn-Path: <bounce@example.com>\r\nReceived: from example.co.uk (example.co.uk [XX.XXX.125.19])\r\n\tby mx.example.com with ESMTP id dgdfgsdfgsd.97.2009.10.06.07.37.32;\r\n\tTue, 06 Oct 2009 07:37:32 -0700 (PDT)\r\nFrom: apache@bago.org\r\nTo: apache@bago.org\r\n\r\nbody\r\n";
+        String message = "Received: by 10.XX.XX.12 with SMTP id dfgskldjfhgkljsdfhgkljdhfg;\r\n\tTue, 06 Oct 2009 07:37:34 -0700 (PDT)\r\nReturn-Path: <bounce@example.com>\r\nReceived: from example.co.uk (example.co.uk [XX.XXX.125.19])\r\n\tby mx.example.com with ESMTP id dgdfgsdfgsd.97.2009.10.06.07.37.32;\r\n\tTue, 06 Oct 2009 07:37:32 -0700 (PDT)\r\nFrom: apache@bago.org\r\nTo: apache@bago.org\r\n\r\nbody\r\nprova\r\n";
 
         Mailet mailet = new DKIMSign();
 
@@ -74,10 +76,7 @@ public class DKIMSignTest extends TestCase {
                 .setProperty(
                         "signatureTemplate",
                         "v=1; s=selector; d=example.com; h=from:to:received:received; a=rsa-sha256; bh=; b=;");
-        mci
-                .setProperty(
-                        "privateKey",
-                        TESTING_PEM);
+        mci.setProperty("privateKey", TESTING_PEM);
 
         mailet.init(mci);
 
@@ -96,11 +95,100 @@ public class DKIMSignTest extends TestCase {
         mail.getMessage().writeTo(rawMessage);
         String res = rawMessage.toString();
 
-        MockPublicKeyRecordRetriever MockPublicKeyRecordRetriever = new MockPublicKeyRecordRetriever(
+        MockPublicKeyRecordRetriever mockPublicKeyRecordRetriever = new MockPublicKeyRecordRetriever(
                 "v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDYDaYKXzwVYwqWbLhmuJ66aTAN8wmDR+rfHE8HfnkSOax0oIoTM5zquZrTLo30870YMfYzxwfB6j/Nz3QdwrUD/t0YMYJiUKyWJnCKfZXHJBJ+yfRHr7oW+UW3cVo9CG2bBfIxsInwYe175g9UjyntJpWueqdEIo1c2bhv9Mp66QIDAQAB;",
                 "selector", "example.com");
-        new DKIMVerifier(MockPublicKeyRecordRetriever)
+        new DKIMVerifier(mockPublicKeyRecordRetriever)
                 .verify(new ByteArrayInputStream(res.getBytes()));
+    }
+
+    public void testDKIMSignFuture() throws MessagingException, IOException,
+            FailException {
+        String message = "Received: by 10.XX.XX.12 with SMTP id dfgskldjfhgkljsdfhgkljdhfg;\r\n\tTue, 06 Oct 2009 07:37:34 -0700 (PDT)\r\nReturn-Path: <bounce@example.com>\r\nReceived: from example.co.uk (example.co.uk [XX.XXX.125.19])\r\n\tby mx.example.com with ESMTP id dgdfgsdfgsd.97.2009.10.06.07.37.32;\r\n\tTue, 06 Oct 2009 07:37:32 -0700 (PDT)\r\nFrom: apache@bago.org\r\nTo: apache@bago.org\r\n\r\nbody\r\nprova\r\n";
+
+        Mailet mailet = new DKIMSign();
+
+        FakeMailetConfig mci = new FakeMailetConfig("Test",
+                new FakeMailContext());
+        mci
+                .setProperty(
+                        "signatureTemplate",
+                        "v=1; t="+((System.currentTimeMillis()/1000)+1000)+"; s=selector; d=example.com; h=from:to:received:received; a=rsa-sha256; bh=; b=;");
+        mci.setProperty("privateKey", TESTING_PEM);
+
+        mailet.init(mci);
+
+        Mail mail = new FakeMail();
+        mail.setMessage(new MimeMessage(Session
+                .getDefaultInstance(new Properties()),
+                new ByteArrayInputStream(message.getBytes())));
+
+        mailet.service(mail);
+
+        Mailet m7bit = new ConvertTo7Bit();
+        m7bit.init(mci);
+        m7bit.service(mail);
+
+        ByteArrayOutputStream rawMessage = new ByteArrayOutputStream();
+        mail.getMessage().writeTo(rawMessage);
+        String res = rawMessage.toString();
+
+        MockPublicKeyRecordRetriever mockPublicKeyRecordRetriever = new MockPublicKeyRecordRetriever(
+                "v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDYDaYKXzwVYwqWbLhmuJ66aTAN8wmDR+rfHE8HfnkSOax0oIoTM5zquZrTLo30870YMfYzxwfB6j/Nz3QdwrUD/t0YMYJiUKyWJnCKfZXHJBJ+yfRHr7oW+UW3cVo9CG2bBfIxsInwYe175g9UjyntJpWueqdEIo1c2bhv9Mp66QIDAQAB;",
+                "selector", "example.com");
+        try {
+            new DKIMVerifier(mockPublicKeyRecordRetriever)
+                    .verify(new ByteArrayInputStream(res.getBytes()));
+            fail("Expecting signature to be ignored");
+        } catch (PermFailException e) {
+            // signature ignored, so fail for missing signatures.
+        }
+    }
+
+
+    public void testDKIMSignTime() throws MessagingException, IOException,
+            FailException {
+        String message = "Received: by 10.XX.XX.12 with SMTP id dfgskldjfhgkljsdfhgkljdhfg;\r\n\tTue, 06 Oct 2009 07:37:34 -0700 (PDT)\r\nReturn-Path: <bounce@example.com>\r\nReceived: from example.co.uk (example.co.uk [XX.XXX.125.19])\r\n\tby mx.example.com with ESMTP id dgdfgsdfgsd.97.2009.10.06.07.37.32;\r\n\tTue, 06 Oct 2009 07:37:32 -0700 (PDT)\r\nFrom: apache@bago.org\r\nTo: apache@bago.org\r\n\r\nbody\r\nprova\r\n";
+
+        Mailet mailet = new DKIMSign();
+
+        FakeMailetConfig mci = new FakeMailetConfig("Test",
+                new FakeMailContext());
+        mci
+                .setProperty(
+                        "signatureTemplate",
+                        "v=1; t=; s=selector; d=example.com; h=from:to:received:received; a=rsa-sha256; bh=; b=;");
+        mci.setProperty("privateKey", TESTING_PEM);
+
+        mailet.init(mci);
+
+        Mail mail = new FakeMail();
+        mail.setMessage(new MimeMessage(Session
+                .getDefaultInstance(new Properties()),
+                new ByteArrayInputStream(message.getBytes())));
+
+        mailet.service(mail);
+
+        Mailet m7bit = new ConvertTo7Bit();
+        m7bit.init(mci);
+        m7bit.service(mail);
+
+        ByteArrayOutputStream rawMessage = new ByteArrayOutputStream();
+        mail.getMessage().writeTo(rawMessage);
+        String res = rawMessage.toString();
+
+        MockPublicKeyRecordRetriever mockPublicKeyRecordRetriever = new MockPublicKeyRecordRetriever(
+                "v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDYDaYKXzwVYwqWbLhmuJ66aTAN8wmDR+rfHE8HfnkSOax0oIoTM5zquZrTLo30870YMfYzxwfB6j/Nz3QdwrUD/t0YMYJiUKyWJnCKfZXHJBJ+yfRHr7oW+UW3cVo9CG2bBfIxsInwYe175g9UjyntJpWueqdEIo1c2bhv9Mp66QIDAQAB;",
+                "selector", "example.com");
+        List/* SignatureRecord */ rs = new DKIMVerifier(mockPublicKeyRecordRetriever)
+                .verify(new ByteArrayInputStream(res.getBytes()));
+        
+        // check we have a valued signatureTimestamp
+        assertNotNull(((SignatureRecord) rs.get(0)).getSignatureTimestamp());
+        long ref = System.currentTimeMillis() / 1000;
+        // Chech that the signature timestamp is in the past 60 seconds.
+        assertTrue(((SignatureRecord) rs.get(0)).getSignatureTimestamp().longValue() <= ref);
+        assertTrue(((SignatureRecord) rs.get(0)).getSignatureTimestamp().longValue() >= ref - 60);
     }
 
     public void testDKIMSignMessageAsText() throws MessagingException,
@@ -109,7 +197,7 @@ public class DKIMSignTest extends TestCase {
                 .getDefaultInstance(new Properties()));
         mm.addFrom(new Address[] { new InternetAddress("io@bago.org") });
         mm.addRecipient(RecipientType.TO, new InternetAddress("io@bago.org"));
-        mm.setText("An 8bit encoded body with €uro symbol.", "ISO-8859-15");
+        mm.setText("An 8bit encoded body with \u20ACuro symbol.", "ISO-8859-15");
 
         Mailet mailet = new DKIMSign();
 
@@ -140,10 +228,10 @@ public class DKIMSignTest extends TestCase {
         mail.getMessage().writeTo(rawMessage);
         String res = rawMessage.toString();
 
-        MockPublicKeyRecordRetriever MockPublicKeyRecordRetriever = new MockPublicKeyRecordRetriever(
+        MockPublicKeyRecordRetriever mockPublicKeyRecordRetriever = new MockPublicKeyRecordRetriever(
                 "v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDYDaYKXzwVYwqWbLhmuJ66aTAN8wmDR+rfHE8HfnkSOax0oIoTM5zquZrTLo30870YMfYzxwfB6j/Nz3QdwrUD/t0YMYJiUKyWJnCKfZXHJBJ+yfRHr7oW+UW3cVo9CG2bBfIxsInwYe175g9UjyntJpWueqdEIo1c2bhv9Mp66QIDAQAB;",
                 "selector", "example.com");
-        new DKIMVerifier(MockPublicKeyRecordRetriever)
+        new DKIMVerifier(mockPublicKeyRecordRetriever)
                 .verify(new ByteArrayInputStream(res.getBytes()));
     }
 

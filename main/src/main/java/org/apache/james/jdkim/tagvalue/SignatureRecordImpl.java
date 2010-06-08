@@ -74,32 +74,10 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
         // (signature expired)
         if (getValue("x") != null) {
             long expiration = Long.parseLong(getValue("x").toString());
-            long lifetime = (expiration - System.currentTimeMillis() / 1000);
-            String measure = "s";
+            long lifetime = (expiration - System.currentTimeMillis()/1000);
             if (lifetime < 0) {
-                lifetime = -lifetime;
-                if (lifetime > 600) {
-                    lifetime = lifetime / 60;
-                    measure = "m";
-                    if (lifetime > 600) {
-                        lifetime = lifetime / 60;
-                        measure = "h";
-                        if (lifetime > 120) {
-                            lifetime = lifetime / 24;
-                            measure = "d";
-                            if (lifetime > 90) {
-                                lifetime = lifetime / 30;
-                                measure = " months";
-                                if (lifetime > 24) {
-                                    lifetime = lifetime / 12;
-                                    measure = " years";
-                                }
-                            }
-                        }
-                    }
-                }
                 throw new IllegalStateException("Signature is expired since "
-                        + lifetime + measure + ".");
+                        + getTimeMeasure(lifetime) + ".");
             }
         }
 
@@ -109,6 +87,33 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
             throw new IllegalStateException("From field not signed");
         // TODO support ignoring signature for certain d values (externally to
         // this class).
+    }
+
+    private String getTimeMeasure(long lifetime) {
+        String measure = "s";
+        lifetime = -lifetime;
+        if (lifetime > 600) {
+            lifetime = lifetime / 60;
+            measure = "m";
+            if (lifetime > 600) {
+                lifetime = lifetime / 60;
+                measure = "h";
+                if (lifetime > 120) {
+                    lifetime = lifetime / 24;
+                    measure = "d";
+                    if (lifetime > 90) {
+                        lifetime = lifetime / 30;
+                        measure = " months";
+                        if (lifetime > 24) {
+                            lifetime = lifetime / 12;
+                            measure = " years";
+                        }
+                    }
+                }
+            }
+        }
+        String lifetimeMeasure = lifetime + measure;
+        return lifetimeMeasure;
     }
 
     /**
@@ -274,6 +279,12 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
             return Integer.parseInt(limit);
     }
 
+    public Long getSignatureTimestamp() {
+        CharSequence cs = getValue("t");
+        if (cs == null) return null;
+        return Long.valueOf(Long.parseLong(cs.toString()));
+    }
+
     public String getBodyCanonicalisationMethod() {
         String c = getValue("c").toString();
         int pSlash = c.toString().indexOf("/");
@@ -315,11 +326,14 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
     public void setBodyHash(byte[] newBodyHash) {
         String bodyHash = new String(Base64.encodeBase64(newBodyHash));
         setValue("bh", bodyHash);
+        // If a t=; parameter is present in the signature, make sure to 
+        // fill it with the current timestamp
+        if (getValue("t") != null && getValue("t").toString().trim().length() == 0) {
+            setValue("t", ""+(System.currentTimeMillis() / 1000));
+        }
     }
 
     public String toUnsignedString() {
         return toString().replaceFirst("b=[^;]*", "b=");
     }
-
-
 }

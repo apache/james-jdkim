@@ -266,6 +266,17 @@ public class DKIMVerifier extends DKIMCommon {
                         throw new PermFailException(e.getMessage());
                     }
 
+                    // Specification say we MAY refuse to verify the signature.
+                    if (signatureRecord.getSignatureTimestamp() != null) {
+                        long signedTime = signatureRecord.getSignatureTimestamp().longValue();
+                        long elapsed = (System.currentTimeMillis()/1000 - signedTime);
+                        if (elapsed < 0) {
+                            // throw new IllegalStateException("Signature date is "
+                            //        + getTimeMeasure(elapsed) + " in the future.");
+                            break;
+                        }
+                    }
+
                     // TODO here we could check more parameters for
                     // validation before running a network operation like the
                     // dns lookup.

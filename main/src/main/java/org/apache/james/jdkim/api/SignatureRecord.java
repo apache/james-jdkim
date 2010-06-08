@@ -67,4 +67,6 @@ public interface SignatureRecord {
     
     public abstract String toUnsignedString();
 
+    public abstract Long getSignatureTimestamp();
+
 }
