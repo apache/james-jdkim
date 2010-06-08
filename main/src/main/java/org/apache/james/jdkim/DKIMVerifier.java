@@ -351,8 +351,9 @@ public class DKIMVerifier extends DKIMCommon {
         if (verifiedSignatures.size() == 0) {
             throw prepareException(signatureExceptions);
         } else {
-            // TODO list good and bad signatures.
-            // remove system out.
+            // There is no access to the signatureExceptions when
+            // there is at least one valid signature (JDKIM-14)
+            /*
             for (Iterator i = signatureExceptions.keySet().iterator(); i
                     .hasNext();) {
                 String f = (String) i.next();
@@ -360,10 +361,13 @@ public class DKIMVerifier extends DKIMCommon {
                         + ((FailException) signatureExceptions.get(f))
                                 .getMessage() + " FIELD: " + f);
             }
+            */
+            /*
             for (Iterator i = verifiedSignatures.iterator(); i.hasNext();) {
                 SignatureRecord sr = (SignatureRecord) i.next();
                 System.out.println("DKIM-Pass:" + sr);
             }
+            */
             return verifiedSignatures;
         }
 
