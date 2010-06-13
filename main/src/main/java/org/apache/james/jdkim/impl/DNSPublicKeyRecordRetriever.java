@@ -49,7 +49,7 @@ public class DNSPublicKeyRecordRetriever implements PublicKeyRecordRetriever {
     /**
      * @see org.apache.james.jdkim.api.PublicKeyRecordRetriever#getRecords(java.lang.CharSequence, java.lang.CharSequence, java.lang.CharSequence)
      */
-    public List/* String */getRecords(CharSequence methodAndOptions,
+    public List<String> getRecords(CharSequence methodAndOptions,
             CharSequence selector, CharSequence token)
             throws TempFailException, PermFailException {
         if (!"dns/txt".equals(methodAndOptions))
@@ -67,7 +67,7 @@ public class DNSPublicKeyRecordRetriever implements PublicKeyRecordRetriever {
                 throw new TempFailException(query.getErrorString());
             }
 
-            List/* String */records = convertRecordsToList(rr);
+            List<String> records = convertRecordsToList(rr);
             return records;
         } catch (TextParseException e) {
             // TODO log
@@ -82,10 +82,11 @@ public class DNSPublicKeyRecordRetriever implements PublicKeyRecordRetriever {
      *                Record array
      * @return list
      */
-    public static List/* String */convertRecordsToList(Record[] rr) {
-        List/* String */records;
+    @SuppressWarnings("unchecked")
+    public static List<String> convertRecordsToList(Record[] rr) {
+        List<String> records;
         if (rr != null && rr.length > 0) {
-            records = new ArrayList/* String */();
+            records = new ArrayList<String>();
             for (int i = 0; i < rr.length; i++) {
                 switch (rr[i].getType()) {
                 case Type.TXT:
@@ -99,9 +100,9 @@ public class DNSPublicKeyRecordRetriever implements PublicKeyRecordRetriever {
                         records.add(((String) txt.getStrings().get(0)));
                     } else {
                         StringBuffer sb = new StringBuffer();
-                        for (Iterator/* String */it = txt.getStrings()
+                        for (Iterator<String> it = txt.getStrings()
                                 .iterator(); it.hasNext();) {
-                            String k = (String) it.next();
+                            String k = it.next();
                             // This was required until dnsjava 2.0.6 because
                             // dnsjava was escaping
                             // the result like it was doublequoted (JDKIM-7).

@@ -28,7 +28,7 @@ public interface Headers {
      * 
      * @return the list of <code>Field</code> objects.
      */
-    public abstract List/* String */getFields();
+    public abstract List<String> getFields();
 
     /**
      * Gets all <code>Field</code>s having the specified field name in a case
@@ -38,6 +38,6 @@ public interface Headers {
      *                the field name (e.g. From, Subject).
      * @return the list of fields.
      */
-    public abstract List/* String */getFields(final String name);
+    public abstract List<String> getFields(final String name);
 
 }

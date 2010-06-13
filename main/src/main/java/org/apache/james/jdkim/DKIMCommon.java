@@ -60,7 +60,7 @@ public abstract class DKIMCommon {
     }
 
     protected static void signatureCheck(Headers h, SignatureRecord sign,
-            List headers, Signature signature)
+            List<CharSequence> headers, Signature signature)
             throws SignatureException, PermFailException {
 
         boolean relaxedHeaders = SignatureRecord.RELAXED.equals(sign
@@ -76,19 +76,19 @@ public abstract class DKIMCommon {
         // NOTE: this could be improved by using iterators.
         // NOTE: this relies on the list returned by Message being in insertion
         // order
-        Map/* String, Integer */processedHeader = new HashMap();
+        Map<String, Integer> processedHeader = new HashMap<String, Integer>();
 
-        for (Iterator i = headers.iterator(); i.hasNext();) {
-            CharSequence header = (CharSequence) i.next();
+        for (Iterator<CharSequence> i = headers.iterator(); i.hasNext();) {
+            CharSequence header = i.next();
             // NOTE check this getter is case insensitive
-            List hl = h.getFields(header.toString());
+            List<String> hl = h.getFields(header.toString());
             if (hl != null && hl.size() > 0) {
-                Integer done = (Integer) processedHeader.get(header.toString());
+                Integer done = processedHeader.get(header.toString());
                 if (done == null)
                     done = new Integer(0); /* Integer.valueOf(0) */
                 int doneHeaders = done.intValue() + 1;
                 if (doneHeaders <= hl.size()) {
-                    String fv = (String) hl.get(hl.size() - doneHeaders);
+                    String fv = hl.get(hl.size() - doneHeaders);
                     updateSignature(signature, relaxedHeaders, header, fv);
                     signature.update("\r\n".getBytes());
                     processedHeader.put(header.toString(), new Integer(

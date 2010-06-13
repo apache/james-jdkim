@@ -180,7 +180,7 @@ public class DKIMSignTest extends TestCase {
         MockPublicKeyRecordRetriever mockPublicKeyRecordRetriever = new MockPublicKeyRecordRetriever(
                 "v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDYDaYKXzwVYwqWbLhmuJ66aTAN8wmDR+rfHE8HfnkSOax0oIoTM5zquZrTLo30870YMfYzxwfB6j/Nz3QdwrUD/t0YMYJiUKyWJnCKfZXHJBJ+yfRHr7oW+UW3cVo9CG2bBfIxsInwYe175g9UjyntJpWueqdEIo1c2bhv9Mp66QIDAQAB;",
                 "selector", "example.com");
-        List/* SignatureRecord */ rs = new DKIMVerifier(mockPublicKeyRecordRetriever)
+        List<SignatureRecord> rs = new DKIMVerifier(mockPublicKeyRecordRetriever)
                 .verify(new ByteArrayInputStream(res.getBytes()));
         
         // check we have a valued signatureTimestamp

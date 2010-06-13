@@ -45,13 +45,13 @@ public class TagValue {
             + "((\r\n[\t ]|[\t ])+" + tval + ")*)?$");
 
     // we may use a TreeMap because we may need to know original order.
-    private Map/* String, CharSequence */tagValues;
+    private Map<String, CharSequence> tagValues;
 
-    protected Set/* String */mandatoryTags = new HashSet();
-    protected Map/* String, CharSequence */defaults = new HashMap();
+    protected Set<String> mandatoryTags = new HashSet<String>();
+    protected Map<String, CharSequence> defaults = new HashMap<String, CharSequence>();
     private String stringRepresentation = null;
 
-    protected Set tagSet() {
+    protected Set<String> tagSet() {
         return tagValues.keySet();
     }
     protected boolean containsTag(String tag) {
@@ -121,10 +121,10 @@ public class TagValue {
         parse(data);
     }
 
-    protected Map newTagValue() {
+    protected Map<String, CharSequence> newTagValue() {
         // extensions may override this to use TreeMaps in order to keep track
         // of orders
-        return new HashMap();
+        return new HashMap<String, CharSequence>();
     }
 
     protected void init() {
@@ -210,7 +210,7 @@ public class TagValue {
         return true;
     }
 
-    public Set getTags() {
+    public Set<String> getTags() {
         return tagValues.keySet();
     }
 
@@ -234,15 +234,15 @@ public class TagValue {
 
     public void validate() {
         // check mandatory fields
-        for (Iterator i = mandatoryTags.iterator(); i.hasNext();) {
-            String tag = (String) i.next();
+        for (Iterator<String> i = mandatoryTags.iterator(); i.hasNext();) {
+            String tag = i.next();
             if (getValue(tag) == null)
                 throw new IllegalStateException("Missing mandatory tag: " + tag);
         }
     }
 
-    protected List stringToColonSeparatedList(String h, Pattern pattern) {
-        List headers = new ArrayList();
+    protected List<CharSequence> stringToColonSeparatedList(String h, Pattern pattern) {
+        List<CharSequence> headers = new ArrayList<CharSequence>();
         for (int i = 0; i < h.length(); i++) {
             int p = h.indexOf(':', i);
             if (p == -1)
@@ -259,9 +259,9 @@ public class TagValue {
         return headers;
     }
 
-    protected boolean isInListCaseInsensitive(CharSequence hash, List hashes) {
-        for (Iterator i = hashes.iterator(); i.hasNext();) {
-            CharSequence suppHash = (CharSequence) i.next();
+    protected boolean isInListCaseInsensitive(CharSequence hash, List<CharSequence> hashes) {
+        for (Iterator<CharSequence> i = hashes.iterator(); i.hasNext();) {
+            CharSequence suppHash = i.next();
             if (hash.toString().equalsIgnoreCase(suppHash.toString()))
                 return true;
         }
@@ -278,9 +278,9 @@ public class TagValue {
     private void updateStringRepresentation() {
         // calculate a new string representation
         StringBuffer res = new StringBuffer();
-        Set s = getTags();
-        for (Iterator i = s.iterator(); i.hasNext();) {
-            String tag = (String) i.next();
+        Set<String> s = getTags();
+        for (Iterator<String> i = s.iterator(); i.hasNext();) {
+            String tag = i.next();
             res.append(" ");
             res.append(tag);
             res.append("=");

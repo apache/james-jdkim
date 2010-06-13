@@ -86,14 +86,15 @@ public class DKIMSign extends GenericMailet {
      */
     private final class MimeMessageHeaders implements Headers {
 
-        private Map/* String, String */headers;
-        private List/* String */fields;
+        private Map<String, List<String>> headers;
+        private List<String> fields;
 
+        @SuppressWarnings("unchecked")
         public MimeMessageHeaders(MimeMessage message)
                 throws MessagingException {
-            headers = new HashMap();
-            fields = new LinkedList();
-            for (Enumeration e = message.getAllHeaderLines(); e
+            headers = new HashMap<String, List<String>>();
+            fields = new LinkedList<String>();
+            for (Enumeration<String> e = message.getAllHeaderLines(); e
                     .hasMoreElements();) {
                 String head = (String) e.nextElement();
                 int p = head.indexOf(':');
@@ -102,21 +103,21 @@ public class DKIMSign extends GenericMailet {
                 String headerName = head.substring(0, p).trim();
                 String headerNameLC = headerName.toLowerCase();
                 fields.add(headerName);
-                List/* String */strings = (List) headers.get(headerNameLC);
+                List<String> strings = (List<String>) headers.get(headerNameLC);
                 if (strings == null) {
-                    strings = new LinkedList();
+                    strings = new LinkedList<String>();
                     headers.put(headerNameLC, strings);
                 }
                 strings.add(head);
             }
         }
 
-        public List getFields() {
+        public List<String> getFields() {
             return fields;
         }
 
-        public List getFields(String name) {
-            return (List) headers.get(name);
+        public List<String> getFields(String name) {
+            return headers.get(name);
         }
     }
 
@@ -175,25 +176,26 @@ public class DKIMSign extends GenericMailet {
 
     }
 
+    @SuppressWarnings("unchecked")
     private void prependHeader(MimeMessage message, String signatureHeader)
             throws MessagingException {
-        List prevHeader = new LinkedList();
+        List<String> prevHeader = new LinkedList<String>();
         // read all the headers
-        for (Enumeration e = message.getAllHeaderLines(); e.hasMoreElements();) {
-            String headerLine = (String) e.nextElement();
+        for (Enumeration<String> e = message.getAllHeaderLines(); e.hasMoreElements();) {
+            String headerLine = e.nextElement();
             prevHeader.add(headerLine);
         }
         // remove all the headers
-        for (Enumeration e = message.getAllHeaders(); e.hasMoreElements();) {
-            Header header = (Header) e.nextElement();
+        for (Enumeration<Header> e = message.getAllHeaders(); e.hasMoreElements();) {
+            Header header = e.nextElement();
             message.removeHeader(header.getName());
         }
         // add our header
         message.addHeaderLine(signatureHeader);
         // add the remaining headers using "addHeaderLine" that won't alter the
         // insertion order.
-        for (Iterator i = prevHeader.iterator(); i.hasNext();) {
-            String header = (String) i.next();
+        for (Iterator<String> i = prevHeader.iterator(); i.hasNext();) {
+            String header = i.next();
             message.addHeaderLine(header);
         }
     }

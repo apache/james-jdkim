@@ -35,10 +35,10 @@ public class MultiplexingPublicKeyRecordRetrieverTest extends TestCase {
 
     private PublicKeyRecordRetriever myMethodRetriever = new PublicKeyRecordRetriever() {
 
-        public List getRecords(CharSequence methodAndOption,
+        public List<String> getRecords(CharSequence methodAndOption,
                 CharSequence selector, CharSequence token)
                 throws TempFailException, PermFailException {
-            List l = new ArrayList();
+            List<String> l = new ArrayList<String>();
             l.add(selector.toString());
             l.add(token.toString());
             return l;
@@ -64,8 +64,8 @@ public class MultiplexingPublicKeyRecordRetrieverTest extends TestCase {
 
     private void check(MultiplexingPublicKeyRecordRetriever pkrr, String method)
             throws TempFailException, PermFailException {
-        List l = pkrr.getRecords(method, "selector", "token");
-        Iterator i = l.iterator();
+        List<String> l = pkrr.getRecords(method, "selector", "token");
+        Iterator<String> i = l.iterator();
         assertEquals("selector", i.next());
         assertEquals("token", i.next());
         try {

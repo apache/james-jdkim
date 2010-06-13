@@ -39,7 +39,7 @@ public interface PublicKeyRecordRetriever {
      * @throws PermFailException
      *                 in case of unsupported options
      */
-    public List/* String */getRecords(CharSequence methodAndOption,
+    public List<String> getRecords(CharSequence methodAndOption,
             CharSequence selector, CharSequence token)
             throws TempFailException, PermFailException;
 

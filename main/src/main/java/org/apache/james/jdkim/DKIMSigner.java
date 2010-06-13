@@ -91,7 +91,7 @@ public class DKIMSigner extends DKIMCommon {
         
         bhj.getSignatureRecord().setBodyHash(computedHash);
         
-        List headers = bhj.getSignatureRecord().getHeaders();
+        List<CharSequence> headers = bhj.getSignatureRecord().getHeaders();
         try {
             // TODO handle b= in SignatureRecord.
             // whenever any tag is changed the b should be invalidated and the
@@ -117,7 +117,7 @@ public class DKIMSigner extends DKIMCommon {
         }
     }
 
-    private byte[] signatureSign(Headers h, SignatureRecord sign, PrivateKey key, List headers)
+    private byte[] signatureSign(Headers h, SignatureRecord sign, PrivateKey key, List<CharSequence> headers)
             throws NoSuchAlgorithmException, InvalidKeyException,
             SignatureException, PermFailException {
 

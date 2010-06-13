@@ -26,35 +26,35 @@ import java.util.List;
 
 public class CompoundOutputStream extends OutputStream {
 
-    List/* OutputStream */outputStreams;
+    List<? extends OutputStream> outputStreams;
 
-    public CompoundOutputStream(List outputStreams) {
+    public CompoundOutputStream(List<? extends OutputStream> outputStreams) {
         this.outputStreams = outputStreams;
     }
 
     public void close() throws IOException {
-        for (Iterator i = outputStreams.iterator(); i.hasNext();)
-            ((OutputStream) i.next()).close();
+        for (Iterator<? extends OutputStream> i = outputStreams.iterator(); i.hasNext();)
+            i.next().close();
     }
 
     public void flush() throws IOException {
-        for (Iterator i = outputStreams.iterator(); i.hasNext();)
-            ((OutputStream) i.next()).flush();
+        for (Iterator<? extends OutputStream> i = outputStreams.iterator(); i.hasNext();)
+            i.next().flush();
     }
 
     public void write(byte[] b, int off, int len) throws IOException {
-        for (Iterator i = outputStreams.iterator(); i.hasNext();)
-            ((OutputStream) i.next()).write(b, off, len);
+        for (Iterator<? extends OutputStream> i = outputStreams.iterator(); i.hasNext();)
+            i.next().write(b, off, len);
     }
 
     public void write(byte[] b) throws IOException {
-        for (Iterator i = outputStreams.iterator(); i.hasNext();)
-            ((OutputStream) i.next()).write(b);
+        for (Iterator<? extends OutputStream> i = outputStreams.iterator(); i.hasNext();)
+            i.next().write(b);
     }
 
     public void write(int b) throws IOException {
-        for (Iterator i = outputStreams.iterator(); i.hasNext();)
-            ((OutputStream) i.next()).write(b);
+        for (Iterator<? extends OutputStream> i = outputStreams.iterator(); i.hasNext();)
+            i.next().write(b);
     }
 
 }

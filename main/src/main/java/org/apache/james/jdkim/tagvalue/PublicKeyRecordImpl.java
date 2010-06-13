@@ -51,10 +51,10 @@ public class PublicKeyRecordImpl extends TagValue implements PublicKeyRecord {
         super(data);
     }
 
-    protected Map newTagValue() {
+    protected Map<String, CharSequence> newTagValue() {
         // extensions may override this to use TreeMaps in order to keep track
         // of orders
-        return new LinkedHashMap();
+        return new LinkedHashMap<String, CharSequence>();
     }
 
     protected void init() {
@@ -90,7 +90,7 @@ public class PublicKeyRecordImpl extends TagValue implements PublicKeyRecord {
      * @see org.apache.james.jdkim.api.PublicKeyRecord#isHashMethodSupported(java.lang.CharSequence)
      */
     public boolean isHashMethodSupported(CharSequence hash) {
-        List hashes = getAcceptableHashMethods();
+        List<CharSequence> hashes = getAcceptableHashMethods();
         if (hashes == null)
             return true;
         return isInListCaseInsensitive(hash, hashes);
@@ -100,14 +100,14 @@ public class PublicKeyRecordImpl extends TagValue implements PublicKeyRecord {
      * @see org.apache.james.jdkim.api.PublicKeyRecord#isKeyTypeSupported(java.lang.CharSequence)
      */
     public boolean isKeyTypeSupported(CharSequence hash) {
-        List hashes = getAcceptableKeyTypes();
+        List<CharSequence> hashes = getAcceptableKeyTypes();
         return isInListCaseInsensitive(hash, hashes);
     }
 
     /**
      * @see org.apache.james.jdkim.api.PublicKeyRecord#getAcceptableHashMethods()
      */
-    public List/* String */getAcceptableHashMethods() {
+    public List<CharSequence> getAcceptableHashMethods() {
         if (ANY.equals(getValue("h")))
             return null;
         return stringToColonSeparatedList(getValue("h").toString(),
@@ -117,7 +117,7 @@ public class PublicKeyRecordImpl extends TagValue implements PublicKeyRecord {
     /**
      * @see org.apache.james.jdkim.api.PublicKeyRecord#getAcceptableKeyTypes()
      */
-    public List/* String */getAcceptableKeyTypes() {
+    public List<CharSequence> getAcceptableKeyTypes() {
         return stringToColonSeparatedList(getValue("k").toString(),
                 hyphenatedWordPattern);
     }
@@ -155,13 +155,13 @@ public class PublicKeyRecordImpl extends TagValue implements PublicKeyRecord {
         }
     }
 
-    public List getFlags() {
+    public List<CharSequence> getFlags() {
         String flags = getValue("t").toString();
         String[] flagsStrings = flags.split(":");
-        List res = new ArrayList();
+        List<CharSequence> res = new ArrayList<CharSequence>();
         for (int i = 0; i < flagsStrings.length; i++) {
             res.add(trimFWS(flagsStrings[i], 0, flagsStrings[i].length() - 1,
-                    true).toString());
+                    true));
         }
         return res;
     }

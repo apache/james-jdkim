@@ -82,14 +82,14 @@ public class DKIMVerifier extends DKIMCommon {
         return publicKeyRecordRetriever;
     }
 
-    public PublicKeyRecord publicKeySelector(List records)
+    public PublicKeyRecord publicKeySelector(List<String> records)
             throws PermFailException {
         String lastError = null;
         if (records == null || records.size() == 0) {
             lastError = "no key for signature";
         } else {
-            for (Iterator i = records.iterator(); i.hasNext();) {
-                String record = (String) i.next();
+            for (Iterator<String> i = records.iterator(); i.hasNext();) {
+                String record = i.next();
                 try {
                     PublicKeyRecord pk = newPublicKeyRecord(record);
                     pk.validate();
@@ -160,12 +160,12 @@ public class DKIMVerifier extends DKIMCommon {
         PublicKeyRecord key = null;
         TempFailException lastTempFailure = null;
         PermFailException lastPermFailure = null;
-        for (Iterator rlm = sign.getRecordLookupMethods().iterator(); key == null
+        for (Iterator<CharSequence> rlm = sign.getRecordLookupMethods().iterator(); key == null
                 && rlm.hasNext();) {
-            String method = (String) rlm.next();
+            CharSequence method = rlm.next();
             try {
                 PublicKeyRecordRetriever pkrr = getPublicKeyRecordRetriever();
-                List records = pkrr.getRecords(method, sign.getSelector()
+                List<String> records = pkrr.getRecords(method, sign.getSelector()
                         .toString(), sign.getDToken().toString());
                 PublicKeyRecord tempKey = publicKeySelector(records);
                 // checks wether the key is applicable to the signature
@@ -208,7 +208,7 @@ public class DKIMVerifier extends DKIMCommon {
      * @throws FailException
      *                 if no signature can be verified
      */
-    public List/* SignatureRecord */verify(InputStream is) throws IOException,
+    public List<SignatureRecord> verify(InputStream is) throws IOException,
             FailException {
         Message message;
         try {
@@ -235,10 +235,10 @@ public class DKIMVerifier extends DKIMCommon {
      * @throws FailException
      *                 if no signature can be verified
      */
-    public List/* SignatureRecord */verify(Headers messageHeaders,
+    public List<SignatureRecord> verify(Headers messageHeaders,
             InputStream bodyInputStream) throws IOException, FailException {
         // System.out.println(message.getFields("DKIM-Signature"));
-        List fields = messageHeaders.getFields("DKIM-Signature");
+        List<String> fields = messageHeaders.getFields("DKIM-Signature");
         // if (fields.size() > 1) throw new RuntimeException("here we are!");
         if (fields == null || fields.size() == 0) {
             throw new PermFailException("DKIM-Signature field not found");
@@ -247,11 +247,11 @@ public class DKIMVerifier extends DKIMCommon {
         // For each DKIM-signature we prepare an hashjob.
         // We calculate all hashes concurrently so to read
         // the inputstream only once.
-        Map/* String, BodyHashJob */bodyHashJobs = new HashMap();
-        List/* OutputStream */outputStreams = new LinkedList();
-        Map/* String, Exception */signatureExceptions = new Hashtable();
-        for (Iterator i = fields.iterator(); i.hasNext();) {
-            String signatureField = (String) i.next();
+        Map<String, BodyHasher> bodyHashJobs = new HashMap<String, BodyHasher>();
+        List<OutputStream> outputStreams = new LinkedList<OutputStream>();
+        Hashtable<String, FailException> signatureExceptions = new Hashtable<String, FailException>();
+        for (Iterator<String> i = fields.iterator(); i.hasNext();) {
+            String signatureField = i.next();
             try {
                 int pos = signatureField.indexOf(':');
                 if (pos > 0) {
@@ -283,7 +283,7 @@ public class DKIMVerifier extends DKIMCommon {
                     // e.g: the canonicalization method could be checked now.
                     PublicKeyRecord publicKeyRecord = publicRecordLookup(signatureRecord);
 
-                    List signedHeadersList = signatureRecord.getHeaders();
+                    List<CharSequence> signedHeadersList = signatureRecord.getHeaders();
 
                     byte[] decoded = signatureRecord.getSignature();
                     signatureVerify(messageHeaders, signatureRecord, decoded,
@@ -330,9 +330,9 @@ public class DKIMVerifier extends DKIMCommon {
         // simultaneous computation of all the hashes.
         DKIMCommon.streamCopy(bodyInputStream, o);
 
-        List/* SignatureRecord */verifiedSignatures = new LinkedList();
-        for (Iterator i = bodyHashJobs.values().iterator(); i.hasNext();) {
-            BodyHasher bhj = (BodyHasher) i.next();
+        List<SignatureRecord> verifiedSignatures = new LinkedList<SignatureRecord>();
+        for (Iterator<BodyHasher> i = bodyHashJobs.values().iterator(); i.hasNext();) {
+            BodyHasher bhj = i.next();
 
             byte[] computedHash = bhj.getDigest();
             byte[] expectedBodyHash = bhj.getSignatureRecord().getBodyHash();
@@ -373,9 +373,9 @@ public class DKIMVerifier extends DKIMCommon {
 
     }
 
-    private FailException prepareException(Map signatureExceptions) {
+    private FailException prepareException(Map<String, FailException> signatureExceptions) {
         if (signatureExceptions.size() == 1) {
-            return (FailException) signatureExceptions.values().iterator()
+            return signatureExceptions.values().iterator()
                     .next();
         } else {
             // TODO loops signatureExceptions to give a more complete
@@ -387,7 +387,7 @@ public class DKIMVerifier extends DKIMCommon {
     }
 
     private void signatureVerify(Headers h, SignatureRecord sign,
-            byte[] decoded, PublicKeyRecord key, List headers)
+            byte[] decoded, PublicKeyRecord key, List<CharSequence> headers)
             throws NoSuchAlgorithmException, InvalidKeyException,
             SignatureException, PermFailException {
 

@@ -34,13 +34,13 @@ import org.apache.james.jdkim.exceptions.TempFailException;
  */
 public class MockPublicKeyRecordRetriever implements PublicKeyRecordRetriever {
     private static final String _DOMAINKEY = "._domainkey.";
-    private Map/* String, List<String> */records = new HashMap();
+    private Map<String, List<String>> records = new HashMap<String, List<String>>();
 
     public void addRecord(String selector, String token, String record) {
         String key = selector + _DOMAINKEY + token;
-        List l = (List) records.get(key);
+        List<String> l = records.get(key);
         if (l == null) {
-            l = new LinkedList();
+            l = new LinkedList<String>();
             records.put(key, l);
         }
         if (record != null) {
@@ -57,12 +57,12 @@ public class MockPublicKeyRecordRetriever implements PublicKeyRecordRetriever {
         addRecord(selector.toString(), token.toString(), record);
     }
 
-    public List getRecords(CharSequence methodAndOptions,
+    public List<String> getRecords(CharSequence methodAndOptions,
             CharSequence selector, CharSequence token)
             throws TempFailException, PermFailException {
         if ("dns/txt".equals(methodAndOptions)) {
             String search = selector + _DOMAINKEY + token;
-            List res = (List) records.get(search);
+            List<String> res = records.get(search);
             if (res == null || res.size() > 0)
                 return res;
             else

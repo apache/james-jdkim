@@ -31,16 +31,19 @@ import java.util.Map;
 import org.apache.james.jdkim.api.Headers;
 import org.apache.james.mime4j.MimeException;
 import org.apache.james.mime4j.io.EOLConvertingInputStream;
-import org.apache.james.mime4j.parser.MimeEntityConfig;
-import org.apache.james.mime4j.parser.MimeTokenStream;
+import org.apache.james.mime4j.parser.AbstractContentHandler;
+import org.apache.james.mime4j.parser.MimeStreamParser;
+import org.apache.james.mime4j.stream.BodyDescriptor;
+import org.apache.james.mime4j.stream.MimeEntityConfig;
+import org.apache.james.mime4j.stream.RawField;
 
 /**
  * The header of an entity (see RFC 2045).
  */
-public class Message implements Headers {
+public class Message extends AbstractContentHandler implements Headers {
 
-    private List fields = new LinkedList();
-    private Map fieldMap = new HashMap();
+    private List<String> fields = new LinkedList<String>();
+    private Map<String, List<String>> fieldMap = new HashMap<String, List<String>>();
     private InputStream bodyIs = null;
 
     /**
@@ -63,43 +66,25 @@ public class Message implements Headers {
     public Message(InputStream is) throws IOException, MimeException {
         MimeEntityConfig mec = new MimeEntityConfig();
         mec.setMaxLineLen(10000);
-        MimeTokenStream stream = new ExtendedMimeTokenStream(mec);
-        stream.setRecursionMode(MimeTokenStream.M_FLAT);
-        // DKIM requires no isolated CR or LF, so we alter them at source.
-        stream.parse(new EOLConvertingInputStream(is));
-        for (int state = stream.getState(); state != MimeTokenStream.T_END_OF_STREAM; state = stream
-                .next()) {
-            switch (state) {
-            // a field
-            case MimeTokenStream.T_FIELD:
-                addField(stream.getFieldName(), stream.getField());
-                break;
-
-            // expected ignored tokens
-            case MimeTokenStream.T_START_MESSAGE:
-            case MimeTokenStream.T_END_MESSAGE:
-            case MimeTokenStream.T_START_HEADER:
-            case MimeTokenStream.T_END_HEADER:
-                break;
-
-            // the body stream
-            case MimeTokenStream.T_BODY:
-                this.bodyIs = stream.getInputStream();
-                break;
-
-            default:
-                throw new IllegalStateException("Unexpected stream message: "
-                        + state);
-            }
-            // stop parsing after header
-            if (bodyIs != null)
-                break;
-        }
-
+        
+        final MimeStreamParser parser = new MimeStreamParser(mec);
+        parser.setFlat(true);
+        parser.setContentDecoding(false);
+        parser.setContentHandler(this);
+        parser.parse(new EOLConvertingInputStream(is));
     }
 
     public InputStream getBodyInputStream() {
         return bodyIs;
+    }
+
+    public void field(RawField rawField) throws MimeException {
+        addField(rawField.getName(), new String(rawField.getRaw().toByteArray()));
+    }
+    
+    public void body(BodyDescriptor bd, InputStream is) throws MimeException,
+            IOException {
+        setBodyInputStream(is);
     }
 
     public void setBodyInputStream(InputStream is) {
@@ -113,9 +98,9 @@ public class Message implements Headers {
      *                the field to add.
      */
     public void addField(String fieldName, String field) {
-        List values = (List) fieldMap.get(fieldName.toLowerCase());
+        List<String> values = fieldMap.get(fieldName.toLowerCase());
         if (values == null) {
-            values = new LinkedList();
+            values = new LinkedList<String>();
             fieldMap.put(fieldName.toLowerCase(), values);
         }
         values.add(field);
@@ -125,17 +110,17 @@ public class Message implements Headers {
     /**
      * @see org.apache.james.jdkim.api.Headers#getFields()
      */
-    public List getFields() {
+    public List<String> getFields() {
         return Collections.unmodifiableList(fields);
     }
 
     /**
      * @see org.apache.james.jdkim.api.Headers#getFields(java.lang.String)
      */
-    public List getFields(final String name) {
+    public List<String> getFields(final String name) {
         final String lowerCaseName = name.toLowerCase();
-        final List l = (List) fieldMap.get(lowerCaseName);
-        final List results;
+        final List<String> l = fieldMap.get(lowerCaseName);
+        final List<String> results;
         if (l == null || l.isEmpty()) {
             results = null;
         } else {
@@ -152,8 +137,8 @@ public class Message implements Headers {
      */
     public String toString() {
         StringBuffer str = new StringBuffer(128);
-        for (Iterator i = fields.iterator(); i.hasNext();) {
-            String field = (String) i.next();
+        for (Iterator<String> i = fields.iterator(); i.hasNext();) {
+            String field = i.next();
             str.append(field);
         }
         InputStream is = getBodyInputStream();
@@ -169,16 +154,6 @@ public class Message implements Headers {
             }
         }
         return str.toString();
-    }
-
-    /**
-     * Extends this to publish the constructor
-     */
-    private final class ExtendedMimeTokenStream extends MimeTokenStream {
-
-        public ExtendedMimeTokenStream(MimeEntityConfig mec) {
-            super(mec);
-        }
     }
 
 }

@@ -38,7 +38,7 @@ public class CompoundOutputStreamTest extends AbstractOutputStreamTestCase {
     }
 
     public void testSingleBytes() throws NoSuchAlgorithmException, IOException {
-        List/* ByteArrayOutputStream */oss = new LinkedList();
+        List<ByteArrayOutputStream> oss = new LinkedList<ByteArrayOutputStream>();
         for (int i = 0; i < 5; i++) {
             oss.add(new ByteArrayOutputStream());
         }
@@ -47,21 +47,21 @@ public class CompoundOutputStreamTest extends AbstractOutputStreamTestCase {
             os.write(testData[i]);
         }
         os.close();
-        for (Iterator i = oss.iterator(); i.hasNext();) {
-            ByteArrayOutputStream bos = (ByteArrayOutputStream) i.next();
+        for (Iterator<ByteArrayOutputStream> i = oss.iterator(); i.hasNext();) {
+            ByteArrayOutputStream bos = i.next();
             assertArrayEquals(testData, bos.toByteArray());
         }
     }
 
     public void testChunks() throws NoSuchAlgorithmException, IOException {
-        List/* ByteArrayOutputStream */oss = new LinkedList();
+        List<ByteArrayOutputStream> oss = new LinkedList<ByteArrayOutputStream>();
         for (int i = 0; i < 5; i++) {
             oss.add(new ByteArrayOutputStream());
         }
         CompoundOutputStream os = new CompoundOutputStream(oss);
         chunker(testData, os);
-        for (Iterator i = oss.iterator(); i.hasNext();) {
-            ByteArrayOutputStream bos = (ByteArrayOutputStream) i.next();
+        for (Iterator<ByteArrayOutputStream> i = oss.iterator(); i.hasNext();) {
+            ByteArrayOutputStream bos = i.next();
             assertArrayEquals(testData, bos.toByteArray());
         }
     }

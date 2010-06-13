@@ -36,18 +36,18 @@ public interface PublicKeyRecord {
     /**
      * @return null if "any", otherwise a list of supported methods
      */
-    public abstract List/* String */getAcceptableHashMethods();
+    public abstract List<CharSequence> getAcceptableHashMethods();
 
     /**
      * @return null if "any", otherwise a list of supported methods
      */
-    public abstract List/* String */getAcceptableKeyTypes();
+    public abstract List<CharSequence> getAcceptableKeyTypes();
 
     public abstract Pattern getGranularityPattern();
 
     public abstract PublicKey getPublicKey();
 
-    public abstract List getFlags();
+    public abstract List<CharSequence> getFlags();
 
     public abstract boolean isTesting();
 

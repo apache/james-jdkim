@@ -158,7 +158,7 @@ public class TagValueTest extends TestCase {
 
     public void testTagSetWithEquals() {
         TagValue tv = new TagValue("t=value; v=encoded=40value");
-        Set tags = tv.getTags();
+        Set<String> tags = tv.getTags();
         assertEquals(2, tags.size());
         assertTrue(tags.contains("t"));
         assertTrue(tags.contains("v"));

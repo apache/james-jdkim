@@ -61,7 +61,7 @@ public class MessageTest extends TestCase {
         Message m = new Message();
         m.addField("Subject", "Subject: test\r\n");
         m.addField("Subject", "Subject: test2\r\n");
-        List f = m.getFields("Subject");
+        List<String> f = m.getFields("Subject");
         assertEquals(2, f.size());
         assertEquals("Subject: test\r\n", f.get(0));
         assertEquals("Subject: test2\r\n", f.get(1));
@@ -72,36 +72,29 @@ public class MessageTest extends TestCase {
         m.addField("Subject", "Subject: test\r\n");
         m.addField("Subject", "Subject: test2\r\n");
         m.addField("From", "From: test2\r\n");
-        List f = m.getFields();
-        List expects = new LinkedList();
+        List<String> f = m.getFields();
+        List<String> expects = new LinkedList<String>();
         expects.add("Subject: test\r\n");
         expects.add("Subject: test2\r\n");
         expects.add("From: test2\r\n");
-        for (Iterator i = f.iterator(); i.hasNext();) {
-            String field = (String) i.next();
+        for (Iterator<String> i = f.iterator(); i.hasNext();) {
+            String field = i.next();
             assertTrue(expects.remove(field));
         }
         assertEquals(0, expects.size());
     }
-
-    /*
-     * public void testGetField() throws MimeException, IOException { String
-     * text = "Subject: test\r\n\r\nbody"; Headers m = new Message(new
-     * ByteArrayInputStream(text.getBytes())); Field f = m.getField("Subject");
-     * assertEquals(" test", f.getBody()); }
-     */
 
     public void testGetFieldsString() throws MimeException {
         Message m = new Message();
         m.addField("Subject", "Subject: test\r\n");
         m.addField("subject", "subject: test2\r\n");
         m.addField("From", "From: test2\r\n");
-        List f = m.getFields("Subject");
-        List expects = new LinkedList();
+        List<String> f = m.getFields("Subject");
+        List<String> expects = new LinkedList<String>();
         expects.add("Subject: test\r\n");
         expects.add("subject: test2\r\n");
-        for (Iterator i = f.iterator(); i.hasNext();) {
-            String field = (String) i.next();
+        for (Iterator<String> i = f.iterator(); i.hasNext();) {
+            String field = i.next();
             assertTrue(expects.remove(field));
         }
         assertEquals(0, expects.size());

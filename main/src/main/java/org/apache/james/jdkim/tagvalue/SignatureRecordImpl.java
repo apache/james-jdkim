@@ -119,7 +119,7 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
     /**
      * @see org.apache.james.jdkim.api.SignatureRecord#getHeaders()
      */
-    public List/* CharSequence */getHeaders() {
+    public List<CharSequence> getHeaders() {
         return stringToColonSeparatedList(getValue("h").toString(),
                 hdrNamePattern);
     }
@@ -305,15 +305,15 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
         }
     }
 
-    public List getRecordLookupMethods() {
+    public List<CharSequence> getRecordLookupMethods() {
         String flags = getValue("q").toString();
         String[] flagsStrings = flags.split(":");
-        List res = new LinkedList();
+        List<CharSequence> res = new LinkedList<CharSequence>();
         for (int i = 0; i < flagsStrings.length; i++) {
             // TODO add validation method[/option]
             // if (VALIDATION)
             res.add(trimFWS(flagsStrings[i], 0, flagsStrings[i].length() - 1,
-                    true).toString());
+                    true));
         }
         return res;
     }

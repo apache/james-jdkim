@@ -30,10 +30,10 @@ import org.apache.james.jdkim.exceptions.TempFailException;
 public class MultiplexingPublicKeyRecordRetriever implements
         PublicKeyRecordRetriever {
 
-    private Map/* String, PublicKeyRecordRetriever */retrievers;
+    private Map<String, PublicKeyRecordRetriever> retrievers;
 
     public MultiplexingPublicKeyRecordRetriever() {
-        retrievers = new HashMap();
+        retrievers = new HashMap<String, PublicKeyRecordRetriever>();
     }
 
     public MultiplexingPublicKeyRecordRetriever(String methodName,
@@ -46,13 +46,12 @@ public class MultiplexingPublicKeyRecordRetriever implements
         retrievers.put(methodName, pkrr);
     }
 
-    public List getRecords(CharSequence methodAndOption, CharSequence selector,
+    public List<String> getRecords(CharSequence methodAndOption, CharSequence selector,
             CharSequence token) throws TempFailException, PermFailException {
         int pos = methodAndOption.toString().indexOf('/');
         String method = pos != -1 ? methodAndOption.subSequence(0, pos)
                 .toString() : methodAndOption.toString();
-        PublicKeyRecordRetriever pkrr = (PublicKeyRecordRetriever) retrievers
-                .get(method);
+        PublicKeyRecordRetriever pkrr = retrievers.get(method);
         if (pkrr != null) {
             return pkrr.getRecords(methodAndOption, selector, token);
         } else {

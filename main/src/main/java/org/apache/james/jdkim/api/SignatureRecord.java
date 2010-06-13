@@ -31,7 +31,7 @@ public interface SignatureRecord {
     public final static String SIMPLE = "simple";
     public final static String ALL = ";all;";
 
-    public abstract List/* CharSequence */getHeaders();
+    public abstract List<CharSequence> getHeaders();
 
     public abstract CharSequence getIdentityLocalPart();
 
@@ -55,7 +55,7 @@ public interface SignatureRecord {
 
     public abstract String getBodyCanonicalisationMethod();
 
-    public abstract List getRecordLookupMethods();
+    public abstract List<CharSequence> getRecordLookupMethods();
 
     public abstract void validate();
 

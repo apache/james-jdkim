@@ -88,7 +88,7 @@ public class PublicKeyRecordTest extends TestCase {
         PublicKeyRecord pkr = new PublicKeyRecordImpl(
                 "k=rsa; h=sha1:sha256; p=XXXXXXXX=;");
         pkr.validate();
-        List methods = pkr.getAcceptableHashMethods();
+        List<CharSequence> methods = pkr.getAcceptableHashMethods();
         assertEquals("[sha1, sha256]", methods.toString());
         pkr = new PublicKeyRecordImpl("k=rsa; p=XXXXXXXX=;");
         pkr.validate();
@@ -100,7 +100,7 @@ public class PublicKeyRecordTest extends TestCase {
         PublicKeyRecord pkr = new PublicKeyRecordImpl(
                 "k=rsa; h=sha1:sha256; p=XXXXXXXX=;");
         pkr.validate();
-        List methods = pkr.getAcceptableKeyTypes();
+        List<CharSequence> methods = pkr.getAcceptableKeyTypes();
         assertEquals("[rsa]", methods.toString());
         pkr = new PublicKeyRecordImpl("k=rsa:dsa; p=XXXXXXXX=;");
         pkr.validate();
@@ -202,7 +202,7 @@ public class PublicKeyRecordTest extends TestCase {
         PublicKeyRecord pkr = new PublicKeyRecordImpl(
                 "k=rsa; t=y:s; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDIhyR3oItOy22ZOaBrIVe9m/iME3RqOJeasANSpg2YTHTYV+Xtp4xwf5gTjCmHQEMOs0qYu0FYiNQPQogJ2t0Mfx9zNu06rfRBDjiIU9tpx2T+NGlWZ8qhbiLo5By8apJavLyqTLavyPSrvsx0B3YzC63T4Age2CDqZYA+OwSMWQIDAQAB");
         pkr.validate();
-        List flags = pkr.getFlags();
+        List<CharSequence> flags = pkr.getFlags();
         assertEquals("[y, s]", flags.toString());
         pkr = new PublicKeyRecordImpl(
                 "k=rsa; t=y; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDIhyR3oItOy22ZOaBrIVe9m/iME3RqOJeasANSpg2YTHTYV+Xtp4xwf5gTjCmHQEMOs0qYu0FYiNQPQogJ2t0Mfx9zNu06rfRBDjiIU9tpx2T+NGlWZ8qhbiLo5By8apJavLyqTLavyPSrvsx0B3YzC63T4Age2CDqZYA+OwSMWQIDAQAB");
