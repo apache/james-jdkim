@@ -57,7 +57,6 @@
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
-      <version>3.8.2</version>
     </dependency>
 
     <dependency>
@@ -114,16 +113,6 @@
     
     <plugins>
       <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <version>2.1</version>
-        <configuration>
-          <source>1.4</source>
-          <target>1.4</target>
-          <encoding>iso8859-1</encoding>
-        </configuration>
-      </plugin>      
-      <plugin>
         <artifactId>maven-jar-plugin</artifactId>
         <executions>
           <execution>
@@ -136,7 +125,6 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>
-        <version>2.3</version>
         <configuration>
           <archive>
           <manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
@@ -163,13 +151,24 @@
             <goals>
               <goal>check</goal>
             </goals>
+            <configuration>
+              <excludes>
+                <!-- test resources created by JAMES committers / we can't include ALv2 headers there -->
+                <exclude>src/test/resources/org/apache/james/jdkim/corpus/*</exclude>
+                <exclude>src/test/resources/org/apache/james/jdkim/Mail-DKIM/FAKE_DNS.dat</exclude>
+                <exclude>src/test/resources/org/apache/james/jdkim/Mail-DKIM/corpus/*</exclude>
+                <exclude>release.properties</exclude>
+                <exclude>dependency-reduced-pom.xml</exclude>
+                <exclude>nbactions.xml</exclude>
+                <exclude>**/.*/**/*</exclude>
+              </excludes>
+            </configuration>
           </execution>
         </executions>
       </plugin>
       <!-- Add NOTICE and LICENSE to generated JAR -->
       <plugin>
         <artifactId>maven-remote-resources-plugin</artifactId>
-        <version>1.1</version>
         <executions>
           <execution>
             <goals>
@@ -210,7 +209,6 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-source-plugin</artifactId>
-        <version>2.1.1</version>
         <executions>
           <execution>
             <id>attach-sources</id>
@@ -316,6 +314,7 @@
             <exclude>src/test/resources/org/apache/james/jdkim/Mail-DKIM/corpus/*</exclude>
             <exclude>release.properties</exclude>
             <exclude>dependency-reduced-pom.xml</exclude>
+            <exclude>nbactions.xml</exclude>
             <exclude>**/.*/**/*</exclude>
           </excludes>
         </configuration>
@@ -347,31 +346,6 @@
       <plugin>
         <artifactId>maven-site-plugin</artifactId>
         <version>2.1</version>
-      </plugin>
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>rat-maven-plugin</artifactId>
-        <version>1.0-alpha-3</version>
-        <configuration>
-          <excludes>
-            <exclude>NOTICE.base</exclude>
-            <exclude>LICENSE.apache</exclude>
-            <exclude>release.properties</exclude>
-
-            <!-- 3rd party descriptors distributed via maven repositories
-                 and included "as is" -->
-            <exclude>src/test/resources/org/apache/james/jdkim/corpus/FAIL_BADBH_s1024_yahoo.com.eml</exclude>
-            <exclude>src/test/resources/org/apache/james/jdkim/corpus/gamma_gmail.com.eml</exclude>
-            <exclude>src/test/resources/org/apache/james/jdkim/corpus/gamma_gmail.com_duplicateheaders.eml</exclude>
-            <exclude>src/test/resources/org/apache/james/jdkim/corpus/pmta_myspace.com.eml</exclude>
-            <exclude>src/test/resources/org/apache/james/jdkim/corpus/s1024_yahoo.com.eml</exclude>
-            <!-- maven release temporary file -->
-            <exclude>dependency-reduced-pom.xml</exclude>
-            <exclude>release.properties</exclude>
-
-
-          </excludes>
-        </configuration>
       </plugin>
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
