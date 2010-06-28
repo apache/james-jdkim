@@ -19,37 +19,35 @@
 
 package org.apache.james.jdkim.impl;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.james.jdkim.api.Headers;
 import org.apache.james.mime4j.MimeException;
+import org.apache.james.mime4j.MimeIOException;
+import org.apache.james.mime4j.dom.MessageBuilder;
+import org.apache.james.mime4j.dom.MessageBuilderFactory;
+import org.apache.james.mime4j.dom.SingleBody;
+import org.apache.james.mime4j.dom.field.Field;
 import org.apache.james.mime4j.io.EOLConvertingInputStream;
-import org.apache.james.mime4j.parser.AbstractContentHandler;
-import org.apache.james.mime4j.parser.MimeStreamParser;
-import org.apache.james.mime4j.stream.BodyDescriptor;
 import org.apache.james.mime4j.stream.MimeEntityConfig;
-import org.apache.james.mime4j.stream.RawField;
 
 /**
  * The header of an entity (see RFC 2045).
  */
-public class Message extends AbstractContentHandler implements Headers {
+public class Message implements Headers {
 
-    private List<String> fields = new LinkedList<String>();
-    private Map<String, List<String>> fieldMap = new HashMap<String, List<String>>();
-    private InputStream bodyIs = null;
+    private org.apache.james.mime4j.dom.Message message;
 
     /**
      * Creates a new empty <code>Header</code>.
+     * @throws MimeException 
      */
-    public Message() {
+    protected Message() throws MimeException {
+        this.message = newMessageBuilder().newMessage();
     }
 
     /**
@@ -64,69 +62,61 @@ public class Message extends AbstractContentHandler implements Headers {
      *                 on MIME protocol violations.
      */
     public Message(InputStream is) throws IOException, MimeException {
+        MessageBuilder mb = newMessageBuilder();
+        org.apache.james.mime4j.dom.Message mImpl = mb.parse(new EOLConvertingInputStream(is));
+        
+        this.message = mImpl;
+    }
+
+    private MessageBuilder newMessageBuilder() throws MimeException {
         MimeEntityConfig mec = new MimeEntityConfig();
         mec.setMaxLineLen(10000);
-        
-        final MimeStreamParser parser = new MimeStreamParser(mec);
-        parser.setFlat(true);
-        parser.setContentDecoding(false);
-        parser.setContentHandler(this);
-        parser.parse(new EOLConvertingInputStream(is));
+
+        MessageBuilderFactory mbf = MessageBuilderFactory.newInstance();
+        mbf.setAttribute("MimeEntityConfig", mec);
+        // mbf.setProperty("MaxLineLength", 10000);
+        MessageBuilder mb = mbf.newMessageBuilder();
+        mb.setContentDecoding(false);
+        mb.setFlatMode();
+        return mb;
     }
 
     public InputStream getBodyInputStream() {
-        return bodyIs;
-    }
-
-    public void field(RawField rawField) throws MimeException {
-        addField(rawField.getName(), new String(rawField.getRaw().toByteArray()));
-    }
-    
-    public void body(BodyDescriptor bd, InputStream is) throws MimeException,
-            IOException {
-        setBodyInputStream(is);
-    }
-
-    public void setBodyInputStream(InputStream is) {
-        bodyIs = is;
-    }
-
-    /**
-     * Adds a field to the end of the list of fields.
-     * 
-     * @param field
-     *                the field to add.
-     */
-    public void addField(String fieldName, String field) {
-        List<String> values = fieldMap.get(fieldName.toLowerCase());
-        if (values == null) {
-            values = new LinkedList<String>();
-            fieldMap.put(fieldName.toLowerCase(), values);
+        try {
+            return ((SingleBody) message.getBody()).getInputStream();
+        } catch (IOException e) {
+            return null;
         }
-        values.add(field);
-        fields.add(field);
     }
 
     /**
      * @see org.apache.james.jdkim.api.Headers#getFields()
      */
     public List<String> getFields() {
-        return Collections.unmodifiableList(fields);
+        List<Field> res = message.getHeader().getFields();
+        return convertFields(res);
+    }
+
+    private List<String> convertFields(List<Field> res) {
+        List<String> res2 = new LinkedList<String>();
+        for (Field f : res) {
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            String field = null;
+            try {
+                f.writeTo(bos);
+                field = new String(bos.toByteArray());
+            } catch (IOException e) {
+            }
+            res2.add(field);
+        }
+        return res2;
     }
 
     /**
      * @see org.apache.james.jdkim.api.Headers#getFields(java.lang.String)
      */
     public List<String> getFields(final String name) {
-        final String lowerCaseName = name.toLowerCase();
-        final List<String> l = fieldMap.get(lowerCaseName);
-        final List<String> results;
-        if (l == null || l.isEmpty()) {
-            results = null;
-        } else {
-            results = Collections.unmodifiableList(l);
-        }
-        return results;
+        return convertFields(message.getHeader().getFields(name));
     }
 
     /**
@@ -136,24 +126,7 @@ public class Message extends AbstractContentHandler implements Headers {
      * @return headers
      */
     public String toString() {
-        StringBuffer str = new StringBuffer(128);
-        for (Iterator<String> i = fields.iterator(); i.hasNext();) {
-            String field = i.next();
-            str.append(field);
-        }
-        InputStream is = getBodyInputStream();
-        if (is != null) {
-            str.append("\r\n");
-            byte[] buff = new byte[128];
-            int read;
-            try {
-                while ((read = is.read(buff)) > 0) {
-                    str.append(new String(buff, 0, read));
-                }
-            } catch (IOException e) {
-            }
-        }
-        return str.toString();
+        return message.toString();
     }
 
 }

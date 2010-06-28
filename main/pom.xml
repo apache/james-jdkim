@@ -93,6 +93,10 @@
       <artifactId>apache-mime4j-core</artifactId>
     </dependency>
     <dependency>
+      <groupId>org.apache.james</groupId>
+      <artifactId>apache-mime4j-dom</artifactId>
+    </dependency>
+    <dependency>
     	<groupId>log4j</groupId>
     	<artifactId>log4j</artifactId>
     	<scope>runtime</scope>
@@ -332,7 +336,7 @@
         <artifactId>maven-pmd-plugin</artifactId>
         <version>2.4</version>
         <configuration>
-          <targetjdk>1.4</targetjdk>
+          <targetjdk>1.5</targetjdk>
           <rulesets>
             <ruleset>/rulesets/basic.xml</ruleset>
             <ruleset>/rulesets/controversial.xml</ruleset>
