@@ -124,6 +124,20 @@ public class DKIMSign extends GenericMailet {
     private String signatureTemplate;
     private PrivateKey privateKey;
 
+	/**
+	 * @return the signatureTemplate
+	 */
+	protected String getSignatureTemplate() {
+		return signatureTemplate;
+	}
+
+	/**
+	 * @return the privateKey
+	 */
+	protected PrivateKey getPrivateKey() {
+		return privateKey;
+	}
+
     public void init() throws MessagingException {
         signatureTemplate = getInitParameter("signatureTemplate");
         String privateKeyString = getInitParameter("privateKey");
@@ -149,9 +163,9 @@ public class DKIMSign extends GenericMailet {
     }
 
     public void service(Mail mail) throws MessagingException {
-        DKIMSigner signer = new DKIMSigner(signatureTemplate, privateKey);
+        DKIMSigner signer = new DKIMSigner(getSignatureTemplate(), getPrivateKey());
         SignatureRecord signRecord = signer
-                .newSignatureRecordTemplate(signatureTemplate);
+                .newSignatureRecordTemplate(getSignatureTemplate());
         try {
             BodyHasher bhj = signer.newBodyHasher(signRecord);
             MimeMessage message = mail.getMessage();
