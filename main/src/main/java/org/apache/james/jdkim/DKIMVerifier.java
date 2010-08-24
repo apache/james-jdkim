@@ -213,7 +213,11 @@ public class DKIMVerifier extends DKIMCommon {
         Message message;
         try {
             message = new Message(is);
-            return verify(message, message.getBodyInputStream());
+			try {
+	            return verify(message, message.getBodyInputStream());
+			} finally {
+				message.dispose();
+			}
         } catch (MimeException e1) {
             throw new PermFailException("Mime parsing exception: "
                     + e1.getMessage(), e1);

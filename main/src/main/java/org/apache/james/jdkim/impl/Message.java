@@ -43,14 +43,6 @@ public class Message implements Headers {
     private org.apache.james.mime4j.dom.Message message;
 
     /**
-     * Creates a new empty <code>Header</code>.
-     * @throws MimeException 
-     */
-    protected Message() throws MimeException {
-        this.message = newMessageBuilder().newMessage();
-    }
-
-    /**
      * Creates a new <code>Header</code> from the specified stream.
      * 
      * @param is
@@ -129,4 +121,10 @@ public class Message implements Headers {
         return message.toString();
     }
 
+	/**
+	 * Make sure to dispose the message once used.
+	 */
+	public void dispose() {
+        this.message.dispose();
+	}
 }

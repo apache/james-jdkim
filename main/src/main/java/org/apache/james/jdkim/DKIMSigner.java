@@ -66,19 +66,24 @@ public class DKIMSigner extends DKIMCommon {
         try {
             try {
                 message = new Message(is);
+
+				try {
+					SignatureRecord srt = newSignatureRecordTemplate(signatureRecordTemplate);
+
+					BodyHasher bhj = newBodyHasher(srt);
+
+					// computation of the body hash.
+					DKIMCommon.streamCopy(message.getBodyInputStream(), bhj
+							.getOutputStream());
+
+					return sign(message, bhj);
+				} finally {
+					message.dispose();
+				}
             } catch (MimeException e1) {
                 throw new PermFailException("MIME parsing exception: "
                         + e1.getMessage(), e1);
-            }
-            SignatureRecord srt = newSignatureRecordTemplate(signatureRecordTemplate);
-
-            BodyHasher bhj = newBodyHasher(srt);
-
-            // computation of the body hash.
-            DKIMCommon.streamCopy(message.getBodyInputStream(), bhj
-                    .getOutputStream());
-
-            return sign(message, bhj);
+			}
 
         } finally {
             is.close();
