@@ -64,7 +64,15 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
                             + getValue("v"));
         if (getValue("h").length() == 0)
             throw new IllegalStateException("Tag h= cannot be empty.");
-        if (!getIdentity().toString().toLowerCase().endsWith(
+        
+        CharSequence identity;
+        try {
+            identity = getIdentity();
+        } catch (IllegalArgumentException e) {
+            throw new IllegalStateException("Identity (i=) declaration cannot be parsed. Probably due to missing quoted printable encoding", e);
+        }
+        
+        if (!identity.toString().toLowerCase().endsWith(
                 ("@" + getValue("d")).toLowerCase())
                 && !getIdentity().toString().toLowerCase().endsWith(
                         ("." + getValue("d")).toLowerCase()))
@@ -141,6 +149,12 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
         return identity.subSequence(0, pAt);
     }
 
+    /**
+     * This may throws IllegalArgumentException on invalid "i" content,
+     * but should always happen during validation!
+     * 
+     * @see org.apache.james.jdkim.api.SignatureRecord#getIdentity()
+     */
     public CharSequence getIdentity() {
         return dkimQuotedPrintableDecode(getValue("i"));
     }

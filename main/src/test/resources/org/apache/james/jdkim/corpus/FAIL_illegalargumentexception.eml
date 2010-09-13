@@ -1,0 +1,8 @@
+﻿DKIM-Signature: v=1; a=rsa-sha1; c=relaxed/relaxed; s=ci; d=mail00.mothernature.com;
+	i=verpprefix-marianlock=40myway.com-41-=-bounce@mail00.mothernature.com;
+	h=content-type:mime-version:subject:reply-to:to:from:date:message-id;
+	bh=ekMAA3CEnMULLuaou7f1rwNKOWE=;
+	b=RitHFsttMnawzJ+R3MxiUQBLbLGIiNiKg/eYQauu6nykqV56zHW9ra4yXt3a5r3P5KZYkunzuvqeGH/YJn9OIg==;
+Subject: IllegalArgumentException on invalid i attribute qp encoding.
+
+Mangled body.

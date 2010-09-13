@@ -140,6 +140,8 @@ public class DKIMVerifier extends DKIMCommon {
                             "AUID in subdomain of SDID is not allowed by the public key record.", sign.getIdentity().toString());
                 }
             }
+        } catch (IllegalArgumentException e) {
+            throw new PermFailException("Invalid public key: "+e.getMessage(), sign.getIdentity().toString());
         } catch (IllegalStateException e) {
             throw new PermFailException("Invalid public key: "+e.getMessage(), sign.getIdentity().toString());
         }
@@ -213,11 +215,11 @@ public class DKIMVerifier extends DKIMCommon {
         Message message;
         try {
             message = new Message(is);
-			try {
-	            return verify(message, message.getBodyInputStream());
-			} finally {
-				message.dispose();
-			}
+            try {
+                return verify(message, message.getBodyInputStream());
+            } finally {
+                message.dispose();
+            }
         } catch (MimeException e1) {
             throw new PermFailException("Mime parsing exception: "
                     + e1.getMessage(), e1);
@@ -267,7 +269,7 @@ public class DKIMVerifier extends DKIMCommon {
                         // validate
                         signatureRecord.validate();
                     } catch (IllegalStateException e) {
-                        throw new PermFailException(e.getMessage());
+                        throw new PermFailException("Invalid signature record: "+e.getMessage(), e);
                     }
 
                     // Specification say we MAY refuse to verify the signature.
