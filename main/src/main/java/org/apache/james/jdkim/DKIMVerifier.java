@@ -24,6 +24,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.security.PublicKey;
 import java.security.Signature;
 import java.security.SignatureException;
 import java.util.Arrays;
@@ -140,8 +141,6 @@ public class DKIMVerifier extends DKIMCommon {
                             "AUID in subdomain of SDID is not allowed by the public key record.", sign.getIdentity().toString());
                 }
             }
-        } catch (IllegalArgumentException e) {
-            throw new PermFailException("Invalid public key: "+e.getMessage(), sign.getIdentity().toString());
         } catch (IllegalStateException e) {
             throw new PermFailException("Invalid public key: "+e.getMessage(), sign.getIdentity().toString());
         }
@@ -400,7 +399,13 @@ public class DKIMVerifier extends DKIMCommon {
         Signature signature = Signature.getInstance(sign.getHashMethod()
                 .toString().toUpperCase()
                 + "with" + sign.getHashKeyType().toString().toUpperCase());
-        signature.initVerify(key.getPublicKey());
+        PublicKey publicKey;
+        try {
+            publicKey = key.getPublicKey();
+        } catch (IllegalStateException e) {
+            throw new PermFailException("Invalid Public Key: "+e.getMessage(), e);
+        }
+        signature.initVerify(publicKey);
 
         signatureCheck(h, sign, headers, signature);
 
