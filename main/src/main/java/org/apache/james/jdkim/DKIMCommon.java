@@ -85,7 +85,7 @@ public abstract class DKIMCommon {
             if (hl != null && hl.size() > 0) {
                 Integer done = processedHeader.get(header.toString());
                 if (done == null)
-                    done = new Integer(0); /* Integer.valueOf(0) */
+                    done = Integer.valueOf(0);
                 int doneHeaders = done.intValue() + 1;
                 if (doneHeaders <= hl.size()) {
                     String fv = hl.get(hl.size() - doneHeaders);

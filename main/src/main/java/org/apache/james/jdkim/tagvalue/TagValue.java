@@ -277,7 +277,7 @@ public class TagValue {
     
     private void updateStringRepresentation() {
         // calculate a new string representation
-        StringBuffer res = new StringBuffer();
+        StringBuilder res = new StringBuilder();
         Set<String> s = getTags();
         for (Iterator<String> i = s.iterator(); i.hasNext();) {
             String tag = i.next();

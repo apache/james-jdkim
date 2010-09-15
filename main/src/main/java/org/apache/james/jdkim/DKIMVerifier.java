@@ -86,7 +86,7 @@ public class DKIMVerifier extends DKIMCommon {
     public PublicKeyRecord publicKeySelector(List<String> records)
             throws PermFailException {
         String lastError = null;
-        if (records == null || records.size() == 0) {
+        if (records == null || records.isEmpty()) {
             lastError = "no key for signature";
         } else {
             for (Iterator<String> i = records.iterator(); i.hasNext();) {
@@ -245,7 +245,7 @@ public class DKIMVerifier extends DKIMCommon {
         // System.out.println(message.getFields("DKIM-Signature"));
         List<String> fields = messageHeaders.getFields("DKIM-Signature");
         // if (fields.size() > 1) throw new RuntimeException("here we are!");
-        if (fields == null || fields.size() == 0) {
+        if (fields == null || fields.isEmpty()) {
             throw new PermFailException("DKIM-Signature field not found");
         }
 
@@ -323,7 +323,7 @@ public class DKIMVerifier extends DKIMCommon {
         }
 
         OutputStream o;
-        if (bodyHashJobs.size() == 0) {
+        if (bodyHashJobs.isEmpty()) {
             throw prepareException(signatureExceptions);
         } else if (bodyHashJobs.size() == 1) {
             o = ((BodyHasher) bodyHashJobs.values().iterator().next())
@@ -353,7 +353,7 @@ public class DKIMVerifier extends DKIMCommon {
             }
         }
 
-        if (verifiedSignatures.size() == 0) {
+        if (verifiedSignatures.isEmpty()) {
             throw prepareException(signatureExceptions);
         } else {
             // There is no access to the signatureExceptions when

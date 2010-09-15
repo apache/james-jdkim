@@ -161,7 +161,7 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
 
     public static String dkimQuotedPrintableDecode(CharSequence input)
             throws IllegalArgumentException {
-        StringBuffer sb = new StringBuffer(input.length());
+        StringBuilder sb = new StringBuilder(input.length());
         // TODO should we fail on WSP that is not part of FWS?
         // the specification in 2.6 DKIM-Quoted-Printable is not
         // clear

@@ -99,7 +99,7 @@ public class DNSPublicKeyRecordRetriever implements PublicKeyRecordRetriever {
                         // ""));
                         records.add(((String) txt.getStrings().get(0)));
                     } else {
-                        StringBuffer sb = new StringBuffer();
+                        StringBuilder sb = new StringBuilder();
                         for (Iterator<String> it = txt.getStrings()
                                 .iterator(); it.hasNext();) {
                             String k = it.next();
