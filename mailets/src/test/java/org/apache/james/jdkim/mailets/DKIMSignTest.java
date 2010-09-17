@@ -132,12 +132,12 @@ public class DKIMSignTest extends TestCase {
         ByteArrayOutputStream rawMessage = new ByteArrayOutputStream();
         mail.getMessage().writeTo(rawMessage);
         String res = rawMessage.toString();
-
+        
         MockPublicKeyRecordRetriever mockPublicKeyRecordRetriever = new MockPublicKeyRecordRetriever(
                 "v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDYDaYKXzwVYwqWbLhmuJ66aTAN8wmDR+rfHE8HfnkSOax0oIoTM5zquZrTLo30870YMfYzxwfB6j/Nz3QdwrUD/t0YMYJiUKyWJnCKfZXHJBJ+yfRHr7oW+UW3cVo9CG2bBfIxsInwYe175g9UjyntJpWueqdEIo1c2bhv9Mp66QIDAQAB;",
                 "selector", "example.com");
         try {
-            List<SignatureRecord> sr = new DKIMVerifier(mockPublicKeyRecordRetriever)
+            new DKIMVerifier(mockPublicKeyRecordRetriever)
                     .verify(new ByteArrayInputStream(res.getBytes()));
             fail("Expecting signature to be ignored");
         } catch (PermFailException e) {

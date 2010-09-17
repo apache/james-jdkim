@@ -26,11 +26,9 @@ import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.spec.InvalidKeySpecException;
 import java.util.Enumeration;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 
 import javax.mail.Header;
 import javax.mail.MessagingException;
@@ -80,46 +78,6 @@ import org.apache.mailet.base.GenericMailet;
  * @since 2.2.0
  */
 public class DKIMSign extends GenericMailet {
-
-    /**
-     * An adapter to let DKIMSigner read headers from MimeMessage
-     */
-    private final class MimeMessageHeaders implements Headers {
-
-        private Map<String, List<String>> headers;
-        private List<String> fields;
-
-        @SuppressWarnings("unchecked")
-        public MimeMessageHeaders(MimeMessage message)
-                throws MessagingException {
-            headers = new HashMap<String, List<String>>();
-            fields = new LinkedList<String>();
-            for (Enumeration<String> e = message.getAllHeaderLines(); e
-                    .hasMoreElements();) {
-                String head = (String) e.nextElement();
-                int p = head.indexOf(':');
-                if (p <= 0)
-                    throw new MessagingException("Bad header line: " + head);
-                String headerName = head.substring(0, p).trim();
-                String headerNameLC = headerName.toLowerCase();
-                fields.add(headerName);
-                List<String> strings = (List<String>) headers.get(headerNameLC);
-                if (strings == null) {
-                    strings = new LinkedList<String>();
-                    headers.put(headerNameLC, strings);
-                }
-                strings.add(head);
-            }
-        }
-
-        public List<String> getFields() {
-            return fields;
-        }
-
-        public List<String> getFields(String name) {
-            return headers.get(name);
-        }
-    }
 
     private String signatureTemplate;
     private PrivateKey privateKey;
