@@ -44,7 +44,6 @@ public class DNSPublicKeyRetrieverTest extends TestCase {
                     "test", "test");
             fail("expected unsupported operation");
         } catch (PermFailException e) {
-            e.printStackTrace();
         }
     }
 
@@ -59,9 +58,8 @@ public class DNSPublicKeyRetrieverTest extends TestCase {
      */
     public void testRetrieve() throws TempFailException, PermFailException {
         PublicKeyRecordRetriever pkr = new DNSPublicKeyRecordRetriever();
-        System.out.println(pkr.getRecords("dns/txt", "beta", "gmail.com"));
-        System.out
-                .println(pkr.getRecords("dns/txt", "lima", "yahoogroups.com"));
+        pkr.getRecords("dns/txt", "lima", "yahoogroups.com");
+        pkr.getRecords("dns/txt", "gamma", "gmail.com");
 
         new TagValue((String) pkr.getRecords("dns/txt", "lima",
                 "yahoogroups.com").get(0));
@@ -107,7 +105,6 @@ public class DNSPublicKeyRetrieverTest extends TestCase {
                 privKey);
         String message = "From: test@example.com\r\nTo: test@example.com\r\n\r\nbody\r\n";
         String res = signer.sign(new ByteArrayInputStream(message.getBytes()));
-        System.out.println(res);
         String signedMessage = res + "\r\n"
                 + "From: test@example.com\r\nTo: test@example.com\r\n\r\nbody\r\n";
 
