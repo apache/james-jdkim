@@ -19,6 +19,7 @@
 
 package org.apache.james.jdkim;
 
+import org.apache.james.jdkim.api.SignatureRecord;
 import org.apache.james.jdkim.exceptions.PermFailException;
 
 import java.io.File;
@@ -27,6 +28,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.List;
 
 import junit.framework.Test;
 import junit.framework.TestCase;
@@ -242,11 +244,12 @@ public class FileBasedTest extends TestCase {
                         "k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQChRebhcm4h8BkIYHRxg1GlKLsDkwdrqkFJ8f88xHQ5Gf3NH4I4e06M3XQ+B4tWWK/rX0srwXFgrJPzKZK+x7gN89nmqyM+NNaM+Wm2C0GjTpx6639zK3bAAGYCm0L9lGD7PgDxpWok+YogH0Ml4acEwDw/cnhErAWAnX8doPliawIDAQAB");
 
         try {
-            new DKIMVerifier(pkr).verify(is);
+            List<SignatureRecord> res = new DKIMVerifier(pkr).verify(is);
+            if (getName().startsWith("NONE_"))
+                assertNull(res);
             if (getName().startsWith("FAIL_"))
                 fail("Expected failure");
         } catch (PermFailException e) {
-            e.printStackTrace();
             if (!getName().startsWith("FAIL_"))
                 fail(e.getMessage());
         }

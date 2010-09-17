@@ -27,11 +27,13 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.List;
 
 import junit.framework.Test;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
 
+import org.apache.james.jdkim.api.SignatureRecord;
 import org.apache.james.jdkim.exceptions.FailException;
 
 /**
@@ -90,9 +92,10 @@ public class PerlDKIMTest extends TestCase {
         pkr = getPublicRecordRetriever();
 
         boolean expectFailure = false;
+        boolean expectNull = false;
         // DomainKey files
         if (getName().indexOf("dk_") != -1)
-            expectFailure = true;
+            expectNull = true;
         // older spec version
         else if (getName().indexOf("_ietf") != -1)
             expectFailure = true;
@@ -109,7 +112,9 @@ public class PerlDKIMTest extends TestCase {
             expectFailure = true;
 
         try {
-            new DKIMVerifier(pkr).verify(is);
+            List<SignatureRecord> res = new DKIMVerifier(pkr).verify(is);
+            if (expectNull)
+                assertNull(res);
             if (expectFailure)
                 fail("Failure expected!");
         } catch (FailException e) {

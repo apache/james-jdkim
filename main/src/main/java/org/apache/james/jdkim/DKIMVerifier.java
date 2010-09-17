@@ -242,18 +242,15 @@ public class DKIMVerifier extends DKIMCommon {
      */
     public List<SignatureRecord> verify(Headers messageHeaders,
             InputStream bodyInputStream) throws IOException, FailException {
-        // System.out.println(message.getFields("DKIM-Signature"));
         List<String> fields = messageHeaders.getFields("DKIM-Signature");
-        // if (fields.size() > 1) throw new RuntimeException("here we are!");
         if (fields == null || fields.isEmpty()) {
-            throw new PermFailException("DKIM-Signature field not found");
+            return null;
         }
 
         // For each DKIM-signature we prepare an hashjob.
         // We calculate all hashes concurrently so to read
         // the inputstream only once.
         Map<String, BodyHasher> bodyHashJobs = new HashMap<String, BodyHasher>();
-        List<OutputStream> outputStreams = new LinkedList<OutputStream>();
         Hashtable<String, FailException> signatureExceptions = new Hashtable<String, FailException>();
         for (Iterator<String> i = fields.iterator(); i.hasNext();) {
             String signatureField = i.next();
@@ -275,10 +272,24 @@ public class DKIMVerifier extends DKIMCommon {
                     if (signatureRecord.getSignatureTimestamp() != null) {
                         long signedTime = signatureRecord.getSignatureTimestamp().longValue();
                         long elapsed = (System.currentTimeMillis()/1000 - signedTime);
-                        if (elapsed < 0) {
-                            // throw new IllegalStateException("Signature date is "
-                            //        + getTimeMeasure(elapsed) + " in the future.");
-                            break;
+                        if (elapsed < -3600*24*365*3) {
+                            throw new PermFailException("Signature date is more than "
+                                    + -elapsed/(3600*24*365) + " years in the future.");
+                        } else if (elapsed < -3600*24*30*3) {
+                            throw new PermFailException("Signature date is more than "
+                                    + -elapsed/(3600*24*30) + " months in the future.");
+                        } else if (elapsed < -3600*24*3) {
+                            throw new PermFailException("Signature date is more than "
+                                        + -elapsed/(3600*24) + " days in the future.");
+                        } else if (elapsed < -3600*3) {
+                            throw new PermFailException("Signature date is more than "
+                                    + -elapsed/3600 + " hours in the future.");
+                        } else if (elapsed < -60*3) {
+                            throw new PermFailException("Signature date is more than "
+                                    + -elapsed/60 + " minutes in the future.");
+                        } else if (elapsed < 0) {
+                            throw new PermFailException("Signature date is "
+                                    + elapsed + " seconds in the future.");
                         }
                     }
 
@@ -300,7 +311,6 @@ public class DKIMVerifier extends DKIMCommon {
                     BodyHasher bhj = newBodyHasher(signatureRecord);
 
                     bodyHashJobs.put(signatureField, bhj);
-                    outputStreams.add(bhj.getOutputStream());
 
                 } else {
                     throw new PermFailException(
@@ -319,16 +329,27 @@ public class DKIMVerifier extends DKIMCommon {
             } catch (SignatureException e) {
                 signatureExceptions.put(signatureField, new PermFailException(e
                         .getMessage(), e));
+            } catch (RuntimeException e) {
+                signatureExceptions.put(signatureField, new PermFailException(
+                        "Unexpected exception processing signature", e));
             }
         }
 
         OutputStream o;
         if (bodyHashJobs.isEmpty()) {
-            throw prepareException(signatureExceptions);
+            if (signatureExceptions.size() > 0) {
+                throw prepareException(signatureExceptions);
+            } else {
+                throw new PermFailException("Unexpected condition with "+fields);
+            }
         } else if (bodyHashJobs.size() == 1) {
             o = ((BodyHasher) bodyHashJobs.values().iterator().next())
                     .getOutputStream();
         } else {
+            List<OutputStream> outputStreams = new LinkedList<OutputStream>();
+            for (BodyHasher bhj : bodyHashJobs.values()) {
+                outputStreams.add(bhj.getOutputStream());
+            }
             o = new CompoundOutputStream(outputStreams);
         }
 
