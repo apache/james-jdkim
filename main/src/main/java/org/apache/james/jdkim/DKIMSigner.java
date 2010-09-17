@@ -90,8 +90,12 @@ public class DKIMSigner extends DKIMCommon {
         }
     }
 
-    public String sign(Headers message, BodyHasher bhj)
-            throws PermFailException {
+    public String sign(Headers message, BodyHasher bh) throws PermFailException {
+        if (!(bh instanceof BodyHasherImpl)) {
+            throw new PermFailException(
+                    "Supplied BodyHasher has not been generated with this signer");
+        }
+        BodyHasherImpl bhj = (BodyHasherImpl) bh;
         byte[] computedHash = bhj.getDigest();
 
         bhj.getSignatureRecord().setBodyHash(computedHash);

@@ -25,8 +25,4 @@ public interface BodyHasher {
 
     public abstract OutputStream getOutputStream();
 
-    public abstract SignatureRecord getSignatureRecord();
-
-    public abstract byte[] getDigest();
-
 }
