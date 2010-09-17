@@ -67,23 +67,23 @@ public class DKIMSigner extends DKIMCommon {
             try {
                 message = new Message(is);
 
-				try {
-					SignatureRecord srt = newSignatureRecordTemplate(signatureRecordTemplate);
+                try {
+                    SignatureRecord srt = newSignatureRecordTemplate(signatureRecordTemplate);
 
-					BodyHasher bhj = newBodyHasher(srt);
+                    BodyHasher bhj = newBodyHasher(srt);
 
-					// computation of the body hash.
-					DKIMCommon.streamCopy(message.getBodyInputStream(), bhj
-							.getOutputStream());
+                    // computation of the body hash.
+                    DKIMCommon.streamCopy(message.getBodyInputStream(), bhj
+                            .getOutputStream());
 
-					return sign(message, bhj);
-				} finally {
-					message.dispose();
-				}
+                    return sign(message, bhj);
+                } finally {
+                    message.dispose();
+                }
             } catch (MimeException e1) {
                 throw new PermFailException("MIME parsing exception: "
                         + e1.getMessage(), e1);
-			}
+            }
 
         } finally {
             is.close();
@@ -93,9 +93,9 @@ public class DKIMSigner extends DKIMCommon {
     public String sign(Headers message, BodyHasher bhj)
             throws PermFailException {
         byte[] computedHash = bhj.getDigest();
-        
+
         bhj.getSignatureRecord().setBodyHash(computedHash);
-        
+
         List<CharSequence> headers = bhj.getSignatureRecord().getHeaders();
         try {
             // TODO handle b= in SignatureRecord.
@@ -110,7 +110,7 @@ public class DKIMSigner extends DKIMCommon {
 
             bhj.getSignatureRecord().setSignature(signatureHash);
 
-            return "DKIM-Signature:"+bhj.getSignatureRecord().toString();
+            return "DKIM-Signature:" + bhj.getSignatureRecord().toString();
         } catch (InvalidKeyException e) {
             throw new PermFailException("Invalid key: " + e.getMessage(), e);
         } catch (NoSuchAlgorithmException e) {
@@ -122,7 +122,8 @@ public class DKIMSigner extends DKIMCommon {
         }
     }
 
-    private byte[] signatureSign(Headers h, SignatureRecord sign, PrivateKey key, List<CharSequence> headers)
+    private byte[] signatureSign(Headers h, SignatureRecord sign,
+            PrivateKey key, List<CharSequence> headers)
             throws NoSuchAlgorithmException, InvalidKeyException,
             SignatureException, PermFailException {
 
@@ -141,16 +142,15 @@ public class DKIMSigner extends DKIMCommon {
      * In order to generate a valid PKCS8 key when you have a PEM key you can do
      * this: <code>
      * openssl pkcs8 -topk8 -inform PEM -in rsapriv.pem -outform DER -nocrypt -out rsapriv.der
-     * </code>
-     * And then base64 encode the content.
+     * </code> And then base64 encode the content.
      * 
      * @param privateKeyPKCS8
-     *                a Base64 encoded string of the RSA key in PKCS8 format
+     *            a Base64 encoded string of the RSA key in PKCS8 format
      * @return the PrivateKey
      * @throws NoSuchAlgorithmException
-     *                 if RSA is unknown
+     *             if RSA is unknown
      * @throws InvalidKeySpecException
-     *                 on bad input key
+     *             on bad input key
      */
     public static PrivateKey getPrivateKey(String privateKeyPKCS8)
             throws NoSuchAlgorithmException, InvalidKeySpecException {
