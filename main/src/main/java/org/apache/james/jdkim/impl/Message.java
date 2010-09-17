@@ -121,10 +121,10 @@ public class Message implements Headers {
         return message.toString();
     }
 
-	/**
-	 * Make sure to dispose the message once used.
-	 */
-	public void dispose() {
+    /**
+     * Make sure to dispose the message once used.
+     */
+    public void dispose() {
         this.message.dispose();
-	}
+    }
 }
