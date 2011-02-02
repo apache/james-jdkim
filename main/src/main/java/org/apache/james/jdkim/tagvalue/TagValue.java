@@ -39,10 +39,12 @@ public class TagValue {
 
     private static Pattern tagPattern = Pattern
             .compile("^[A-Za-z][A-Za-z0-9_]*$");
-    private static final String tval = "[^; \t\r\n]+";
+    // Use possessive matching to avoid heavy stack usage
+    private static final String tval = "[^; \t\r\n]++";
     // validate value chars
-    private static Pattern valuePattern = Pattern.compile("^(" + tval
-            + "((\r\n[\t ]|[\t ])+" + tval + ")*)?$");
+    // Use possessive matching to avoid heavy stack usage
+    private static Pattern valuePattern = Pattern.compile("^(?:" + tval
+            + "(?:(?:(?:\r\n)?[\t ])++" + tval + ")*+)?$");
 
     // we may use a TreeMap because we may need to know original order.
     private Map<String, CharSequence> tagValues;
