@@ -29,7 +29,7 @@ import org.apache.james.jdkim.api.Headers;
 import org.apache.james.mime4j.MimeException;
 import org.apache.james.mime4j.MimeIOException;
 import org.apache.james.mime4j.dom.MessageBuilder;
-import org.apache.james.mime4j.dom.MessageBuilderFactory;
+import org.apache.james.mime4j.dom.MessageServiceFactory;
 import org.apache.james.mime4j.dom.SingleBody;
 import org.apache.james.mime4j.dom.field.Field;
 import org.apache.james.mime4j.io.EOLConvertingInputStream;
@@ -64,12 +64,12 @@ public class Message implements Headers {
         MimeEntityConfig mec = new MimeEntityConfig();
         mec.setMaxLineLen(10000);
 
-        MessageBuilderFactory mbf = MessageBuilderFactory.newInstance();
+        MessageServiceFactory mbf = MessageServiceFactory.newInstance();
         mbf.setAttribute("MimeEntityConfig", mec);
         // mbf.setProperty("MaxLineLength", 10000);
         MessageBuilder mb = mbf.newMessageBuilder();
-        mb.setContentDecoding(false);
-        mb.setFlatMode();
+        // mb.setContentDecoding(false);
+        // mb.setFlatMode();
         return mb;
     }
 
