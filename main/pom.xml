@@ -125,30 +125,25 @@
             </goals>
           </execution>
         </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-jar-plugin</artifactId>
         <configuration>
           <archive>
           <manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
             <manifestEntries>
               <Specification-Title>Apache jdkim</Specification-Title>
-              <Specification-Version>${pom.version}</Specification-Version>
+              <Specification-Version>${project.version}</Specification-Version>
               <Specification-Vendor>The Apache Software Foundation</Specification-Vendor>
               <Implementation-Title>Apache jdkim</Implementation-Title>
-              <Implementation-Version>${pom.version}</Implementation-Version>
+              <Implementation-Version>${project.version}</Implementation-Version>
               <Implementation-Vendor>The Apache Software Foundation</Implementation-Vendor>
               <Implementation-Vendor-Id>org.apache</Implementation-Vendor-Id>
-              <url>${pom.url}</url>
+              <url>${project.url}</url>
             </manifestEntries>
           </archive>
         </configuration>
       </plugin>
       <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>rat-maven-plugin</artifactId>
-        <version>1.0-alpha-3</version>
+        <groupId>org.apache.rat</groupId>
+        <artifactId>apache-rat-plugin</artifactId>
         <executions>
           <execution>
             <phase>verify</phase>
@@ -172,6 +167,7 @@
       </plugin>
       <!-- Add NOTICE and LICENSE to generated JAR -->
       <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-remote-resources-plugin</artifactId>
         <executions>
           <execution>
@@ -222,10 +218,10 @@
           </execution>
         </executions>
       </plugin>
+      <!-- I don't think this is a correct doap configuration, referencing Sieve in a jdkim project ... 
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-doap-plugin</artifactId>
-        <version>1.0</version>
         <executions>
           <execution>
             <id>site</id>
@@ -239,7 +235,7 @@
          <doapOptions>
            <programmingLanguage>java</programmingLanguage>
            <category>mail</category>
-           <download-page>http://james.apache.org/download.cgi</download-page>
+           <downloadPage>http://james.apache.org/download.cgi</downloadPage>
          </doapOptions>
 
          <asfExtOptions>
@@ -258,6 +254,7 @@
 
         </configuration>
       </plugin>
+      -->
       <!-- Shading commons-codec Base64 class so that we don't have one more dependency -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -305,6 +302,7 @@
     </plugins>
   </build>
 
+<!--
   <reporting>
     <plugins>
       <plugin>
@@ -312,7 +310,7 @@
         <artifactId>rat-maven-plugin</artifactId>
         <configuration>
           <excludes>
-            <!-- test resources created by JAMES committers / we can't include ALv2 headers there -->
+            <!- test resources created by JAMES committers / we can't include ALv2 headers there ->
             <exclude>src/test/resources/org/apache/james/jdkim/corpus/*</exclude>
             <exclude>src/test/resources/org/apache/james/jdkim/Mail-DKIM/FAKE_DNS.dat</exclude>
             <exclude>src/test/resources/org/apache/james/jdkim/Mail-DKIM/corpus/*</exclude>
@@ -371,7 +369,8 @@
       </plugin> 
     </plugins>
   </reporting>
-  
+-->
+
   <mailingLists>
     <mailingList>
       <name>Apache James User</name>

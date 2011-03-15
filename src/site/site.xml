@@ -18,16 +18,26 @@
   under the License.    
 -->
 <project name="James jDKIM">
+
+  <skin>
+    <groupId>org.apache.james</groupId>
+    <artifactId>maven-skin</artifactId>
+    <version>1.6-SNAPSHOT</version>
+  </skin>
+
   <bannerLeft>
     <name>JAMES jDKIM</name>
-    <src>images/james-jdkim-logo.gif</src>
+    <src>images/logos/james-jdkim-logo.gif</src>
     <href>http://james.apache.org/</href>
+    <alt>james-jdkim-logo.gif</alt>
   </bannerLeft>
+
   <bannerRight>
     <name>The Apache Software Foundation</name>
-    <src>images/asf-logo-reduced.gif</src>
+    <src>images/logos/asf-logo-reduced.gif</src>
     <href>http://www.apache.org/index.html</href>
   </bannerRight> 
+
   <body>
     <head>
       <link rel="meta" title="DOAP" href="${project.url}/doap_maven-doap-plugin.rdf" type="application/rdf+xml"/>

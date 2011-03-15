@@ -18,16 +18,6 @@
   under the License.    
 -->
 <project name="James jDKIM">
-  <bannerLeft>
-    <name>JAMES jDKIM</name>
-    <src>images/james-jdkim-logo.gif</src>
-    <href>http://james.apache.org/</href>
-  </bannerLeft>
-  <bannerRight>
-    <name>The Apache Software Foundation</name>
-    <src>images/asf-logo-reduced.gif</src>
-    <href>http://www.apache.org/index.html</href>
-  </bannerRight> 
   <body>
     <!-- 
     <menu name="jDKIM Mailets">
