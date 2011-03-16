@@ -27,7 +27,6 @@
 		<artifactId>apache-jdkim-project</artifactId>
 		<groupId>org.apache.james.jdkim</groupId>
 		<version>0.2-SNAPSHOT</version>
-		<relativePath>../pom.xml</relativePath>
 	</parent>
 	<name>Apache JAMES jDKIM Assembly</name>
 	<description>
