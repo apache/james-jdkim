@@ -27,7 +27,6 @@
   <groupId>org.apache.james.jdkim</groupId>
   <artifactId>apache-jdkim-library</artifactId>
   <name>Apache JAMES jDKIM</name>
-  <version>0.2-SNAPSHOT</version>
   <packaging>jar</packaging>
   <description>
     A Java implementation for the DKIM specification.
