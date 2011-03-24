@@ -22,7 +22,7 @@
     <parent>
         <groupId>org.apache.james</groupId>
         <artifactId>james-project</artifactId>
-        <version>1.6-SNAPSHOT</version>
+        <version>1.6</version>
     </parent>
     <groupId>org.apache.james.jdkim</groupId>
     <artifactId>apache-jdkim-project</artifactId>
@@ -32,10 +32,6 @@
     <description>Apache JAMES jDKIM Project</description>
     <url>http://james.apache.org/jdkim/</url>
     <inceptionYear>2009</inceptionYear>
-
-    <prerequisites>
-        <maven>3.0.2</maven>
-    </prerequisites>
 
     <properties>
         <target.jdk>1.5</target.jdk>
