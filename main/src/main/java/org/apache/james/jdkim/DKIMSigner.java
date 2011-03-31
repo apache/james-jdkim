@@ -40,7 +40,6 @@ import org.apache.james.jdkim.exceptions.PermFailException;
 import org.apache.james.jdkim.impl.BodyHasherImpl;
 import org.apache.james.jdkim.impl.Message;
 import org.apache.james.jdkim.tagvalue.SignatureRecordImpl;
-import org.apache.james.mime4j.MimeException;
 
 public class DKIMSigner extends DKIMCommon {
 
@@ -66,23 +65,29 @@ public class DKIMSigner extends DKIMCommon {
         try {
             try {
                 message = new Message(is);
-
-                try {
-                    SignatureRecord srt = newSignatureRecordTemplate(signatureRecordTemplate);
-
-                    BodyHasher bhj = newBodyHasher(srt);
-
-                    // computation of the body hash.
-                    DKIMCommon.streamCopy(message.getBodyInputStream(), bhj
-                            .getOutputStream());
-
-                    return sign(message, bhj);
-                } finally {
-                    message.dispose();
-                }
-            } catch (MimeException e1) {
+            } catch (RuntimeException e) {
+            	throw e;
+            } catch (IOException e) {
+            	throw e;
+            } catch (Exception e1) {
+            	// This can only be a MimeException but we don't declare to allow usage of
+            	// DKIMSigner without Mime4J dependency.
                 throw new PermFailException("MIME parsing exception: "
                         + e1.getMessage(), e1);
+            }
+
+            try {
+                SignatureRecord srt = newSignatureRecordTemplate(signatureRecordTemplate);
+
+                BodyHasher bhj = newBodyHasher(srt);
+
+                // computation of the body hash.
+                DKIMCommon.streamCopy(message.getBodyInputStream(), bhj
+                        .getOutputStream());
+
+                return sign(message, bhj);
+            } finally {
+                message.dispose();
             }
 
         } finally {
