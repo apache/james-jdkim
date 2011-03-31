@@ -93,14 +93,21 @@ public class DKIMSignTest extends TestCase {
 
         ByteArrayOutputStream rawMessage = new ByteArrayOutputStream();
         mail.getMessage().writeTo(rawMessage);
-        String res = rawMessage.toString();
 
         MockPublicKeyRecordRetriever mockPublicKeyRecordRetriever = new MockPublicKeyRecordRetriever(
                 "v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDYDaYKXzwVYwqWbLhmuJ66aTAN8wmDR+rfHE8HfnkSOax0oIoTM5zquZrTLo30870YMfYzxwfB6j/Nz3QdwrUD/t0YMYJiUKyWJnCKfZXHJBJ+yfRHr7oW+UW3cVo9CG2bBfIxsInwYe175g9UjyntJpWueqdEIo1c2bhv9Mp66QIDAQAB;",
                 "selector", "example.com");
-        new DKIMVerifier(mockPublicKeyRecordRetriever)
-                .verify(new ByteArrayInputStream(res.getBytes()));
+        verify(rawMessage, mockPublicKeyRecordRetriever);
     }
+
+	private List<SignatureRecord> verify(ByteArrayOutputStream rawMessage,
+			MockPublicKeyRecordRetriever mockPublicKeyRecordRetriever)
+			throws MessagingException, FailException {
+		List<SignatureRecord> signs = DKIMVerify.verify(new DKIMVerifier(mockPublicKeyRecordRetriever), new MimeMessage(Session.getDefaultInstance(new Properties()), new ByteArrayInputStream(rawMessage.toByteArray())));
+        assertNotNull(signs);
+        assertEquals(1, signs.size());
+        return signs;
+	}
 
     public void testDKIMSignFuture() throws MessagingException, IOException,
             FailException {
@@ -131,14 +138,12 @@ public class DKIMSignTest extends TestCase {
 
         ByteArrayOutputStream rawMessage = new ByteArrayOutputStream();
         mail.getMessage().writeTo(rawMessage);
-        String res = rawMessage.toString();
         
         MockPublicKeyRecordRetriever mockPublicKeyRecordRetriever = new MockPublicKeyRecordRetriever(
                 "v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDYDaYKXzwVYwqWbLhmuJ66aTAN8wmDR+rfHE8HfnkSOax0oIoTM5zquZrTLo30870YMfYzxwfB6j/Nz3QdwrUD/t0YMYJiUKyWJnCKfZXHJBJ+yfRHr7oW+UW3cVo9CG2bBfIxsInwYe175g9UjyntJpWueqdEIo1c2bhv9Mp66QIDAQAB;",
                 "selector", "example.com");
         try {
-            new DKIMVerifier(mockPublicKeyRecordRetriever)
-                    .verify(new ByteArrayInputStream(res.getBytes()));
+            verify(rawMessage, mockPublicKeyRecordRetriever);
             fail("Expecting signature to be ignored");
         } catch (PermFailException e) {
             // signature ignored, so fail for missing signatures.
@@ -175,13 +180,13 @@ public class DKIMSignTest extends TestCase {
 
         ByteArrayOutputStream rawMessage = new ByteArrayOutputStream();
         mail.getMessage().writeTo(rawMessage);
-        String res = rawMessage.toString();
 
         MockPublicKeyRecordRetriever mockPublicKeyRecordRetriever = new MockPublicKeyRecordRetriever(
                 "v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDYDaYKXzwVYwqWbLhmuJ66aTAN8wmDR+rfHE8HfnkSOax0oIoTM5zquZrTLo30870YMfYzxwfB6j/Nz3QdwrUD/t0YMYJiUKyWJnCKfZXHJBJ+yfRHr7oW+UW3cVo9CG2bBfIxsInwYe175g9UjyntJpWueqdEIo1c2bhv9Mp66QIDAQAB;",
                 "selector", "example.com");
-        List<SignatureRecord> rs = new DKIMVerifier(mockPublicKeyRecordRetriever)
-                .verify(new ByteArrayInputStream(res.getBytes()));
+        verify(rawMessage, mockPublicKeyRecordRetriever);
+
+        List<SignatureRecord> rs = verify(rawMessage, mockPublicKeyRecordRetriever);
         
         // check we have a valued signatureTimestamp
         assertNotNull(((SignatureRecord) rs.get(0)).getSignatureTimestamp());
@@ -226,13 +231,12 @@ public class DKIMSignTest extends TestCase {
 
         ByteArrayOutputStream rawMessage = new ByteArrayOutputStream();
         mail.getMessage().writeTo(rawMessage);
-        String res = rawMessage.toString();
 
         MockPublicKeyRecordRetriever mockPublicKeyRecordRetriever = new MockPublicKeyRecordRetriever(
                 "v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDYDaYKXzwVYwqWbLhmuJ66aTAN8wmDR+rfHE8HfnkSOax0oIoTM5zquZrTLo30870YMfYzxwfB6j/Nz3QdwrUD/t0YMYJiUKyWJnCKfZXHJBJ+yfRHr7oW+UW3cVo9CG2bBfIxsInwYe175g9UjyntJpWueqdEIo1c2bhv9Mp66QIDAQAB;",
                 "selector", "example.com");
-        new DKIMVerifier(mockPublicKeyRecordRetriever)
-                .verify(new ByteArrayInputStream(res.getBytes()));
+        
+        verify(rawMessage, mockPublicKeyRecordRetriever);
     }
 
     public void testDKIMSignMessageAsObjectConvertedTo7Bit()
@@ -274,13 +278,11 @@ public class DKIMSignTest extends TestCase {
 
         ByteArrayOutputStream rawMessage = new ByteArrayOutputStream();
         mail.getMessage().writeTo(rawMessage);
-        String res = rawMessage.toString();
 
-        MockPublicKeyRecordRetriever MockPublicKeyRecordRetriever = new MockPublicKeyRecordRetriever(
+        MockPublicKeyRecordRetriever mockPublicKeyRecordRetriever = new MockPublicKeyRecordRetriever(
                 "v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDYDaYKXzwVYwqWbLhmuJ66aTAN8wmDR+rfHE8HfnkSOax0oIoTM5zquZrTLo30870YMfYzxwfB6j/Nz3QdwrUD/t0YMYJiUKyWJnCKfZXHJBJ+yfRHr7oW+UW3cVo9CG2bBfIxsInwYe175g9UjyntJpWueqdEIo1c2bhv9Mp66QIDAQAB;",
                 "selector", "example.com");
-        new DKIMVerifier(MockPublicKeyRecordRetriever)
-                .verify(new ByteArrayInputStream(res.getBytes()));
+        verify(rawMessage, mockPublicKeyRecordRetriever);
     }
 
     public void testDKIMSignMessageAsObjectNotConverted()
@@ -322,14 +324,12 @@ public class DKIMSignTest extends TestCase {
 
         ByteArrayOutputStream rawMessage = new ByteArrayOutputStream();
         mail.getMessage().writeTo(rawMessage);
-        String res = rawMessage.toString();
 
-        MockPublicKeyRecordRetriever MockPublicKeyRecordRetriever = new MockPublicKeyRecordRetriever(
+        MockPublicKeyRecordRetriever mockPublicKeyRecordRetriever = new MockPublicKeyRecordRetriever(
                 "v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDYDaYKXzwVYwqWbLhmuJ66aTAN8wmDR+rfHE8HfnkSOax0oIoTM5zquZrTLo30870YMfYzxwfB6j/Nz3QdwrUD/t0YMYJiUKyWJnCKfZXHJBJ+yfRHr7oW+UW3cVo9CG2bBfIxsInwYe175g9UjyntJpWueqdEIo1c2bhv9Mp66QIDAQAB;",
                 "selector", "example.com");
         try {
-            new DKIMVerifier(MockPublicKeyRecordRetriever)
-                    .verify(new ByteArrayInputStream(res.getBytes()));
+            verify(rawMessage, mockPublicKeyRecordRetriever);
             fail("Expected PermFail");
         } catch (PermFailException e) {
 

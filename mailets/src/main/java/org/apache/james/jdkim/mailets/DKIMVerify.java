@@ -56,20 +56,7 @@ public class DKIMVerify extends GenericMailet {
     public void service(Mail mail) throws MessagingException {
         try {
             MimeMessage message = mail.getMessage();
-            Headers headers = new MimeMessageHeaders(message);
-            BodyHasher bh = verifier.newBodyHasher(headers);
-            try {
-                if (bh != null) {
-                    message.writeTo(new HeaderSkippingOutputStream(bh
-                            .getOutputStream()));
-                    bh.getOutputStream().close();
-                }
-                
-            } catch (IOException e) {
-                throw new MessagingException("Exception calculating bodyhash: "
-                        + e.getMessage(), e);
-            }
-            List<SignatureRecord> res = verifier.verify(bh);
+            List<SignatureRecord> res = verify(verifier, message);
             if (res == null || res.isEmpty()) {
                 // neutral
                 mail.setAttribute(DKIM_AUTH_RESULT_ATTRIBUTE, "neutral (no signatures)");
@@ -91,4 +78,22 @@ public class DKIMVerify extends GenericMailet {
         }
         
     }
+
+	protected static List<SignatureRecord> verify(DKIMVerifier verifier, MimeMessage message)
+			throws MessagingException, FailException {
+		Headers headers = new MimeMessageHeaders(message);
+		BodyHasher bh = verifier.newBodyHasher(headers);
+		try {
+		    if (bh != null) {
+		        message.writeTo(new HeaderSkippingOutputStream(bh
+		                .getOutputStream()));
+		        bh.getOutputStream().close();
+		    }
+		    
+		} catch (IOException e) {
+		    throw new MessagingException("Exception calculating bodyhash: "
+		            + e.getMessage(), e);
+		}
+		return verifier.verify(bh);
+	}
 }
