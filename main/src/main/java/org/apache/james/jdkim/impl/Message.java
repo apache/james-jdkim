@@ -33,6 +33,7 @@ import org.apache.james.mime4j.dom.MessageServiceFactory;
 import org.apache.james.mime4j.dom.SingleBody;
 import org.apache.james.mime4j.dom.field.Field;
 import org.apache.james.mime4j.io.EOLConvertingInputStream;
+import org.apache.james.mime4j.message.MessageBuilderImpl;
 import org.apache.james.mime4j.stream.MimeEntityConfig;
 
 /**
@@ -55,6 +56,11 @@ public class Message implements Headers {
      */
     public Message(InputStream is) throws IOException, MimeException {
         MessageBuilder mb = newMessageBuilder();
+        
+        if (mb instanceof MessageBuilderImpl) {
+        	((MessageBuilderImpl) mb).setFlatMode(true);
+        	((MessageBuilderImpl) mb).setContentDecoding(false);
+        }
         org.apache.james.mime4j.dom.Message mImpl = mb.parse(new EOLConvertingInputStream(is));
         
         this.message = mImpl;
@@ -63,13 +69,12 @@ public class Message implements Headers {
     private MessageBuilder newMessageBuilder() throws MimeException {
         MimeEntityConfig mec = new MimeEntityConfig();
         mec.setMaxLineLen(10000);
-
+        mec.setMaxHeaderLen(30000);
+        
         MessageServiceFactory mbf = MessageServiceFactory.newInstance();
         mbf.setAttribute("MimeEntityConfig", mec);
         // mbf.setProperty("MaxLineLength", 10000);
         MessageBuilder mb = mbf.newMessageBuilder();
-        // mb.setContentDecoding(false);
-        // mb.setFlatMode();
         return mb;
     }
 
