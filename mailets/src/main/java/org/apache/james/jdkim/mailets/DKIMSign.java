@@ -21,6 +21,7 @@ package org.apache.james.jdkim.mailets;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.security.GeneralSecurityException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
@@ -42,6 +43,8 @@ import org.apache.james.jdkim.api.SignatureRecord;
 import org.apache.james.jdkim.exceptions.PermFailException;
 import org.apache.mailet.Mail;
 import org.apache.mailet.base.GenericMailet;
+
+import com.sun.mail.util.CRLFOutputStream;
 
 /**
  * This mailet sign a message using the DKIM protocol
@@ -73,14 +76,15 @@ import org.apache.mailet.base.GenericMailet;
  * &lt;/mailet&gt;
  * </code></pre>
  * 
- * @version CVS $Revision: 713949 $ $Date: 2008-11-14 08:40:21 +0100 (ven, 14
- *          nov 2008) $
- * @since 2.2.0
+ * By default the mailet assume that Javamail will convert LF to CRLF when sending 
+ * so will compute the hash using converted newlines. If you don't want this 
+ * behaviout then set forceCRLF attribute to false. 
  */
 public class DKIMSign extends GenericMailet {
 
     private String signatureTemplate;
     private PrivateKey privateKey;
+    private boolean forceCRLF;
 
 	/**
 	 * @return the signatureTemplate
@@ -100,6 +104,7 @@ public class DKIMSign extends GenericMailet {
         signatureTemplate = getInitParameter("signatureTemplate");
         String privateKeyString = getInitParameter("privateKey");
         String privateKeyPassword = getInitParameter("privateKeyPassword", null);
+        forceCRLF = getInitParameter("forceCRLF", true);
         try {
             PKCS8Key pkcs8 = new PKCS8Key(new ByteArrayInputStream(
                     privateKeyString.getBytes()),
@@ -129,8 +134,9 @@ public class DKIMSign extends GenericMailet {
             MimeMessage message = mail.getMessage();
             Headers headers = new MimeMessageHeaders(message);
             try {
-                message.writeTo(new HeaderSkippingOutputStream(bhj
-                        .getOutputStream()));
+            	OutputStream os = new HeaderSkippingOutputStream(bhj.getOutputStream());
+            	if (forceCRLF) os = new CRLFOutputStream(os);
+                message.writeTo(os);
                 bhj.getOutputStream().close();
             } catch (IOException e) {
                 throw new MessagingException("Exception calculating bodyhash: "

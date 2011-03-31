@@ -103,7 +103,7 @@ public class DKIMSignTest extends TestCase {
 	private List<SignatureRecord> verify(ByteArrayOutputStream rawMessage,
 			MockPublicKeyRecordRetriever mockPublicKeyRecordRetriever)
 			throws MessagingException, FailException {
-		List<SignatureRecord> signs = DKIMVerify.verify(new DKIMVerifier(mockPublicKeyRecordRetriever), new MimeMessage(Session.getDefaultInstance(new Properties()), new ByteArrayInputStream(rawMessage.toByteArray())));
+		List<SignatureRecord> signs = DKIMVerify.verify(new DKIMVerifier(mockPublicKeyRecordRetriever), new MimeMessage(Session.getDefaultInstance(new Properties()), new ByteArrayInputStream(rawMessage.toByteArray())), true);
         assertNotNull(signs);
         assertEquals(1, signs.size());
         return signs;

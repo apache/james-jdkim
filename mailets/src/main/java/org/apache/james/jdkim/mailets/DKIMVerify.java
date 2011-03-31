@@ -20,6 +20,7 @@
 package org.apache.james.jdkim.mailets;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.List;
 
 import javax.mail.MessagingException;
@@ -33,6 +34,8 @@ import org.apache.james.jdkim.exceptions.FailException;
 import org.apache.mailet.Mail;
 import org.apache.mailet.base.GenericMailet;
 
+import com.sun.mail.util.CRLFOutputStream;
+
 /**
  * This mailet verify a message using the DKIM protocol
  * 
@@ -41,22 +44,28 @@ import org.apache.mailet.base.GenericMailet;
  * &lt;mailet match=&quot;All&quot; class=&quot;DKIMVerify&quot;&gt;
  * &lt;/mailet&gt;
  * </code></pre>
+ * 
+ * By default the mailet assume that Javamail will use LF instead of CRLF 
+ * so it will verify the hash using converted newlines. If you don't want this 
+ * behaviout then set forceCRLF attribute to false. 
  */
 public class DKIMVerify extends GenericMailet {
 
     public static final String DKIM_AUTH_RESULT_ATTRIBUTE = "jDKIM.AUTHRESULT";
     
     protected DKIMVerifier verifier = null;
+    private boolean forceCRLF;
 
     @Override
     public void init() throws MessagingException {
         verifier = new DKIMVerifier();
+        forceCRLF = getInitParameter("forceCRLF", true);
     }
     
     public void service(Mail mail) throws MessagingException {
         try {
             MimeMessage message = mail.getMessage();
-            List<SignatureRecord> res = verify(verifier, message);
+            List<SignatureRecord> res = verify(verifier, message, forceCRLF);
             if (res == null || res.isEmpty()) {
                 // neutral
                 mail.setAttribute(DKIM_AUTH_RESULT_ATTRIBUTE, "neutral (no signatures)");
@@ -79,14 +88,16 @@ public class DKIMVerify extends GenericMailet {
         
     }
 
-	protected static List<SignatureRecord> verify(DKIMVerifier verifier, MimeMessage message)
+	protected static List<SignatureRecord> verify(DKIMVerifier verifier, MimeMessage message, boolean forceCRLF)
 			throws MessagingException, FailException {
 		Headers headers = new MimeMessageHeaders(message);
 		BodyHasher bh = verifier.newBodyHasher(headers);
 		try {
 		    if (bh != null) {
-		        message.writeTo(new HeaderSkippingOutputStream(bh
-		                .getOutputStream()));
+		    	OutputStream os = new HeaderSkippingOutputStream(bh
+		                .getOutputStream());
+		    	if (forceCRLF) os = new CRLFOutputStream(os);
+		        message.writeTo(os);
 		        bh.getOutputStream().close();
 		    }
 		    
