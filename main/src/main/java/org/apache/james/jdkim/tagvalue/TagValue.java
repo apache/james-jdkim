@@ -149,7 +149,7 @@ public class TagValue {
                         && trimFWS(rest, 0, rest.length() - 1, true).length() > 0) {
                     throw new IllegalStateException(
                             "Unexpected termination at position " + i + ": "
-                                    + data);
+                                    + data + " | [" + rest + "]");
                 }
                 i = data.length();
                 continue;

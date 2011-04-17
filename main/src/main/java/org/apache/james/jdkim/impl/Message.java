@@ -33,7 +33,7 @@ import org.apache.james.mime4j.dom.MessageServiceFactory;
 import org.apache.james.mime4j.dom.SingleBody;
 import org.apache.james.mime4j.dom.field.Field;
 import org.apache.james.mime4j.io.EOLConvertingInputStream;
-import org.apache.james.mime4j.message.MessageBuilderImpl;
+import org.apache.james.mime4j.message.MimeWriter;
 import org.apache.james.mime4j.stream.MimeEntityConfig;
 
 /**
@@ -57,10 +57,6 @@ public class Message implements Headers {
     public Message(InputStream is) throws IOException, MimeException {
         MessageBuilder mb = newMessageBuilder();
         
-        if (mb instanceof MessageBuilderImpl) {
-        	((MessageBuilderImpl) mb).setFlatMode(true);
-        	((MessageBuilderImpl) mb).setContentDecoding(false);
-        }
         org.apache.james.mime4j.dom.Message mImpl = mb.parse(new EOLConvertingInputStream(is));
         
         this.message = mImpl;
@@ -73,8 +69,12 @@ public class Message implements Headers {
         
         MessageServiceFactory mbf = MessageServiceFactory.newInstance();
         mbf.setAttribute("MimeEntityConfig", mec);
+        mbf.setAttribute("FlatMode", true);
+        mbf.setAttribute("ContentDecoding", false);
+        
         // mbf.setProperty("MaxLineLength", 10000);
         MessageBuilder mb = mbf.newMessageBuilder();
+
         return mb;
     }
 
@@ -100,8 +100,10 @@ public class Message implements Headers {
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
             String field = null;
             try {
-                f.writeTo(bos);
-                field = new String(bos.toByteArray());
+            	MimeWriter.DEFAULT.writeField(f, bos);
+            	// writeField always ends with CRLF and we don't want it.
+            	byte[] fieldbytes = bos.toByteArray();
+                field = new String(fieldbytes, 0, fieldbytes.length - 2);
             } catch (IOException e) {
             }
             res2.add(field);
