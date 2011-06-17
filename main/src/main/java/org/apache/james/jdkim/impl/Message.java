@@ -29,11 +29,11 @@ import org.apache.james.jdkim.api.Headers;
 import org.apache.james.mime4j.MimeException;
 import org.apache.james.mime4j.MimeIOException;
 import org.apache.james.mime4j.dom.MessageBuilder;
+import org.apache.james.mime4j.dom.MessageFormatter;
 import org.apache.james.mime4j.dom.MessageServiceFactory;
 import org.apache.james.mime4j.dom.SingleBody;
-import org.apache.james.mime4j.dom.field.Field;
+import org.apache.james.mime4j.stream.Field;
 import org.apache.james.mime4j.io.EOLConvertingInputStream;
-import org.apache.james.mime4j.message.MimeWriter;
 import org.apache.james.mime4j.stream.MimeEntityConfig;
 
 /**
@@ -55,14 +55,13 @@ public class Message implements Headers {
      *                 on MIME protocol violations.
      */
     public Message(InputStream is) throws IOException, MimeException {
-        MessageBuilder mb = newMessageBuilder();
-        
+        MessageBuilder mb = newMessageBuilder().newMessageBuilder();
         org.apache.james.mime4j.dom.Message mImpl = mb.parse(new EOLConvertingInputStream(is));
         
         this.message = mImpl;
     }
 
-    private MessageBuilder newMessageBuilder() throws MimeException {
+    private MessageServiceFactory newMessageBuilder() throws MimeException {
         MimeEntityConfig mec = new MimeEntityConfig();
         mec.setMaxLineLen(10000);
         mec.setMaxHeaderLen(30000);
@@ -72,10 +71,7 @@ public class Message implements Headers {
         mbf.setAttribute("FlatMode", true);
         mbf.setAttribute("ContentDecoding", false);
         
-        // mbf.setProperty("MaxLineLength", 10000);
-        MessageBuilder mb = mbf.newMessageBuilder();
-
-        return mb;
+        return mbf;
     }
 
     public InputStream getBodyInputStream() {
@@ -96,11 +92,17 @@ public class Message implements Headers {
 
     private List<String> convertFields(List<Field> res) {
         List<String> res2 = new LinkedList<String>();
+    	MessageFormatter mf;
+		try {
+			mf = newMessageBuilder().newMessageFormatter();
+		} catch (MimeException e1) {
+			return res2;
+		}
         for (Field f : res) {
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
             String field = null;
             try {
-            	MimeWriter.DEFAULT.writeField(f, bos);
+            	mf.writeField(f, bos);
             	// writeField always ends with CRLF and we don't want it.
             	byte[] fieldbytes = bos.toByteArray();
                 field = new String(fieldbytes, 0, fieldbytes.length - 2);
