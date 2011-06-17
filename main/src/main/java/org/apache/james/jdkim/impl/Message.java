@@ -92,19 +92,19 @@ public class Message implements Headers {
 
     private List<String> convertFields(List<Field> res) {
         List<String> res2 = new LinkedList<String>();
-    	MessageFormatter mf;
-		try {
-			mf = newMessageBuilder().newMessageFormatter();
-		} catch (MimeException e1) {
-			return res2;
-		}
+        MessageFormatter mf;
+        try {
+            mf = newMessageBuilder().newMessageFormatter();
+        } catch (MimeException e1) {
+            return res2;
+        }
         for (Field f : res) {
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
             String field = null;
             try {
-            	mf.writeField(f, bos);
-            	// writeField always ends with CRLF and we don't want it.
-            	byte[] fieldbytes = bos.toByteArray();
+                mf.writeField(f, bos);
+                // writeField always ends with CRLF and we don't want it.
+                byte[] fieldbytes = bos.toByteArray();
                 field = new String(fieldbytes, 0, fieldbytes.length - 2);
             } catch (IOException e) {
             }
