@@ -29,7 +29,7 @@ import org.apache.james.jdkim.api.Headers;
 import org.apache.james.mime4j.MimeException;
 import org.apache.james.mime4j.MimeIOException;
 import org.apache.james.mime4j.dom.MessageBuilder;
-import org.apache.james.mime4j.dom.MessageFormatter;
+import org.apache.james.mime4j.dom.MessageWriter;
 import org.apache.james.mime4j.dom.MessageServiceFactory;
 import org.apache.james.mime4j.dom.SingleBody;
 import org.apache.james.mime4j.stream.Field;
@@ -56,7 +56,7 @@ public class Message implements Headers {
      */
     public Message(InputStream is) throws IOException, MimeException {
         MessageBuilder mb = newMessageBuilder().newMessageBuilder();
-        org.apache.james.mime4j.dom.Message mImpl = mb.parse(new EOLConvertingInputStream(is));
+        org.apache.james.mime4j.dom.Message mImpl = mb.parseMessage(new EOLConvertingInputStream(is));
         
         this.message = mImpl;
     }
@@ -92,9 +92,9 @@ public class Message implements Headers {
 
     private List<String> convertFields(List<Field> res) {
         List<String> res2 = new LinkedList<String>();
-        MessageFormatter mf;
+        MessageWriter mw;
         try {
-            mf = newMessageBuilder().newMessageFormatter();
+            mw = newMessageBuilder().newMessageWriter();
         } catch (MimeException e1) {
             return res2;
         }
@@ -102,7 +102,7 @@ public class Message implements Headers {
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
             String field = null;
             try {
-                mf.writeField(f, bos);
+                mw.writeField(f, bos);
                 // writeField always ends with CRLF and we don't want it.
                 byte[] fieldbytes = bos.toByteArray();
                 field = new String(fieldbytes, 0, fieldbytes.length - 2);
