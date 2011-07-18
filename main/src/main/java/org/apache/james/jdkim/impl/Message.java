@@ -34,7 +34,7 @@ import org.apache.james.mime4j.dom.MessageServiceFactory;
 import org.apache.james.mime4j.dom.SingleBody;
 import org.apache.james.mime4j.stream.Field;
 import org.apache.james.mime4j.io.EOLConvertingInputStream;
-import org.apache.james.mime4j.stream.MimeEntityConfig;
+import org.apache.james.mime4j.stream.MimeConfig;
 
 /**
  * The header of an entity (see RFC 2045).
@@ -62,7 +62,7 @@ public class Message implements Headers {
     }
 
     private MessageServiceFactory newMessageBuilder() throws MimeException {
-        MimeEntityConfig mec = new MimeEntityConfig();
+        MimeConfig mec = new MimeConfig();
         mec.setMaxLineLen(10000);
         mec.setMaxHeaderLen(30000);
         
