@@ -17,7 +17,7 @@
     specific language governing permissions and limitations
     under the License.    
 -->
-<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.apache.james</groupId>
@@ -27,7 +27,7 @@
     <groupId>org.apache.james.jdkim</groupId>
     <artifactId>apache-jdkim-project</artifactId>
     <name>Apache JAMES DomainKey Project</name>
-    <version>0.2-SNAPSHOT</version>
+    <version>0.2</version>
     <packaging>pom</packaging>
     <description>Apache JAMES jDKIM Project</description>
     <url>http://james.apache.org/jdkim/</url>
@@ -56,9 +56,9 @@
     </issueManagement>
 
     <scm>
-        <connection>scm:svn:http://svn.apache.org/repos/asf/james/jdkim/trunk</connection>
-        <developerConnection>scm:svn:https://svn.apache.org/repos/asf/james/jdkim/trunk</developerConnection>
-        <url>http://svn.apache.org/viewcvs.cgi/james/jdkim/trunk/?root=Apache-SVN</url>
+        <connection>scm:svn:http://svn.apache.org/repos/asf/james/jdkim/tags/apache-jdkim-project-0.2</connection>
+        <developerConnection>scm:svn:https://svn.apache.org/repos/asf/james/jdkim/tags/apache-jdkim-project-0.2</developerConnection>
+        <url>http://svn.apache.org/viewcvs.cgi/james/jdkim/tags/apache-jdkim-project-0.2?root=Apache-SVN</url>
     </scm>
 
     <mailingLists>
@@ -195,19 +195,19 @@
             <dependency>
                 <groupId>org.apache.james.jdkim</groupId>
                 <artifactId>apache-jdkim-library</artifactId>
-                <version>0.2-SNAPSHOT</version>
+                <version>0.2</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.james.jdkim</groupId>
                 <artifactId>apache-jdkim-library</artifactId>
-                <version>0.2-SNAPSHOT</version>
+                <version>0.2</version>
                 <type>test-jar</type>
                 <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.james.jdkim</groupId>
                 <artifactId>apache-jdkim-mailets</artifactId>
-                <version>0.2-SNAPSHOT</version>
+                <version>0.2</version>
             </dependency>
             <dependency>
                 <groupId>ca.juliusdavies</groupId>
