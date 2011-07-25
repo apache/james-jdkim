@@ -22,7 +22,7 @@
     <parent>
         <artifactId>apache-jdkim-project</artifactId>
         <groupId>org.apache.james.jdkim</groupId>
-        <version>0.2</version>
+        <version>0.3-SNAPSHOT</version>
     </parent>
     <groupId>org.apache.james.jdkim</groupId>
     <artifactId>apache-jdkim</artifactId>

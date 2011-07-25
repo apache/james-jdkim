@@ -22,7 +22,7 @@
     <parent>
         <artifactId>apache-jdkim-project</artifactId>
         <groupId>org.apache.james.jdkim</groupId>
-        <version>0.2</version>
+        <version>0.3-SNAPSHOT</version>
     </parent>
     <groupId>org.apache.james.jdkim</groupId>
     <artifactId>apache-jdkim-library</artifactId>
@@ -45,9 +45,9 @@
     </issueManagement>
 
     <scm>
-        <connection>scm:svn:http://svn.apache.org/repos/asf/james/jdkim/tags/apache-jdkim-project-0.2/trunk</connection>
-        <developerConnection>scm:svn:https://svn.apache.org/repos/asf/james/jdkim/tags/apache-jdkim-project-0.2/trunk</developerConnection>
-        <url>http://svn.apache.org/viewvc/james/jdkim/tags/apache-jdkim-project-0.2/trunk</url>
+        <connection>scm:svn:http://svn.apache.org/repos/asf/james/jdkim/trunk</connection>
+        <developerConnection>scm:svn:https://svn.apache.org/repos/asf/james/jdkim/trunk</developerConnection>
+        <url>http://svn.apache.org/viewvc/james/jdkim/trunk/</url>
     </scm>
 
     <dependencies>
