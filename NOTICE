@@ -8,23 +8,6 @@
    This product includes software developed at
    The Apache Software Foundation (http://www.apache.org/).
    
-   This product may include/use not-yet-commons-ssl library
-   (http://juliusdavies.ca/commons-ssl/) by Julius Davies.
-   
-   not-yet-commons-ssl PKCS12 key derivation function was developed 
-   by BouncyCastle (bouncycastle.org). 
-   (Look for the "pkcs12()" method inside PKCS8.java).
-
-   Some of not-yet-common-ssl library was originally developed by
-   Credit Union Central of British Columbia (http://www.cucbc.com/).
-   The CUCBC code was licensed to the Apache Software Foundation on
-   August 23rd, 2006.
-   
    "main\src\test\resources\org\apache\james\jdkim\Mail-DKIM" folder
    includes test data from the Mail-DKIM perl module licensed under
    the Artistic License 1.0
-   
-   This product may include or use software developed by :
-     - Sun Microsystems (http://java.sun.com/)
-     - Brian Wellington (http://www.dnsjava.org)
-     

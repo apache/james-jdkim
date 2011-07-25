@@ -29,12 +29,39 @@
       <directory>..</directory>
       <outputDirectory>/</outputDirectory>
       <includes>
-        <include>LICENSE</include>
-        <include>NOTICE</include>
         <include>RELEASE_NOTES.txt</include>
       </includes>
     </fileSet>
+
+    <fileSet>
+      <directory>../main/target</directory>
+      <outputDirectory>/</outputDirectory>
+      <includes>
+        <include>apache-jdkim*.jar</include>
+      </includes>
+    </fileSet>
+    <fileSet>
+      <directory>../mailets/target</directory>
+      <outputDirectory>/</outputDirectory>
+      <includes>
+        <include>apache-jdkim*.jar</include>
+      </includes>
+    </fileSet>
   </fileSets>
+      
+  <files>
+    <file>
+      <source>src/licensing/noticeForApp.txt</source>
+      <outputDirectory>/</outputDirectory>
+      <destName>NOTICE</destName>
+    </file>
+    <file>
+      <source>src/licensing/licenseForApp.txt</source>
+      <outputDirectory>/</outputDirectory> 
+      <destName>LICENSE</destName>
+    </file>
+  </files>
+    
   <dependencySets>
     <dependencySet>
       <outputDirectory>/lib/</outputDirectory>

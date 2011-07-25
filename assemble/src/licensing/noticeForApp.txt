@@ -1,0 +1,28 @@
+   =========================================================================
+   ==      NOTICE file for use with the Apache License, Version 2.0,      ==
+   =========================================================================
+   
+   Apache JAMES jDKIM
+   Copyright 2009-2010 The Apache Software Foundation
+   
+   This product includes software developed at
+   The Apache Software Foundation (http://www.apache.org/).
+   
+   This product include/use not-yet-commons-ssl library
+   (http://juliusdavies.ca/commons-ssl/) by Julius Davies.
+   
+   not-yet-commons-ssl PKCS12 key derivation function was developed 
+   by BouncyCastle (bouncycastle.org). 
+   (Look for the "pkcs12()" method inside PKCS8.java).
+
+   Some of not-yet-common-ssl library was originally developed by
+   Credit Union Central of British Columbia (http://www.cucbc.com/).
+   The CUCBC code was licensed to the Apache Software Foundation on
+   August 23rd, 2006.
+   
+   This product includes test data from the Mail-DKIM perl module 
+   licensed under the Artistic License 1.0
+   
+   This product includes dnsjava developed by Brian Wellington
+   (http://www.dnsjava.org)
+     

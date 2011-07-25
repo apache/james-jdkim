@@ -101,11 +101,6 @@
     </dependencies>
 
     <build>
-        <resources>
-            <resource>
-                <directory>src/main/resources</directory>
-            </resource>
-        </resources>
 
         <plugins>
             <plugin>
@@ -136,24 +131,27 @@
             <plugin>
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <!-- test resources created by JAMES committers / we can't include ALv2 headers there -->
+                        <exclude>src/test/resources/org/apache/james/jdkim/corpus/*</exclude>
+                        <exclude>src/test/resources/org/apache/james/jdkim/Mail-DKIM/FAKE_DNS.dat</exclude>
+                        <!-- 3rd party resources described in NOTICE: see the maven-remote-resources-plugin 
+                            configuration, in this file -->
+                        <exclude>src/test/resources/org/apache/james/jdkim/Mail-DKIM/corpus/*</exclude>
+                        <!-- maven / IDE artifacts created during build -->
+                        <exclude>release.properties</exclude>
+                        <exclude>dependency-reduced-pom.xml</exclude>
+                        <exclude>nbactions.xml</exclude>
+                        <exclude>**/.*/**/*</exclude>
+                    </excludes>
+                </configuration>
                 <executions>
                     <execution>
                         <phase>verify</phase>
                         <goals>
                             <goal>check</goal>
                         </goals>
-                        <configuration>
-                            <excludes>
-                                <!-- test resources created by JAMES committers / we can't include ALv2 headers there -->
-                                <exclude>src/test/resources/org/apache/james/jdkim/corpus/*</exclude>
-                                <exclude>src/test/resources/org/apache/james/jdkim/Mail-DKIM/FAKE_DNS.dat</exclude>
-                                <exclude>src/test/resources/org/apache/james/jdkim/Mail-DKIM/corpus/*</exclude>
-                                <exclude>release.properties</exclude>
-                                <exclude>dependency-reduced-pom.xml</exclude>
-                                <exclude>nbactions.xml</exclude>
-                                <exclude>**/.*/**/*</exclude>
-                            </excludes>
-                        </configuration>
                     </execution>
                 </executions>
             </plugin>
@@ -210,7 +208,6 @@
                     </execution>
                 </executions>
             </plugin>
-            <!-- I don't think this is a correct doap configuration, referencing Sieve in a jdkim project ... 
             <plugin>
               <groupId>org.apache.maven.plugins</groupId>
               <artifactId>maven-doap-plugin</artifactId>
@@ -235,16 +232,21 @@
                  <name>Apache JAMES</name>
                  <standards>
                   <standard>
-                    <id>RFC3028</id>
-                    <title>Sieve: A Mail Filtering Language</title>
+                    <id>DKIM</id>
+                    <title>DomainKeys Identified Mail (DKIM) Signatures</title>
                     <body>IEFT</body>
-                    <url>http://www.ietf.org/rfc/rfc3028.txt</url>
+                    <url>http://www.ietf.org/rfc/rfc4871.txt</url>
+                  </standard>
+                  <standard>
+                    <id>DKIM</id>
+                    <title>DomainKeys Identified Mail (DKIM) Signatures -- Update</title>
+                    <body>IEFT</body>
+                    <url>http://www.ietf.org/rfc/rfc5672.txt</url>
                   </standard>
                  </standards>
                </asfExtOptions>
               </configuration>
             </plugin>
-            -->
             <!-- Shading commons-codec Base64 class so that we don't have one more dependency -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -291,75 +293,6 @@
             </plugin>
         </plugins>
     </build>
-
-    <!--
-    <reporting>
-        <plugins>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>rat-maven-plugin</artifactId>
-                <configuration>
-                    <excludes>
-                        <!- test resources created by JAMES committers / we can't include ALv2 headers there ->
-                        <exclude>src/test/resources/org/apache/james/jdkim/corpus/*</exclude>
-                        <exclude>src/test/resources/org/apache/james/jdkim/Mail-DKIM/FAKE_DNS.dat</exclude>
-                        <exclude>src/test/resources/org/apache/james/jdkim/Mail-DKIM/corpus/*</exclude>
-                        <exclude>release.properties</exclude>
-                        <exclude>dependency-reduced-pom.xml</exclude>
-                        <exclude>nbactions.xml</exclude>
-                        <exclude>**/.*/**/*</exclude>
-                    </excludes>
-                </configuration>
-            </plugin>
-            <plugin>
-                <artifactId>maven-javadoc-plugin</artifactId>
-                <version>2.6.1</version>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-jxr-plugin</artifactId>
-                <version>2.1</version>
-            </plugin>
-            <plugin>
-                <artifactId>maven-pmd-plugin</artifactId>
-                <version>2.4</version>
-                <configuration>
-                    <targetjdk>1.5</targetjdk>
-                    <rulesets>
-                        <ruleset>/rulesets/basic.xml</ruleset>
-                        <ruleset>/rulesets/controversial.xml</ruleset>
-                    </rulesets>
-                    <format>xml</format>
-                    <linkXref>true</linkXref>
-                    <sourceEncoding>utf-8</sourceEncoding>
-                    <minimumTokens>100</minimumTokens>
-                </configuration>
-            </plugin>
-            <plugin>
-                <artifactId>maven-site-plugin</artifactId>
-                <version>2.1</version>
-            </plugin>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>taglist-maven-plugin</artifactId>
-                <version>2.4</version>
-            </plugin>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>emma-maven-plugin</artifactId>
-                <version>1.0-alpha-2</version>
-            </plugin>
-            <plugin>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <version>2.5</version>
-            </plugin>
-            <plugin>
-                <artifactId>maven-surefire-report-plugin</artifactId>
-                <version>2.5</version>
-            </plugin>
-        </plugins>
-    </reporting>
-    -->
 
     <mailingLists>
         <mailingList>
