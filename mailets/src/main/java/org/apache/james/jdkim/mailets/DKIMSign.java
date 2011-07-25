@@ -44,8 +44,6 @@ import org.apache.james.jdkim.exceptions.PermFailException;
 import org.apache.mailet.Mail;
 import org.apache.mailet.base.GenericMailet;
 
-import com.sun.mail.util.CRLFOutputStream;
-
 /**
  * This mailet sign a message using the DKIM protocol
  * If the privateKey is encoded using a password then you can pass

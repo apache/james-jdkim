@@ -34,8 +34,6 @@ import org.apache.james.jdkim.exceptions.FailException;
 import org.apache.mailet.Mail;
 import org.apache.mailet.base.GenericMailet;
 
-import com.sun.mail.util.CRLFOutputStream;
-
 /**
  * This mailet verify a message using the DKIM protocol
  * 
