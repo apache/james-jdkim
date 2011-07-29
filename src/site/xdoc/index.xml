@@ -31,16 +31,28 @@
 				It provides both verification and signing and also
 				provides Mailets for the Apache JAMES project.
 			</p>
-
+		
 			<p>
-				The 0.2 release is the first release. It requires Java
-				1.4 at runtime but for full compliance with the DKIM
-				specification the JVM running the library must support
-				SHA256withRSA cypher suite. The default Sun Java 1.4
-				does not support this suite, so either you move to Java
-				1.5+ or you install a third party cryptography provider
-				like BouncyCastle and configure it appropriately in your
-				JVM.
+				The 0.2 release is the first release. It requires Java 1.5 at
+				runtime and it requires the JVM running the library to support
+				SHA256withRSA cypher suite. The default Sun Java 1.5 does support this
+				suite. If your JVM doesn't support it you can install a third party
+				cryptography provider like BouncyCastle and configure it appropriately
+				in your JVM.
+			</p>
+		
+			<p>
+				The architecture is thought to handle multiple signatures with
+				performance in mind: body hashing for multiple signatures is computed
+				concurrently in a single stream run.
+			</p>
+		
+			<p>
+				The whole internal verification/signing is done via OutputStream
+				leaving much more flexibility than the use of InputStream. As the
+				InputStream approach is easier from the user side the default
+				implementation simply prepare the OutputStream and copy the supplied
+				InputStream to the OutputStream.
 			</p>
 			
 			<p>
