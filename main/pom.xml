@@ -34,8 +34,8 @@
 
     <distributionManagement>
         <site>
-            <id>jdkim-website</id>
-            <url>scp://people.apache.org/www/james.apache.org/jdkim/</url>
+            <id>jdkim-website-main</id>
+            <url>scp://people.apache.org/www/james.apache.org/jdkim/main/</url>
         </site>
     </distributionManagement>
 
@@ -208,6 +208,7 @@
                     </execution>
                 </executions>
             </plugin>
+            <!-- 
             <plugin>
               <groupId>org.apache.maven.plugins</groupId>
               <artifactId>maven-doap-plugin</artifactId>
@@ -239,7 +240,7 @@
                   </standard>
                   <standard>
                     <id>DKIM</id>
-                    <title>DomainKeys Identified Mail (DKIM) Signatures -- Update</title>
+                    <title>DomainKeys Identified Mail (DKIM) Signatures - - Update</title>
                     <body>IEFT</body>
                     <url>http://www.ietf.org/rfc/rfc5672.txt</url>
                   </standard>
@@ -247,6 +248,7 @@
                </asfExtOptions>
               </configuration>
             </plugin>
+             -->
             <!-- Shading commons-codec Base64 class so that we don't have one more dependency -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

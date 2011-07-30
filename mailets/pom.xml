@@ -30,6 +30,13 @@
     <url>http://james.apache.org/jdkim/mailets/</url>
     <description>Mailets integrating DKIM functions</description>
 
+    <distributionManagement>
+        <site>
+            <id>jdkim-website-mailets</id>
+            <url>scp://people.apache.org/www/james.apache.org/jdkim/mailets/</url>
+        </site>
+    </distributionManagement>
+
     <dependencies>
         <dependency>
             <groupId>org.apache.james</groupId>
