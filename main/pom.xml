@@ -1,36 +1,70 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
     Licensed to the Apache Software Foundation (ASF) under one
-    or more contributor license agreements.  See the NOTICE file
+    or more contributor license agreements. See the NOTICE file
     distributed with this work for additional information
-    regarding copyright ownership.  The ASF licenses this file
+    regarding copyright ownership. The ASF licenses this file
     to you under the Apache License, Version 2.0 (the
     "License"); you may not use this file except in compliance
-    with the License.  You may obtain a copy of the License at
+    with the License. You may obtain a copy of the License at
 
-      http://www.apache.org/licenses/LICENSE-2.0
+    http://www.apache.org/licenses/LICENSE-2.0
 
     Unless required by applicable law or agreed to in writing,
     software distributed under the License is distributed on an
     "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-    KIND, either express or implied.  See the License for the
+    KIND, either express or implied. See the License for the
     specific language governing permissions and limitations
-    under the License.    
+    under the License.
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project
+    xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
+
     <parent>
         <artifactId>apache-jdkim-project</artifactId>
         <groupId>org.apache.james.jdkim</groupId>
         <version>0.3-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
+
     <groupId>org.apache.james.jdkim</groupId>
     <artifactId>apache-jdkim-library</artifactId>
-    <name>Apache JAMES jDKIM</name>
     <packaging>jar</packaging>
+
+    <name>Apache JAMES jDKIM</name>
     <description>A Java implementation for the DKIM specification.</description>
     <url>http://james.apache.org/jdkim/main/</url>
     <inceptionYear>2008</inceptionYear>
+
+    <mailingLists>
+        <mailingList>
+            <name>Apache James User</name>
+            <subscribe>server-user-subscribe@james.apache.org</subscribe>
+            <unsubscribe>server-user-unsubscribe@james.apache.org</unsubscribe>
+            <post>server-user@james.apache.org</post>
+            <archive>http://mail-archives.apache.org/mod_mbox/james-server-user/</archive>
+        </mailingList>
+        <mailingList>
+            <name>Apache James Developer</name>
+            <subscribe>server-dev-subscribe@james.apache.org</subscribe>
+            <unsubscribe>server-dev-unsubscribe@james.apache.org</unsubscribe>
+            <post>server-dev@james.apache.org</post>
+            <archive>http://mail-archives.apache.org/mod_mbox/james-server-dev/</archive>
+        </mailingList>
+    </mailingLists>
+
+    <scm>
+        <connection>scm:svn:http://svn.apache.org/repos/asf/james/jdkim/trunk</connection>
+        <developerConnection>scm:svn:https://svn.apache.org/repos/asf/james/jdkim/trunk</developerConnection>
+        <url>http://svn.apache.org/viewvc/james/jdkim/trunk/</url>
+    </scm>
+    <issueManagement>
+        <system>JIRA</system>
+        <url>http://issues.apache.org/jira/browse/JDKIM</url>
+    </issueManagement>
 
     <distributionManagement>
         <site>
@@ -38,17 +72,6 @@
             <url>scp://people.apache.org/www/james.apache.org/jdkim/main/</url>
         </site>
     </distributionManagement>
-
-    <issueManagement>
-        <system>JIRA</system>
-        <url>http://issues.apache.org/jira/browse/JDKIM</url>
-    </issueManagement>
-
-    <scm>
-        <connection>scm:svn:http://svn.apache.org/repos/asf/james/jdkim/trunk</connection>
-        <developerConnection>scm:svn:https://svn.apache.org/repos/asf/james/jdkim/trunk</developerConnection>
-        <url>http://svn.apache.org/viewvc/james/jdkim/trunk/</url>
-    </scm>
 
     <dependencies>
         <dependency>
@@ -101,7 +124,6 @@
     </dependencies>
 
     <build>
-
         <plugins>
             <plugin>
                 <artifactId>maven-jar-plugin</artifactId>
@@ -136,7 +158,7 @@
                         <!-- test resources created by JAMES committers / we can't include ALv2 headers there -->
                         <exclude>src/test/resources/org/apache/james/jdkim/corpus/*</exclude>
                         <exclude>src/test/resources/org/apache/james/jdkim/Mail-DKIM/FAKE_DNS.dat</exclude>
-                        <!-- 3rd party resources described in NOTICE: see the maven-remote-resources-plugin 
+                        <!-- 3rd party resources described in NOTICE: see the maven-remote-resources-plugin
                             configuration, in this file -->
                         <exclude>src/test/resources/org/apache/james/jdkim/Mail-DKIM/corpus/*</exclude>
                         <!-- maven / IDE artifacts created during build -->
@@ -208,47 +230,47 @@
                     </execution>
                 </executions>
             </plugin>
-            <!-- 
-            <plugin>
-              <groupId>org.apache.maven.plugins</groupId>
-              <artifactId>maven-doap-plugin</artifactId>
-              <executions>
+            <!--
+                <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-doap-plugin</artifactId>
+                <executions>
                 <execution>
-                  <id>site</id>
-                  <phase>site</phase>
-                  <goals>
-                    <goal>generate</goal>
-                  </goals>
+                <id>site</id>
+                <phase>site</phase>
+                <goals>
+                <goal>generate</goal>
+                </goals>
                 </execution>
-              </executions>
-              <configuration>
-               <doapOptions>
-                  <programmingLanguage>java</programmingLanguage>
-                 <category>mail</category>
-                 <downloadPage>http://james.apache.org/download.cgi</downloadPage>
-               </doapOptions>
-               <asfExtOptions>
-                 <included>true</included>
-                 <pmc>http://james.apache.org</pmc>
-                 <name>Apache JAMES</name>
-                 <standards>
-                  <standard>
-                    <id>DKIM</id>
-                    <title>DomainKeys Identified Mail (DKIM) Signatures</title>
-                    <body>IEFT</body>
-                    <url>http://www.ietf.org/rfc/rfc4871.txt</url>
-                  </standard>
-                  <standard>
-                    <id>DKIM</id>
-                    <title>DomainKeys Identified Mail (DKIM) Signatures - - Update</title>
-                    <body>IEFT</body>
-                    <url>http://www.ietf.org/rfc/rfc5672.txt</url>
-                  </standard>
-                 </standards>
-               </asfExtOptions>
-              </configuration>
-            </plugin>
-             -->
+                </executions>
+                <configuration>
+                <doapOptions>
+                <programmingLanguage>java</programmingLanguage>
+                <category>mail</category>
+                <downloadPage>http://james.apache.org/download.cgi</downloadPage>
+                </doapOptions>
+                <asfExtOptions>
+                <included>true</included>
+                <pmc>http://james.apache.org</pmc>
+                <name>Apache JAMES</name>
+                <standards>
+                <standard>
+                <id>DKIM</id>
+                <title>DomainKeys Identified Mail (DKIM) Signatures</title>
+                <body>IEFT</body>
+                <url>http://www.ietf.org/rfc/rfc4871.txt</url>
+                </standard>
+                <standard>
+                <id>DKIM</id>
+                <title>DomainKeys Identified Mail (DKIM) Signatures - - Update</title>
+                <body>IEFT</body>
+                <url>http://www.ietf.org/rfc/rfc5672.txt</url>
+                </standard>
+                </standards>
+                </asfExtOptions>
+                </configuration>
+                </plugin>
+            -->
             <!-- Shading commons-codec Base64 class so that we don't have one more dependency -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -295,22 +317,4 @@
             </plugin>
         </plugins>
     </build>
-
-    <mailingLists>
-        <mailingList>
-            <name>Apache James User</name>
-            <subscribe>server-user-subscribe@james.apache.org</subscribe>
-            <unsubscribe>server-user-unsubscribe@james.apache.org</unsubscribe>
-            <post>server-user@james.apache.org</post>
-            <archive>http://mail-archives.apache.org/mod_mbox/james-server-user/</archive>
-        </mailingList>
-        <mailingList>
-            <name>Apache James Developer</name>
-            <subscribe>server-dev-subscribe@james.apache.org</subscribe>
-            <unsubscribe>server-dev-unsubscribe@james.apache.org</unsubscribe>
-            <post>server-dev@james.apache.org</post>
-            <archive>http://mail-archives.apache.org/mod_mbox/james-server-dev/</archive>
-        </mailingList>
-    </mailingLists>
-
 </project>
