@@ -30,7 +30,6 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <groupId>org.apache.james.jdkim</groupId>
     <artifactId>apache-jdkim</artifactId>
     <packaging>pom</packaging>
 
@@ -63,8 +62,8 @@
     <build>
         <plugins>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>
-                <version>2.2-beta-5</version>
                 <configuration>
                     <descriptorSourceDirectory>src/assemble/</descriptorSourceDirectory>
                     <tarLongFileMode>gnu</tarLongFileMode>

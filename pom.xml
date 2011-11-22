@@ -26,7 +26,7 @@
     <parent>
         <groupId>org.apache.james</groupId>
         <artifactId>james-project</artifactId>
-        <version>1.6</version>
+        <version>1.8</version>
         <relativePath></relativePath>
     </parent>
 
@@ -35,20 +35,10 @@
     <version>0.3-SNAPSHOT</version>
     <packaging>pom</packaging>
 
-    <name>Apache JAMES DomainKey Project</name>
-    <description>Apache JAMES jDKIM Project</description>
+    <name>Apache James DomainKey Project (jDKIM)</name>
+    <description>DomainKeys Identified Mail (DKIM) Signatures</description>
     <url>http://james.apache.org/jdkim/</url>
     <inceptionYear>2009</inceptionYear>
-
-    <mailingLists>
-        <mailingList>
-            <name>Apache JAMES Server List</name>
-            <subscribe>server-dev-subscribe@james.apache.org</subscribe>
-            <unsubscribe>server-dev-unsubscribe@james.apache.org</unsubscribe>
-            <post>server-dev@james.apache.org</post>
-            <archive>http://mail-archives.apache.org/mod_mbox/james-server-dev/</archive>
-        </mailingList>
-    </mailingLists>
 
     <modules>
         <module>main</module>
@@ -69,20 +59,16 @@
     <distributionManagement>
         <site>
             <id>jdkim-current-website</id>
-            <url>scp://people.apache.org/www/james.apache.org/jdkim/</url>
+            <url>scpexe://people.apache.org/www/james.apache.org/jdkim/</url>
         </site>
     </distributionManagement>
-
-    <properties>
-        <target.jdk>1.5</target.jdk>
-    </properties>
 
     <dependencyManagement>
         <dependencies>
             <dependency>
                 <groupId>junit</groupId>
                 <artifactId>junit</artifactId>
-                <version>3.8.2</version>
+                <version>4.10</version>
                 <scope>test</scope>
             </dependency>
             <dependency>
@@ -93,12 +79,12 @@
             <dependency>
                 <groupId>org.apache.geronimo.javamail</groupId>
                 <artifactId>geronimo-javamail_1.4_mail</artifactId>
-                <version>1.6</version>
+                <version>1.8.3</version>
             </dependency>
             <dependency>
                 <groupId>commons-codec</groupId>
                 <artifactId>commons-codec</artifactId>
-                <version>1.4</version>
+                <version>1.5</version>
             </dependency>
             <dependency>
                 <groupId>commons-logging</groupId>
@@ -223,141 +209,18 @@
             <dependency>
                 <groupId>org.apache.james</groupId>
                 <artifactId>apache-mime4j-core</artifactId>
-                <version>0.7</version>
+                <version>0.7.1</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.james</groupId>
                 <artifactId>apache-mime4j-dom</artifactId>
-                <version>0.7</version>
+                <version>0.7.1</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
 
     <build>
-        <pluginManagement>
-            <plugins>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-clean-plugin</artifactId>
-                    <version>2.4.1</version>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-compiler-plugin</artifactId>
-                    <version>2.3.2</version>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-jar-plugin</artifactId>
-                    <version>2.3.1</version>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-surefire-plugin</artifactId>
-                    <version>2.8</version>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-resources-plugin</artifactId>
-                    <version>2.5</version>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-remote-resources-plugin</artifactId>
-                    <version>1.2</version>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-site-plugin</artifactId>
-                    <version>3.0-beta-3</version>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-surefire-report-plugin</artifactId>
-                    <version>2.8</version>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.rat</groupId>
-                    <artifactId>apache-rat-plugin</artifactId>
-                    <version>0.7</version>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-jxr-plugin</artifactId>
-                    <version>2.2</version>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-pmd-plugin</artifactId>
-                    <version>2.5</version>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-javadoc-plugin</artifactId>
-                    <version>2.7</version>
-                </plugin>
-                <!--
-                    <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-doap-plugin</artifactId>
-                    <version>1.1</version>
-                    </plugin>
-                -->
-                <plugin>
-                    <groupId>org.codehaus.mojo</groupId>
-                    <artifactId>findbugs-maven-plugin</artifactId>
-                    <version>2.3.2</version>
-                </plugin>
-                <plugin>
-                    <groupId>org.codehaus.mojo</groupId>
-                    <artifactId>emma-maven-plugin</artifactId>
-                    <version>1.0-alpha-3</version>
-                </plugin>
-            </plugins>
-        </pluginManagement>
         <plugins>
-            <plugin>
-                <groupId>org.apache.rat</groupId>
-                <artifactId>apache-rat-plugin</artifactId>
-                <inherited>false</inherited>
-                <executions>
-                    <execution>
-                        <phase>verify</phase>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <source>${target.jdk}</source>
-                    <target>${target.jdk}</target>
-                    <encoding>iso8859-1</encoding>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-javadoc-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>aggregate</id>
-                        <goals>
-                            <goal>aggregate</goal>
-                        </goals>
-                        <phase>site</phase>
-                    </execution>
-                    <execution>
-                        <id>javadoc-jar</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
             <!--
                 <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -394,168 +257,6 @@
                 </executions>
                 </plugin>
             -->
-
-            <!-- Site generation -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-site-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>attach-descriptor</id>
-                        <goals>
-                            <goal>attach-descriptor</goal>
-                        </goals>
-                        <configuration>
-                            <siteDirectory>${basedir}/src/site</siteDirectory>
-                            <generateReports>true</generateReports>
-                        </configuration>
-                    </execution>
-                </executions>
-                <configuration>
-                    <siteDirectory>${maven-site-plugin.siteDirectory}</siteDirectory>
-                    <generateReports>true</generateReports>
-                    <reportPlugins>
-                        <!-- Order matters. First project-info-reports, second jxr. -->
-                        <plugin>
-                            <groupId>org.apache.maven.plugins</groupId>
-                            <artifactId>maven-project-info-reports-plugin</artifactId>
-                            <reports>
-                                <report>dependencies</report>
-                                <report>dependency-management</report>
-                                <report>dependency-convergence</report>
-                                <report>distribution-management</report>
-                                <report>index</report>
-                                <report>license</report>
-                                <report>mailing-list</report>
-                                <report>modules</report>
-                                <report>plugin-management</report>
-                                <report>plugins</report>
-                                <report>project-team</report>
-                                <report>scm</report>
-                                <report>summary</report>
-                            </reports>
-                        </plugin>
-                        <plugin>
-                            <groupId>org.apache.maven.plugins</groupId>
-                            <artifactId>maven-jxr-plugin</artifactId>
-                            <configuration>
-                                <aggregate>true</aggregate>
-                            </configuration>
-                        </plugin>
-                        <plugin>
-                            <groupId>org.apache.maven.plugins</groupId>
-                            <artifactId>maven-surefire-report-plugin</artifactId>
-                            <configuration>
-                                <aggregate>true</aggregate>
-                            </configuration>
-                        </plugin>
-                        <plugin>
-                            <groupId>org.apache.rat</groupId>
-                            <artifactId>apache-rat-plugin</artifactId>
-                            <configuration>
-                                <excludes>
-                                    <exclude>NOTICE.*</exclude>
-                                    <exclude>LICENSE.*</exclude>
-                                    <!-- Generated by Maven -->
-                                    <exclude>release.properties</exclude>
-                                    <exclude>dist/**/*</exclude>
-                                    <!-- Eclipse -->
-                                    <exclude>**/.*</exclude>
-                                    <exclude>.*/**/*</exclude>
-                                </excludes>
-                            </configuration>
-                        </plugin>
-                        <plugin>
-                            <groupId>org.apache.maven.plugins</groupId>
-                            <artifactId>maven-pmd-plugin</artifactId>
-                            <configuration>
-                                <aggregate>true</aggregate>
-                                <targetJdk>${target.jdk}</targetJdk>
-                                <rulesets>
-                                    <ruleset>/rulesets/basic.xml</ruleset>
-                                    <ruleset>/rulesets/unusedcode.xml</ruleset>
-                                    <ruleset>/rulesets/imports.xml</ruleset>
-                                </rulesets>
-                                <format>xml</format>
-                                <linkXref>true</linkXref>
-                                <sourceEncoding>utf-8</sourceEncoding>
-                                <minimumTokens>100</minimumTokens>
-                            </configuration>
-                        </plugin>
-                        <plugin>
-                            <groupId>org.apache.maven.plugins</groupId>
-                            <artifactId>maven-javadoc-plugin</artifactId>
-                            <configuration>
-                                <minmemory>256m</minmemory>
-                                <maxmemory>1g</maxmemory>
-                                <linksource>true</linksource>
-                                <tags>
-                                    <tag>
-                                        <name>note</name>
-                                        <placement>a</placement>
-                                        <head>NOTE</head>
-                                    </tag>
-                                    <tag>
-                                        <name>todo</name>
-                                        <placement>a</placement>
-                                        <head>TODO</head>
-                                    </tag>
-                                    <tag>
-                                        <name>warning</name>
-                                        <placement>a</placement>
-                                        <head>WARNING</head>
-                                    </tag>
-                                </tags>
-                                <source>1.5</source>
-                            </configuration>
-                            <reportSets>
-                                <reportSet>
-                                    <reports>
-                                        <report>aggregate</report>
-                                        <report>test-aggregate</report>
-                                    </reports>
-                                </reportSet>
-                            </reportSets>
-                        </plugin>
-                        <plugin>
-                            <groupId>org.codehaus.mojo</groupId>
-                            <artifactId>findbugs-maven-plugin</artifactId>
-                            <configuration>
-                                <xrefLocation>${project.reporting.outputDirectory}/../xref</xrefLocation>
-                                <xrefTestLocation>${project.reporting.outputDirectory}/../xref-test</xrefTestLocation>
-                                <!-- required by dashboard plugin and hudson -->
-                                <xmlOutput>true</xmlOutput>
-                                <effort>Max</effort>
-                                <findbugsXmlOutput>true</findbugsXmlOutput>
-                                <findbugsXmlWithMessages>true</findbugsXmlWithMessages>
-                            </configuration>
-                        </plugin>
-                        <plugin>
-                            <groupId>org.codehaus.mojo</groupId>
-                            <artifactId>emma-maven-plugin</artifactId>
-                        </plugin>
-                        <!--
-                            <plugin>
-                            <groupId>org.apache.maven.plugins</groupId>
-                            <artifactId>maven-changes-plugin</artifactId>
-                            <configuration>
-                            <onlyCurrentVersion>true</onlyCurrentVersion>
-                            <resolutionIds>Fixed</resolutionIds>
-                            <statusIds>Resolved,Closed</statusIds>
-                            <columnNames>Type,Key,Summary,Status,Resolution,Fix Version</columnNames>
-                            </configuration>
-                            <reportSets>
-                            <reportSet>
-                            <reports>
-                            <report>jira-report</report>
-                            </reports>
-                            </reportSet>
-                            </reportSets>
-                            </plugin>
-                        -->
-                    </reportPlugins>
-                </configuration>
-            </plugin>
         </plugins>
     </build>
 </project>

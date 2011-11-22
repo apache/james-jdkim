@@ -30,7 +30,6 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <groupId>org.apache.james.jdkim</groupId>
     <artifactId>apache-jdkim-mailets</artifactId>
 
     <name>jDKIM Mailets for Apache James</name>
@@ -40,7 +39,7 @@
     <distributionManagement>
         <site>
             <id>jdkim-website-mailets</id>
-            <url>scp://people.apache.org/www/james.apache.org/jdkim/mailets/</url>
+            <url>scpexe://people.apache.org/www/james.apache.org/jdkim/mailets/</url>
         </site>
     </distributionManagement>
 
