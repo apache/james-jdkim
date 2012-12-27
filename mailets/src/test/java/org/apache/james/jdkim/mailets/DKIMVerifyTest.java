@@ -37,9 +37,12 @@ import org.apache.mailet.Mailet;
 import org.apache.mailet.base.test.FakeMail;
 import org.apache.mailet.base.test.FakeMailContext;
 import org.apache.mailet.base.test.FakeMailetConfig;
+import org.junit.Assert;
+import org.junit.Test;
 
-public class DKIMVerifyTest extends TestCase {
+public class DKIMVerifyTest {
 
+    @Test
     public void testDKIMVerifyPass() throws MessagingException, IOException,
             FailException {
         String message = "DKIM-Signature: v=1; d=example.com; t=1284762805; b=ZFfwSIzTQM7k9syRnl9VfQh0/dr99euvBe1gn/DiTrnEZjxyjzQBD2MMvowVdbHpPMtSjtCtehU9zZ3urXmj5iHKujpEkP92FEKinzElkQ2eT2zoxdg1zByPHsKPX+KjrBespAJcO2k052aOK5kIBFxpQumP4aiW7ZklBKSWMBk=; s=selector; a=rsa-sha256; bh=rHOD7fd9xnNxK7OSl5ellpQVF14NNFbOIizqtUMhnio=; h=from:to:received:received;\r\n"
@@ -48,10 +51,11 @@ public class DKIMVerifyTest extends TestCase {
         Mail mail = process(message);
         
         String attr = (String) mail.getAttribute(DKIMVerify.DKIM_AUTH_RESULT_ATTRIBUTE);
-        assertNotNull(attr);
-        assertTrue(attr.startsWith("pass"));
+        Assert.assertNotNull(attr);
+        Assert.assertTrue(attr.startsWith("pass"));
     }
 
+    @Test
     public void testDKIMVerifyFail() throws MessagingException, IOException,
             FailException {
         // altered message body
@@ -61,10 +65,11 @@ public class DKIMVerifyTest extends TestCase {
         Mail mail = process(message);
         
         String attr = (String) mail.getAttribute(DKIMVerify.DKIM_AUTH_RESULT_ATTRIBUTE);
-        assertNotNull(attr);
-        assertTrue(attr.startsWith("fail"));
+        Assert.assertNotNull(attr);
+        Assert.assertTrue(attr.startsWith("fail"));
     }
 
+    @Test
     public void testDKIMVerifyFailInvalid() throws MessagingException, IOException,
             FailException {
         // invalid version v=2
@@ -74,10 +79,11 @@ public class DKIMVerifyTest extends TestCase {
         Mail mail = process(message);
         
         String attr = (String) mail.getAttribute(DKIMVerify.DKIM_AUTH_RESULT_ATTRIBUTE);
-        assertNotNull(attr);
-        assertTrue(attr.startsWith("fail"));
+        Assert.assertNotNull(attr);
+        Assert.assertTrue(attr.startsWith("fail"));
     }
 
+    @Test
     public void testDKIMVerifyNeutral() throws MessagingException, IOException,
             FailException {
         // no signatures!
@@ -87,8 +93,8 @@ public class DKIMVerifyTest extends TestCase {
         Mail mail = process(message);
         
         String attr = (String) mail.getAttribute(DKIMVerify.DKIM_AUTH_RESULT_ATTRIBUTE);
-        assertNotNull(attr);
-        assertTrue(attr.startsWith("neutral"));
+        Assert.assertNotNull(attr);
+        Assert.assertTrue(attr.startsWith("neutral"));
     }
 
     private Mail process(String message) throws MessagingException {

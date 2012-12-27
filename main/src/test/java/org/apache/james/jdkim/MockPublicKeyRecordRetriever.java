@@ -19,14 +19,14 @@
 
 package org.apache.james.jdkim;
 
+import org.apache.james.jdkim.api.PublicKeyRecordRetriever;
+import org.apache.james.jdkim.exceptions.PermFailException;
+import org.apache.james.jdkim.exceptions.TempFailException;
+
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-
-import org.apache.james.jdkim.api.PublicKeyRecordRetriever;
-import org.apache.james.jdkim.exceptions.PermFailException;
-import org.apache.james.jdkim.exceptions.TempFailException;
 
 /**
  * This is a mock public key record retriever that store the "registry" in a
@@ -34,7 +34,7 @@ import org.apache.james.jdkim.exceptions.TempFailException;
  */
 public class MockPublicKeyRecordRetriever implements PublicKeyRecordRetriever {
     private static final String _DOMAINKEY = "._domainkey.";
-    private Map<String, List<String>> records = new HashMap<String, List<String>>();
+    private final Map<String, List<String>> records = new HashMap<String, List<String>>();
 
     public void addRecord(String selector, String token, String record) {
         String key = selector + _DOMAINKEY + token;
@@ -49,16 +49,15 @@ public class MockPublicKeyRecordRetriever implements PublicKeyRecordRetriever {
     }
 
     public MockPublicKeyRecordRetriever() {
-
     }
 
     public MockPublicKeyRecordRetriever(String record, CharSequence selector,
-            CharSequence token) {
+                                        CharSequence token) {
         addRecord(selector.toString(), token.toString(), record);
     }
 
     public List<String> getRecords(CharSequence methodAndOptions,
-            CharSequence selector, CharSequence token)
+                                   CharSequence selector, CharSequence token)
             throws TempFailException, PermFailException {
         if ("dns/txt".equals(methodAndOptions)) {
             String search = selector + _DOMAINKEY + token;

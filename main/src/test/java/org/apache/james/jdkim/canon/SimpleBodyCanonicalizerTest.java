@@ -39,8 +39,8 @@ public class SimpleBodyCanonicalizerTest extends AbstractOutputStreamTestCase {
     public void testSingleBytes() throws NoSuchAlgorithmException, IOException {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         SimpleBodyCanonicalizer os = new SimpleBodyCanonicalizer(bos);
-        for (int i = 0; i < testData.length; i++) {
-            os.write(testData[i]);
+        for (byte aTestData : testData) {
+            os.write(aTestData);
         }
         os.close();
         assertArrayEquals(expectedData, bos.toByteArray());

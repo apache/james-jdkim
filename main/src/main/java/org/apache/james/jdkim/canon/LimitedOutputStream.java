@@ -28,7 +28,7 @@ import java.io.OutputStream;
  */
 public class LimitedOutputStream extends FilterOutputStream {
 
-    private int limit;
+    private final int limit;
     private int computedBytes;
 
     /**

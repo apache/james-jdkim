@@ -19,6 +19,9 @@
 
 package org.apache.james.jdkim.tagvalue;
 
+import org.apache.commons.codec.binary.Base64;
+import org.apache.james.jdkim.api.PublicKeyRecord;
+
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
@@ -31,9 +34,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-import org.apache.commons.codec.binary.Base64;
-import org.apache.james.jdkim.api.PublicKeyRecord;
-
 public class PublicKeyRecordImpl extends TagValue implements PublicKeyRecord {
 
     private static final String atom = "[a-zA-Z0-9!#$%&'*+/=?^_`{}|~-]+";
@@ -44,7 +44,7 @@ public class PublicKeyRecordImpl extends TagValue implements PublicKeyRecord {
             + dotAtomText + "$");
 
     // SPEC: hyphenated-word = ALPHA [ *(ALPHA / DIGIT / "-") (ALPHA / DIGIT) ]
-    private static Pattern hyphenatedWordPattern = Pattern
+    private static final Pattern hyphenatedWordPattern = Pattern
             .compile("^[a-zA-Z]([a-zA-Z0-9-]*[a-zA-Z0-9])?$");
 
     public PublicKeyRecordImpl(String data) {
@@ -73,7 +73,7 @@ public class PublicKeyRecordImpl extends TagValue implements PublicKeyRecord {
         super.validate();
         if (containsTag("v")) {
             // if "v" is specified it must be the first tag
-            String firstKey = (String) tagSet().iterator().next();
+            String firstKey = tagSet().iterator().next();
             if (!"v".equals(firstKey))
                 throw new IllegalStateException(
                         "Existing v= tag MUST be the first in the record list ("
@@ -91,9 +91,7 @@ public class PublicKeyRecordImpl extends TagValue implements PublicKeyRecord {
      */
     public boolean isHashMethodSupported(CharSequence hash) {
         List<CharSequence> hashes = getAcceptableHashMethods();
-        if (hashes == null)
-            return true;
-        return isInListCaseInsensitive(hash, hashes);
+        return hashes == null || isInListCaseInsensitive(hash, hashes);
     }
 
     /**
@@ -159,8 +157,8 @@ public class PublicKeyRecordImpl extends TagValue implements PublicKeyRecord {
         String flags = getValue("t").toString();
         String[] flagsStrings = flags.split(":");
         List<CharSequence> res = new ArrayList<CharSequence>();
-        for (int i = 0; i < flagsStrings.length; i++) {
-            res.add(trimFWS(flagsStrings[i], 0, flagsStrings[i].length() - 1,
+        for (String flagsString : flagsStrings) {
+            res.add(trimFWS(flagsString, 0, flagsString.length() - 1,
                     true));
         }
         return res;

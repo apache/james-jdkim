@@ -19,19 +19,19 @@
 
 package org.apache.james.jdkim.tagvalue;
 
+import org.apache.commons.codec.binary.Base64;
+import org.apache.james.jdkim.api.SignatureRecord;
+
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.regex.Pattern;
 
-import org.apache.commons.codec.binary.Base64;
-import org.apache.james.jdkim.api.SignatureRecord;
-
 public class SignatureRecordImpl extends TagValue implements SignatureRecord {
 
     // TODO ftext is defined as a sequence of at least one in %d33-57 or
     // %d59-126
-    private static Pattern hdrNamePattern = Pattern.compile("^[^: \r\n\t]+$");
+    private static final Pattern hdrNamePattern = Pattern.compile("^[^: \r\n\t]+$");
 
     public SignatureRecordImpl(String data) {
         super(data);
@@ -46,7 +46,7 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
         mandatoryTags.add("h");
         mandatoryTags.add("s");
 
-        defaults.put("c", SIMPLE+"/"+SIMPLE);
+        defaults.put("c", SIMPLE + "/" + SIMPLE);
         defaults.put("l", ALL);
         defaults.put("q", "dns/txt");
     }
@@ -64,25 +64,25 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
                             + getValue("v"));
         if (getValue("h").length() == 0)
             throw new IllegalStateException("Tag h= cannot be empty.");
-        
+
         CharSequence identity;
         try {
             identity = getIdentity();
         } catch (IllegalArgumentException e) {
             throw new IllegalStateException("Identity (i=) declaration cannot be parsed. Probably due to missing quoted printable encoding", e);
         }
-        
+
         if (!identity.toString().toLowerCase().endsWith(
                 ("@" + getValue("d")).toLowerCase())
                 && !getIdentity().toString().toLowerCase().endsWith(
-                        ("." + getValue("d")).toLowerCase()))
+                ("." + getValue("d")).toLowerCase()))
             throw new IllegalStateException("Identity (i=) domain mismatch: expected [optional]@[optional.]domain-from-d-attribute");
 
         // when "x=" exists and signature expired then return PERMFAIL
         // (signature expired)
         if (getValue("x") != null) {
             long expiration = Long.parseLong(getValue("x").toString());
-            long lifetime = (expiration - System.currentTimeMillis()/1000);
+            long lifetime = (expiration - System.currentTimeMillis() / 1000);
             if (lifetime < 0) {
                 throw new IllegalStateException("Signature is expired since "
                         + getTimeMeasure(lifetime) + ".");
@@ -120,8 +120,7 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
                 }
             }
         }
-        String lifetimeMeasure = lifetime + measure;
-        return lifetimeMeasure;
+        return lifetime + measure;
     }
 
     /**
@@ -152,7 +151,7 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
     /**
      * This may throws IllegalArgumentException on invalid "i" content,
      * but should always happen during validation!
-     * 
+     *
      * @see org.apache.james.jdkim.api.SignatureRecord#getIdentity()
      */
     public CharSequence getIdentity() {
@@ -176,43 +175,43 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
             }
             lastWasNL = false;
             switch (state) {
-            case 0:
-                switch (input.charAt(i)) {
-                case ' ':
-                case '\t':
-                case '\r':
-                case '\n':
-                    if ('\n' == input.charAt(i))
-                        lastWasNL = true;
-                    sb.append(input.subSequence(start, i));
-                    start = i + 1;
-                    // ignoring whitespace by now.
-                    break;
-                case '=':
-                    sb.append(input.subSequence(start, i));
-                    state = 1;
-                    break;
-                }
-                break;
-            case 1:
-            case 2:
-                if (input.charAt(i) >= '0' && input.charAt(i) <= '9'
-                        || input.charAt(i) >= 'A' && input.charAt(i) <= 'F') {
-                    int v = Arrays.binarySearch("0123456789ABCDEF".getBytes(),
-                            (byte) input.charAt(i));
-                    if (state == 1) {
-                        state = 2;
-                        d = v;
-                    } else {
-                        d = d * 16 + v;
-                        sb.append((char) d);
-                        state = 0;
-                        start = i + 1;
+                case 0:
+                    switch (input.charAt(i)) {
+                        case ' ':
+                        case '\t':
+                        case '\r':
+                        case '\n':
+                            if ('\n' == input.charAt(i))
+                                lastWasNL = true;
+                            sb.append(input.subSequence(start, i));
+                            start = i + 1;
+                            // ignoring whitespace by now.
+                            break;
+                        case '=':
+                            sb.append(input.subSequence(start, i));
+                            state = 1;
+                            break;
                     }
-                } else {
-                    throw new IllegalArgumentException(
-                            "Invalid input sequence at " + i);
-                }
+                    break;
+                case 1:
+                case 2:
+                    if (input.charAt(i) >= '0' && input.charAt(i) <= '9'
+                            || input.charAt(i) >= 'A' && input.charAt(i) <= 'F') {
+                        int v = Arrays.binarySearch("0123456789ABCDEF".getBytes(),
+                                (byte) input.charAt(i));
+                        if (state == 1) {
+                            state = 2;
+                            d = v;
+                        } else {
+                            d = d * 16 + v;
+                            sb.append((char) d);
+                            state = 0;
+                            start = i + 1;
+                        }
+                    } else {
+                        throw new IllegalArgumentException(
+                                "Invalid input sequence at " + i);
+                    }
             }
         }
         if (state != 0) {
@@ -296,12 +295,12 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
     public Long getSignatureTimestamp() {
         CharSequence cs = getValue("t");
         if (cs == null) return null;
-        return Long.valueOf(Long.parseLong(cs.toString()));
+        return Long.parseLong(cs.toString());
     }
 
     public String getBodyCanonicalisationMethod() {
         String c = getValue("c").toString();
-        int pSlash = c.toString().indexOf("/");
+        int pSlash = c.indexOf("/");
         if (pSlash != -1) {
             return c.substring(pSlash + 1);
         } else {
@@ -311,7 +310,7 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
 
     public String getHeaderCanonicalisationMethod() {
         String c = getValue("c").toString();
-        int pSlash = c.toString().indexOf("/");
+        int pSlash = c.indexOf("/");
         if (pSlash != -1) {
             return c.substring(0, pSlash);
         } else {
@@ -323,10 +322,10 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
         String flags = getValue("q").toString();
         String[] flagsStrings = flags.split(":");
         List<CharSequence> res = new LinkedList<CharSequence>();
-        for (int i = 0; i < flagsStrings.length; i++) {
+        for (String flagsString : flagsStrings) {
             // TODO add validation method[/option]
             // if (VALIDATION)
-            res.add(trimFWS(flagsStrings[i], 0, flagsStrings[i].length() - 1,
+            res.add(trimFWS(flagsString, 0, flagsString.length() - 1,
                     true));
         }
         return res;
@@ -343,7 +342,7 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
         // If a t=; parameter is present in the signature, make sure to 
         // fill it with the current timestamp
         if (getValue("t") != null && getValue("t").toString().trim().length() == 0) {
-            setValue("t", ""+(System.currentTimeMillis() / 1000));
+            setValue("t", "" + (System.currentTimeMillis() / 1000));
         }
     }
 

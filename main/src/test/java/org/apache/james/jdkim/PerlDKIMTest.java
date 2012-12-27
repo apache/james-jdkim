@@ -19,6 +19,12 @@
 
 package org.apache.james.jdkim;
 
+import junit.framework.Test;
+import junit.framework.TestCase;
+import junit.framework.TestSuite;
+import org.apache.james.jdkim.api.SignatureRecord;
+import org.apache.james.jdkim.exceptions.FailException;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -29,20 +35,13 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.List;
 
-import junit.framework.Test;
-import junit.framework.TestCase;
-import junit.framework.TestSuite;
-
-import org.apache.james.jdkim.api.SignatureRecord;
-import org.apache.james.jdkim.exceptions.FailException;
-
 /**
  * Creates a TestSuite running the test for each .msg file in the test resouce
  * folder. Allow running of a single test from Unit testing GUIs
  */
 public class PerlDKIMTest extends TestCase {
 
-    private File file;
+    private final File file;
     private MockPublicKeyRecordRetriever pkr;
 
     public PerlDKIMTest(String testName) throws IOException, URISyntaxException {
@@ -51,7 +50,7 @@ public class PerlDKIMTest extends TestCase {
     }
 
     public PerlDKIMTest(String name, File testFile,
-            MockPublicKeyRecordRetriever pkr) {
+                        MockPublicKeyRecordRetriever pkr) {
         super(name);
         this.file = testFile;
         this.pkr = pkr;
@@ -94,16 +93,16 @@ public class PerlDKIMTest extends TestCase {
         boolean expectFailure = false;
         boolean expectNull = false;
         // DomainKey files
-        if (getName().indexOf("dk_") != -1)
+        if (getName().contains("dk_"))
             expectNull = true;
-        // older spec version
-        else if (getName().indexOf("_ietf") != -1)
+            // older spec version
+        else if (getName().contains("_ietf"))
             expectFailure = true;
         else if (getName().startsWith("multiple_1"))
             expectFailure = true;
         else if (getName().startsWith("no_body"))
             expectFailure = true;
-        // invalid or inapplicable
+            // invalid or inapplicable
         else if (getName().startsWith("badkey_"))
             expectFailure = true;
         else if (getName().startsWith("ignore_"))
@@ -129,7 +128,7 @@ public class PerlDKIMTest extends TestCase {
 
     static class PerlDKIMTestSuite extends TestSuite {
 
-        private static final String TESTS_FOLDER =  "/org/apache/james/jdkim/Mail-DKIM/corpus";
+        private static final String TESTS_FOLDER = "/org/apache/james/jdkim/Mail-DKIM/corpus";
 
         public PerlDKIMTestSuite() throws IOException, URISyntaxException {
             URL resource = PerlDKIMTestSuite.class.getResource(TESTS_FOLDER);
@@ -138,8 +137,7 @@ public class PerlDKIMTest extends TestCase {
                 File[] files = dir.listFiles();
 
                 if (files != null)
-                    for (int i = 0; i < files.length; i++) {
-                        File f = files[i];
+                    for (File f : files) {
                         if (f.getName().toLowerCase().endsWith(".txt")) {
                             addTest(new PerlDKIMTest(f.getName().substring(0,
                                     f.getName().length() - 4), f,
@@ -150,11 +148,10 @@ public class PerlDKIMTest extends TestCase {
         }
 
         public static File getFile(String name) throws URISyntaxException {
-            URL resource =  PerlDKIMTestSuite.class.getResource(TESTS_FOLDER + File.separator + name + ".txt");
+            URL resource = PerlDKIMTestSuite.class.getResource(TESTS_FOLDER + File.separator + name + ".txt");
             if (resource != null) {
                 return new File(resource.toURI());
             } else return null;
         }
-
     }
 }

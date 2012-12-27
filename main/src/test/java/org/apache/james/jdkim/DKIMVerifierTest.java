@@ -23,11 +23,12 @@ import org.apache.james.jdkim.api.PublicKeyRecord;
 import org.apache.james.jdkim.exceptions.PermFailException;
 import org.apache.james.jdkim.tagvalue.PublicKeyRecordImpl;
 import org.apache.james.jdkim.tagvalue.SignatureRecordImpl;
+import static org.junit.Assert.fail;
+import org.junit.Test;
 
-import junit.framework.TestCase;
+public class DKIMVerifierTest {
 
-public class DKIMVerifierTest extends TestCase {
-
+    @Test
     public void testApply() throws PermFailException {
         PublicKeyRecord pkr = new PublicKeyRecordImpl(
                 "k=rsa; t=y; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDIhyR3oItOy22ZOaBrIVe9m/iME3RqOJeasANSpg2YTHTYV+Xtp4xwf5gTjCmHQEMOs0qYu0FYiNQPQogJ2t0Mfx9zNu06rfRBDjiIU9tpx2T+NGlWZ8qhbiLo5By8apJavLyqTLavyPSrvsx0B3YzC63T4Age2CDqZYA+OwSMWQIDAQAB");

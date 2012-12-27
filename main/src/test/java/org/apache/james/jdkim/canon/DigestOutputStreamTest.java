@@ -43,8 +43,8 @@ public class DigestOutputStreamTest extends AbstractOutputStreamTestCase {
     public void testSingleBytes() throws NoSuchAlgorithmException, IOException {
         DigestOutputStream dos = new DigestOutputStream(MessageDigest
                 .getInstance("sha-256"));
-        for (int i = 0; i < testData.length; i++) {
-            dos.write(testData[i]);
+        for (byte aTestData : testData) {
+            dos.write(aTestData);
         }
         dos.close();
         byte[] digest = dos.getDigest();

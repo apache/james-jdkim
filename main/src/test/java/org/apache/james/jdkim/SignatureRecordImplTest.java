@@ -21,11 +21,14 @@ package org.apache.james.jdkim;
 
 import org.apache.james.jdkim.api.SignatureRecord;
 import org.apache.james.jdkim.tagvalue.SignatureRecordImpl;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import org.junit.Test;
 
-import junit.framework.TestCase;
+public class SignatureRecordImplTest {
 
-public class SignatureRecordImplTest extends TestCase {
-
+    @Test
     public void testQPDecode() {
         assertEquals("", SignatureRecordImpl.dkimQuotedPrintableDecode(""));
         assertEquals("@", SignatureRecordImpl.dkimQuotedPrintableDecode("=40"));
@@ -37,6 +40,7 @@ public class SignatureRecordImplTest extends TestCase {
                 .dkimQuotedPrintableDecode("this\r\n\tis\r\n a\r\n  \t test"));
     }
 
+    @Test
     public void testQPWhiteSpaces() {
         assertEquals("thisisatest", SignatureRecordImpl
                 .dkimQuotedPrintableDecode("this is a test"));
@@ -44,6 +48,7 @@ public class SignatureRecordImplTest extends TestCase {
                 .dkimQuotedPrintableDecode("this\r\n is a test"));
     }
 
+    @Test
     public void testQPInvalid() {
         try {
             SignatureRecordImpl.dkimQuotedPrintableDecode("=");
@@ -109,28 +114,30 @@ public class SignatureRecordImplTest extends TestCase {
      * assertTrue(e.getMessage().toLowerCase().contains("decod")); } }
      */
 
+    @Test
     public void testWrongHashSyntaxes() {
         SignatureRecord sr = new SignatureRecordImpl("v=1; a=nothyphenedword;");
         try {
             sr.getHashAlgo();
             fail("expected failure");
         } catch (Exception e) {
-            assertTrue(e.getMessage().toLowerCase().indexOf("hash") != -1);
+            assertTrue(e.getMessage().toLowerCase().contains("hash"));
         }
         try {
             sr.getHashMethod();
             fail("expected failure");
         } catch (Exception e) {
-            assertTrue(e.getMessage().toLowerCase().indexOf("hash") != -1);
+            assertTrue(e.getMessage().toLowerCase().contains("hash"));
         }
         try {
             sr.getHashAlgo();
             fail("expected failure");
         } catch (Exception e) {
-            assertTrue(e.getMessage().toLowerCase().indexOf("hash") != -1);
+            assertTrue(e.getMessage().toLowerCase().contains("hash"));
         }
     }
 
+    @Test
     public void testExpired() {
         SignatureRecord sr = new SignatureRecordImpl(
                 "v=1; c=simple; h=from:to; s=select; d=example.com; a=rsa-sha1; x=0; bh=abcdef; b=1235345987;");
@@ -138,7 +145,7 @@ public class SignatureRecordImplTest extends TestCase {
             sr.validate();
             fail("expected failure");
         } catch (Exception e) {
-            assertTrue(e.getMessage().indexOf("expired") != -1);
+            assertTrue(e.getMessage().contains("expired"));
         }
     }
 

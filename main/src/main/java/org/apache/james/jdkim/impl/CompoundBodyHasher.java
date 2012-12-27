@@ -49,7 +49,7 @@ public class CompoundBodyHasher implements BodyHasher {
         this.bodyHashJobs = bodyHashJobs;
         this.signatureExceptions = signatureExceptions;
         if (bodyHashJobs.size() == 1) {
-            o = ((BodyHasherImpl) bodyHashJobs.values().iterator().next())
+            o = bodyHashJobs.values().iterator().next()
                     .getOutputStream();
         } else {
             List<OutputStream> outputStreams = new LinkedList<OutputStream>();

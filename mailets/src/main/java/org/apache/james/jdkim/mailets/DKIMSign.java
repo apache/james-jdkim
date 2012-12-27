@@ -170,8 +170,7 @@ public class DKIMSign extends GenericMailet {
         message.addHeaderLine(signatureHeader);
         // add the remaining headers using "addHeaderLine" that won't alter the
         // insertion order.
-        for (Iterator<String> i = prevHeader.iterator(); i.hasNext();) {
-            String header = i.next();
+        for (String header : prevHeader) {
             message.addHeaderLine(header);
         }
     }

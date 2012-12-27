@@ -19,24 +19,25 @@
 
 package org.apache.james.jdkim;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-
 import org.apache.james.jdkim.api.PublicKeyRecordRetriever;
 import org.apache.james.jdkim.exceptions.FailException;
 import org.apache.james.jdkim.exceptions.PermFailException;
 import org.apache.james.jdkim.exceptions.TempFailException;
 import org.apache.james.jdkim.impl.MultiplexingPublicKeyRecordRetriever;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+import org.junit.Test;
 
-import junit.framework.TestCase;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 
-public class MultiplexingPublicKeyRecordRetrieverTest extends TestCase {
+public class MultiplexingPublicKeyRecordRetrieverTest {
 
-    private PublicKeyRecordRetriever myMethodRetriever = new PublicKeyRecordRetriever() {
+    private final PublicKeyRecordRetriever myMethodRetriever = new PublicKeyRecordRetriever() {
 
         public List<String> getRecords(CharSequence methodAndOption,
-                CharSequence selector, CharSequence token)
+                                       CharSequence selector, CharSequence token)
                 throws TempFailException, PermFailException {
             List<String> l = new ArrayList<String>();
             l.add(selector.toString());
@@ -46,6 +47,7 @@ public class MultiplexingPublicKeyRecordRetrieverTest extends TestCase {
 
     };
 
+    @Test
     public void testMultiplexingPublicKeyRecordRetriever() {
         MultiplexingPublicKeyRecordRetriever pkrr = new MultiplexingPublicKeyRecordRetriever();
         try {
@@ -55,6 +57,7 @@ public class MultiplexingPublicKeyRecordRetrieverTest extends TestCase {
         }
     }
 
+    @Test
     public void testMultiplexingPublicKeyRecordRetrieverStringPublicKeyRecordRetriever()
             throws TempFailException, PermFailException {
         MultiplexingPublicKeyRecordRetriever pkrr = new MultiplexingPublicKeyRecordRetriever(
@@ -75,12 +78,14 @@ public class MultiplexingPublicKeyRecordRetrieverTest extends TestCase {
         }
     }
 
+    @Test
     public void testAddRetriever() throws TempFailException, PermFailException {
         MultiplexingPublicKeyRecordRetriever pkrr = new MultiplexingPublicKeyRecordRetriever();
         pkrr.addRetriever("mymethod", myMethodRetriever);
         check(pkrr, "mymethod");
     }
 
+    @Test
     public void testAddRetrieverWithOptions() throws TempFailException,
             PermFailException {
         MultiplexingPublicKeyRecordRetriever pkrr = new MultiplexingPublicKeyRecordRetriever();

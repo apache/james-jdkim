@@ -19,15 +19,6 @@
 
 package org.apache.james.jdkim;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.security.NoSuchAlgorithmException;
-import java.security.PrivateKey;
-import java.security.interfaces.RSAKey;
-import java.security.spec.InvalidKeySpecException;
-
-import junit.framework.TestCase;
-
 import org.apache.james.jdkim.api.PublicKeyRecord;
 import org.apache.james.jdkim.api.PublicKeyRecordRetriever;
 import org.apache.james.jdkim.exceptions.FailException;
@@ -35,36 +26,48 @@ import org.apache.james.jdkim.exceptions.PermFailException;
 import org.apache.james.jdkim.exceptions.TempFailException;
 import org.apache.james.jdkim.impl.DNSPublicKeyRecordRetriever;
 import org.apache.james.jdkim.tagvalue.TagValue;
+import org.junit.Assert;
+import org.junit.Test;
 
-public class DNSPublicKeyRetrieverTest extends TestCase {
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.interfaces.RSAKey;
+import java.security.spec.InvalidKeySpecException;
 
+public class DNSPublicKeyRetrieverTest {
+
+    @Test
     public void testWrongOption() throws TempFailException {
         try {
             new DNSPublicKeyRecordRetriever().getRecords("somethingelse",
                     "test", "test");
-            fail("expected unsupported operation");
+            Assert.fail("expected unsupported operation");
         } catch (PermFailException e) {
         }
     }
 
+    @Test
     public void testConstructor() {
         new DNSPublicKeyRecordRetriever();
     }
 
     /**
      * TODO: Requires internet connection
-     * 
+     *
      * @throws PermFailException
      */
+    @Test
     public void testRetrieve() throws TempFailException, PermFailException {
         PublicKeyRecordRetriever pkr = new DNSPublicKeyRecordRetriever();
         pkr.getRecords("dns/txt", "lima", "yahoogroups.com");
         pkr.getRecords("dns/txt", "gamma", "gmail.com");
 
-        new TagValue((String) pkr.getRecords("dns/txt", "lima",
-                "yahoogroups.com").get(0));
+        new TagValue(pkr.getRecords("dns/txt", "lima", "yahoogroups.com").get(0));
     }
 
+    @Test
     public void testKeyPair() throws PermFailException, TempFailException,
             NoSuchAlgorithmException, InvalidKeySpecException {
         PublicKeyRecord key = new DKIMVerifier()
@@ -81,10 +84,11 @@ public class DNSPublicKeyRetrieverTest extends TestCase {
 
         // controllo che il modulus della chiave privata corrisponda al record
         // pubblico
-        assertEquals(((RSAKey) privKey).getModulus(), ((RSAKey) key
+        Assert.assertEquals(((RSAKey) privKey).getModulus(), ((RSAKey) key
                 .getPublicKey()).getModulus());
     }
 
+    @Test
     public void testSignVerify() throws NoSuchAlgorithmException,
             InvalidKeySpecException, IOException, FailException {
         MockPublicKeyRecordRetriever mockPublicKeyRecordRetriever = new MockPublicKeyRecordRetriever(
@@ -97,7 +101,7 @@ public class DNSPublicKeyRetrieverTest extends TestCase {
         PrivateKey privKey = DKIMSigner.getPrivateKey(privateKeyPKCS8);
 
         // Check that the private key modulus equals the public key modulus
-        assertEquals(((RSAKey) privKey).getModulus(), ((RSAKey) key
+        Assert.assertEquals(((RSAKey) privKey).getModulus(), ((RSAKey) key
                 .getPublicKey()).getModulus());
 
         DKIMSigner signer = new DKIMSigner(

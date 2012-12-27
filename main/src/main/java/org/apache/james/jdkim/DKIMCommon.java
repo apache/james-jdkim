@@ -19,26 +19,27 @@
 
 package org.apache.james.jdkim;
 
+import org.apache.james.jdkim.api.Headers;
+import org.apache.james.jdkim.api.SignatureRecord;
+import org.apache.james.jdkim.exceptions.PermFailException;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.security.Signature;
 import java.security.SignatureException;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-
-import org.apache.james.jdkim.api.Headers;
-import org.apache.james.jdkim.api.SignatureRecord;
-import org.apache.james.jdkim.exceptions.PermFailException;
 
 public abstract class DKIMCommon {
 
     private static final boolean DEEP_DEBUG = false;
 
-    protected static void updateSignature(Signature signature, boolean relaxed,
-            CharSequence header, String fv) throws SignatureException {
+    protected static void updateSignature(Signature signature,
+                                          boolean relaxed,
+                                          CharSequence header,
+                                          String fv) throws SignatureException {
         if (relaxed) {
             if (DEEP_DEBUG)
                 System.out
@@ -60,17 +61,14 @@ public abstract class DKIMCommon {
     }
 
     protected static void signatureCheck(Headers h, SignatureRecord sign,
-            List<CharSequence> headers, Signature signature)
+                                         List<CharSequence> headers, Signature signature)
             throws SignatureException, PermFailException {
 
-        boolean relaxedHeaders = SignatureRecord.RELAXED.equals(sign
-                .getHeaderCanonicalisationMethod());
+        boolean relaxedHeaders = SignatureRecord.RELAXED.equals(sign.getHeaderCanonicalisationMethod());
         if (!relaxedHeaders
-                && !SignatureRecord.SIMPLE.equals(sign
-                        .getHeaderCanonicalisationMethod())) {
-            throw new PermFailException(
-                    "Unsupported canonicalization algorythm: "
-                            + sign.getHeaderCanonicalisationMethod());
+                && !SignatureRecord.SIMPLE.equals(sign.getHeaderCanonicalisationMethod())) {
+            throw new PermFailException("Unsupported canonicalization algorythm: "
+                    + sign.getHeaderCanonicalisationMethod());
         }
 
         // NOTE: this could be improved by using iterators.
@@ -78,28 +76,25 @@ public abstract class DKIMCommon {
         // order
         Map<String, Integer> processedHeader = new HashMap<String, Integer>();
 
-        for (Iterator<CharSequence> i = headers.iterator(); i.hasNext();) {
-            CharSequence header = i.next();
+        for (CharSequence header : headers) {
             // NOTE check this getter is case insensitive
             List<String> hl = h.getFields(header.toString());
             if (hl != null && hl.size() > 0) {
                 Integer done = processedHeader.get(header.toString());
                 if (done == null)
-                    done = Integer.valueOf(0);
-                int doneHeaders = done.intValue() + 1;
+                    done = 0;
+                int doneHeaders = done + 1;
                 if (doneHeaders <= hl.size()) {
                     String fv = hl.get(hl.size() - doneHeaders);
                     updateSignature(signature, relaxedHeaders, header, fv);
                     signature.update("\r\n".getBytes());
-                    processedHeader.put(header.toString(), new Integer(
-                            doneHeaders));
+                    processedHeader.put(header.toString(), doneHeaders);
                 }
             }
         }
 
         String signatureStub = "DKIM-Signature:" + sign.toUnsignedString();
-        updateSignature(signature, relaxedHeaders, "dkim-signature",
-                signatureStub);
+        updateSignature(signature, relaxedHeaders, "dkim-signature", signatureStub);
     }
 
     public static void streamCopy(InputStream bodyIs, OutputStream out)

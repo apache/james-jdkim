@@ -30,7 +30,7 @@ import org.apache.james.jdkim.exceptions.TempFailException;
 public class MultiplexingPublicKeyRecordRetriever implements
         PublicKeyRecordRetriever {
 
-    private Map<String, PublicKeyRecordRetriever> retrievers;
+    private final Map<String, PublicKeyRecordRetriever> retrievers;
 
     public MultiplexingPublicKeyRecordRetriever() {
         retrievers = new HashMap<String, PublicKeyRecordRetriever>();

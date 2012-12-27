@@ -37,20 +37,20 @@ public class TagValue {
     private static final boolean DEBUG = false;
     protected static final boolean VALIDATION = true;
 
-    private static Pattern tagPattern = Pattern
+    private static final Pattern tagPattern = Pattern
             .compile("^[A-Za-z][A-Za-z0-9_]*$");
     // Use possessive matching to avoid heavy stack usage
     private static final String tval = "[^; \t\r\n]++";
     // validate value chars
     // Use possessive matching to avoid heavy stack usage
-    private static Pattern valuePattern = Pattern.compile("^(?:" + tval
+    private static final Pattern valuePattern = Pattern.compile("^(?:" + tval
             + "(?:(?:(?:\r\n)?[\t ])++" + tval + ")*+)?$");
 
     // we may use a TreeMap because we may need to know original order.
-    private Map<String, CharSequence> tagValues;
+    private final Map<String, CharSequence> tagValues;
 
-    protected Set<String> mandatoryTags = new HashSet<String>();
-    protected Map<String, CharSequence> defaults = new HashMap<String, CharSequence>();
+    protected final Set<String> mandatoryTags = new HashSet<String>();
+    protected final Map<String, CharSequence> defaults = new HashMap<String, CharSequence>();
     private String stringRepresentation = null;
 
     protected Set<String> tagSet() {
@@ -217,7 +217,7 @@ public class TagValue {
     }
 
     protected CharSequence getValue(String key) {
-        CharSequence val = (CharSequence) tagValues.get(key);
+        CharSequence val = tagValues.get(key);
         if (val == null)
             return getDefault(key);
         else
@@ -231,13 +231,12 @@ public class TagValue {
 
 
     protected CharSequence getDefault(String key) {
-        return (CharSequence) defaults.get(key);
+        return defaults.get(key);
     }
 
     public void validate() {
         // check mandatory fields
-        for (Iterator<String> i = mandatoryTags.iterator(); i.hasNext();) {
-            String tag = i.next();
+        for (String tag : mandatoryTags) {
             if (getValue(tag) == null)
                 throw new IllegalStateException("Missing mandatory tag: " + tag);
         }
@@ -262,8 +261,7 @@ public class TagValue {
     }
 
     protected boolean isInListCaseInsensitive(CharSequence hash, List<CharSequence> hashes) {
-        for (Iterator<CharSequence> i = hashes.iterator(); i.hasNext();) {
-            CharSequence suppHash = i.next();
+        for (CharSequence suppHash : hashes) {
             if (hash.toString().equalsIgnoreCase(suppHash.toString()))
                 return true;
         }
@@ -281,8 +279,7 @@ public class TagValue {
         // calculate a new string representation
         StringBuilder res = new StringBuilder();
         Set<String> s = getTags();
-        for (Iterator<String> i = s.iterator(); i.hasNext();) {
-            String tag = i.next();
+        for (String tag : s) {
             res.append(" ");
             res.append(tag);
             res.append("=");

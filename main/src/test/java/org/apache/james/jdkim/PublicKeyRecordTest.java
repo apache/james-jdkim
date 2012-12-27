@@ -19,19 +19,24 @@
 
 package org.apache.james.jdkim;
 
+import org.apache.james.jdkim.api.PublicKeyRecord;
+import org.apache.james.jdkim.tagvalue.PublicKeyRecordImpl;
+import org.junit.Assert;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import org.junit.Test;
+
 import java.math.BigInteger;
 import java.security.PublicKey;
 import java.security.interfaces.RSAKey;
 import java.util.List;
 import java.util.regex.Pattern;
 
-import org.apache.james.jdkim.api.PublicKeyRecord;
-import org.apache.james.jdkim.tagvalue.PublicKeyRecordImpl;
+public class PublicKeyRecordTest {
 
-import junit.framework.TestCase;
-
-public class PublicKeyRecordTest extends TestCase {
-
+    @Test
     public void testValidate() {
         PublicKeyRecord pkr = new PublicKeyRecordImpl("");
         try {
@@ -65,6 +70,7 @@ public class PublicKeyRecordTest extends TestCase {
         }
     }
 
+    @Test
     public void testIsHashMethodSupported() {
         PublicKeyRecord pkr = new PublicKeyRecordImpl("k=rsa; p=XXXXXXXX=;");
         pkr.validate();
@@ -77,6 +83,7 @@ public class PublicKeyRecordTest extends TestCase {
         assertTrue(pkr.isHashMethodSupported("sha256"));
     }
 
+    @Test
     public void testIsKeyTypeSupported() {
         PublicKeyRecord pkr = new PublicKeyRecordImpl("k=rsa; p=XXXXXXXX=;");
         pkr.validate();
@@ -84,6 +91,7 @@ public class PublicKeyRecordTest extends TestCase {
         assertFalse(pkr.isKeyTypeSupported("dsa"));
     }
 
+    @Test
     public void testGetAcceptableHashMethods() {
         PublicKeyRecord pkr = new PublicKeyRecordImpl(
                 "k=rsa; h=sha1:sha256; p=XXXXXXXX=;");
@@ -93,9 +101,10 @@ public class PublicKeyRecordTest extends TestCase {
         pkr = new PublicKeyRecordImpl("k=rsa; p=XXXXXXXX=;");
         pkr.validate();
         methods = pkr.getAcceptableHashMethods();
-        assertNull(methods);
+        Assert.assertNull(methods);
     }
 
+    @Test
     public void testGetAcceptableKeyTypes() {
         PublicKeyRecord pkr = new PublicKeyRecordImpl(
                 "k=rsa; h=sha1:sha256; p=XXXXXXXX=;");
@@ -108,6 +117,7 @@ public class PublicKeyRecordTest extends TestCase {
         assertEquals("[rsa, dsa]", methods.toString());
     }
 
+    @Test
     public void testGetGranularityPattern() {
         PublicKeyRecord pkr = new PublicKeyRecordImpl(
                 "k=rsa; h=sha1:sha256; p=XXXXXXXX=;");
@@ -166,6 +176,7 @@ public class PublicKeyRecordTest extends TestCase {
         }
     }
 
+    @Test
     public void testGetPublicKey() {
         PublicKeyRecord pkr = new PublicKeyRecordImpl(
                 "k=rsa; t=y; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDIhyR3oItOy22ZOaBrIVe9m/iME3RqOJeasANSpg2YTHTYV+Xtp4xwf5gTjCmHQEMOs0qYu0FYiNQPQogJ2t0Mfx9zNu06rfRBDjiIU9tpx2T+NGlWZ8qhbiLo5By8apJavLyqTLavyPSrvsx0B3YzC63T4Age2CDqZYA+OwSMWQIDAQAB");
@@ -198,6 +209,7 @@ public class PublicKeyRecordTest extends TestCase {
         }
     }
 
+    @Test
     public void testGetFlags() {
         PublicKeyRecord pkr = new PublicKeyRecordImpl(
                 "k=rsa; t=y:s; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDIhyR3oItOy22ZOaBrIVe9m/iME3RqOJeasANSpg2YTHTYV+Xtp4xwf5gTjCmHQEMOs0qYu0FYiNQPQogJ2t0Mfx9zNu06rfRBDjiIU9tpx2T+NGlWZ8qhbiLo5By8apJavLyqTLavyPSrvsx0B3YzC63T4Age2CDqZYA+OwSMWQIDAQAB");
@@ -216,6 +228,7 @@ public class PublicKeyRecordTest extends TestCase {
         assertEquals("[]", flags.toString());
     }
 
+    @Test
     public void testIsTesting() {
         PublicKeyRecord pkr = new PublicKeyRecordImpl(
                 "k=rsa; t=y:s; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDIhyR3oItOy22ZOaBrIVe9m/iME3RqOJeasANSpg2YTHTYV+Xtp4xwf5gTjCmHQEMOs0qYu0FYiNQPQogJ2t0Mfx9zNu06rfRBDjiIU9tpx2T+NGlWZ8qhbiLo5By8apJavLyqTLavyPSrvsx0B3YzC63T4Age2CDqZYA+OwSMWQIDAQAB");
@@ -231,6 +244,7 @@ public class PublicKeyRecordTest extends TestCase {
         assertFalse(pkr.isTesting());
     }
 
+    @Test
     public void testIsDenySubdomains() {
         PublicKeyRecord pkr = new PublicKeyRecordImpl(
                 "k=rsa; t=y:s; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDIhyR3oItOy22ZOaBrIVe9m/iME3RqOJeasANSpg2YTHTYV+Xtp4xwf5gTjCmHQEMOs0qYu0FYiNQPQogJ2t0Mfx9zNu06rfRBDjiIU9tpx2T+NGlWZ8qhbiLo5By8apJavLyqTLavyPSrvsx0B3YzC63T4Age2CDqZYA+OwSMWQIDAQAB");

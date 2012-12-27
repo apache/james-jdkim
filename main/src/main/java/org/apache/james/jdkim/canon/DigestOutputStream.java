@@ -30,7 +30,7 @@ import java.security.MessageDigest;
  */
 public class DigestOutputStream extends FilterOutputStream {
 
-    private MessageDigest md;
+    private final MessageDigest md;
 
     public DigestOutputStream(MessageDigest md) {
         this(md, null);

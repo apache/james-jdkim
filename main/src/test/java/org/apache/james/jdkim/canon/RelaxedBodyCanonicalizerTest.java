@@ -37,8 +37,8 @@ public class RelaxedBodyCanonicalizerTest extends AbstractOutputStreamTestCase {
     public void testSingleBytes() throws NoSuchAlgorithmException, IOException {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         RelaxedBodyCanonicalizer os = new RelaxedBodyCanonicalizer(bos);
-        for (int i = 0; i < testData.length; i++) {
-            os.write(testData[i]);
+        for (byte aTestData : testData) {
+            os.write(aTestData);
         }
         os.close();
         assertArrayEquals(expectedData, bos.toByteArray());

@@ -21,11 +21,12 @@ package org.apache.james.jdkim;
 
 import org.apache.james.jdkim.api.SignatureRecord;
 import org.apache.james.jdkim.tagvalue.SignatureRecordImpl;
+import org.junit.Assert;
+import org.junit.Test;
 
-import junit.framework.TestCase;
+public class SignatureRecordTest {
 
-public class SignatureRecordTest extends TestCase {
-
+    @Test
     public void testBasic() {
         SignatureRecord sign = new SignatureRecordImpl(
                 "v=1; a=rsa-sha256; c=relaxed/relaxed;\r\n"
@@ -36,6 +37,7 @@ public class SignatureRecordTest extends TestCase {
         sign.validate();
     }
 
+    @Test
     public void testWrongOrMissingVersion() {
         try {
             SignatureRecord sign = new SignatureRecordImpl(
@@ -44,7 +46,7 @@ public class SignatureRecordTest extends TestCase {
                             + "        h=domainkey-signature:received:received:message-id:date:from:to:subject:mime-version:content-type;\r\n"
                             + "        b=Kw/TqnjB4L5ZC7DX1ibiNkuIw630uHZvzuozn/e6yTm3U8ObWEz/rJK5GO8RSrF56JrCA/xo8W2CGmyNmpQYbEpLl5P9/NcJSYUmln/O6GSa4Usyv4FdEU4FVjkyW0ToGFHNkw9Mm0urveA4Lcfk9gClJczXnvGBdiv/bkVBEJk=");
             sign.validate();
-            fail("expected error on missing v=");
+            Assert.fail("expected error on missing v=");
         } catch (IllegalStateException e) {
         }
         try {
@@ -55,11 +57,12 @@ public class SignatureRecordTest extends TestCase {
                             + "        bh=9sd6eO/xnGLInYGPFN86r9q27iClGpwfkl4PBc5XEuQ=;\r\n"
                             + "        b=tGQtBQg1sO+JKopOylApWLngylEqeMcXwCEUQN+S2PSpi9c1G9Nm5df9pMShus3iFaQb0PPvTfpw++cAC8/N0p3Gi/lVLc+Yh7xWEIPZ3Nxd3xqTQy7grIkBpV0q6559dEhhfFoEyLS0OK/IrqFIUVDRIMnsMjimXV7u+Sgoi7Q=");
             sign.validate();
-            fail("expected error on wrong v=");
+            Assert.fail("expected error on wrong v=");
         } catch (IllegalStateException e) {
         }
     }
 
+    @Test
     public void testMissingRequired() {
         try {
             SignatureRecord sign = new SignatureRecordImpl(
@@ -68,11 +71,12 @@ public class SignatureRecordTest extends TestCase {
                             + "        h=domainkey-signature:received:received:message-id:date:from:to:subject:mime-version:content-type;\r\n"
                             + "        b=tGQtBQg1sO+JKopOylApWLngylEqeMcXwCEUQN+S2PSpi9c1G9Nm5df9pMShus3iFaQb0PPvTfpw++cAC8/N0p3Gi/lVLc+Yh7xWEIPZ3Nxd3xqTQy7grIkBpV0q6559dEhhfFoEyLS0OK/IrqFIUVDRIMnsMjimXV7u+Sgoi7Q=");
             sign.validate();
-            fail("expected error on missing bh=");
+            Assert.fail("expected error on missing bh=");
         } catch (IllegalStateException e) {
         }
     }
 
+    @Test
     public void testDomainMismatch() {
         try {
             SignatureRecord sign = new SignatureRecordImpl(
@@ -82,11 +86,12 @@ public class SignatureRecordTest extends TestCase {
                             + "        bh=9sd6eO/xnGLInYGPFN86r9q27iClGpwfkl4PBc5XEuQ=;\r\n"
                             + "        b=tGQtBQg1sO+JKopOylApWLngylEqeMcXwCEUQN+S2PSpi9c1G9Nm5df9pMShus3iFaQb0PPvTfpw++cAC8/N0p3Gi/lVLc+Yh7xWEIPZ3Nxd3xqTQy7grIkBpV0q6559dEhhfFoEyLS0OK/IrqFIUVDRIMnsMjimXV7u+Sgoi7Q=");
             sign.validate();
-            fail("expected error on domain mismatch");
+            Assert.fail("expected error on domain mismatch");
         } catch (IllegalStateException e) {
         }
     }
 
+    @Test
     public void testMissingFrom() {
         try {
             SignatureRecord sign = new SignatureRecordImpl(
@@ -96,7 +101,7 @@ public class SignatureRecordTest extends TestCase {
                             + "        bh=9sd6eO/xnGLInYGPFN86r9q27iClGpwfkl4PBc5XEuQ=;\r\n"
                             + "        b=tGQtBQg1sO+JKopOylApWLngylEqeMcXwCEUQN+S2PSpi9c1G9Nm5df9pMShus3iFaQb0PPvTfpw++cAC8/N0p3Gi/lVLc+Yh7xWEIPZ3Nxd3xqTQy7grIkBpV0q6559dEhhfFoEyLS0OK/IrqFIUVDRIMnsMjimXV7u+Sgoi7Q=");
             sign.validate();
-            fail("expected error on missing 'from' header");
+            Assert.fail("expected error on missing 'from' header");
         } catch (IllegalStateException e) {
         }
     }

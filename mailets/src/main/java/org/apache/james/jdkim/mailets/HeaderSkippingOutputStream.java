@@ -29,7 +29,7 @@ import java.io.OutputStream;
 public class HeaderSkippingOutputStream extends FilterOutputStream {
 
     boolean inHeaders = true;
-    byte[] skipTo = "\r\n\r\n".getBytes();
+    final byte[] skipTo = "\r\n\r\n".getBytes();
     int pos = 0;
 
     public HeaderSkippingOutputStream(OutputStream out) {

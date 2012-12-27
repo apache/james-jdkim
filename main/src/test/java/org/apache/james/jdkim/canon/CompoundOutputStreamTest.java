@@ -43,12 +43,11 @@ public class CompoundOutputStreamTest extends AbstractOutputStreamTestCase {
             oss.add(new ByteArrayOutputStream());
         }
         CompoundOutputStream os = new CompoundOutputStream(oss);
-        for (int i = 0; i < testData.length; i++) {
-            os.write(testData[i]);
+        for (byte aTestData : testData) {
+            os.write(aTestData);
         }
         os.close();
-        for (Iterator<ByteArrayOutputStream> i = oss.iterator(); i.hasNext();) {
-            ByteArrayOutputStream bos = i.next();
+        for (ByteArrayOutputStream bos : oss) {
             assertArrayEquals(testData, bos.toByteArray());
         }
     }
@@ -60,8 +59,7 @@ public class CompoundOutputStreamTest extends AbstractOutputStreamTestCase {
         }
         CompoundOutputStream os = new CompoundOutputStream(oss);
         chunker(testData, os);
-        for (Iterator<ByteArrayOutputStream> i = oss.iterator(); i.hasNext();) {
-            ByteArrayOutputStream bos = i.next();
+        for (ByteArrayOutputStream bos : oss) {
             assertArrayEquals(testData, bos.toByteArray());
         }
     }

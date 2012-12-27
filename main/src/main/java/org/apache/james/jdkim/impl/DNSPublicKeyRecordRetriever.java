@@ -19,10 +19,6 @@
 
 package org.apache.james.jdkim.impl;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-
 import org.apache.james.jdkim.api.PublicKeyRecordRetriever;
 import org.apache.james.jdkim.exceptions.PermFailException;
 import org.apache.james.jdkim.exceptions.TempFailException;
@@ -33,10 +29,14 @@ import org.xbill.DNS.TXTRecord;
 import org.xbill.DNS.TextParseException;
 import org.xbill.DNS.Type;
 
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+
 public class DNSPublicKeyRecordRetriever implements PublicKeyRecordRetriever {
 
     // The resolver used for the lookup
-    protected Resolver resolver;
+    protected final Resolver resolver;
 
     public DNSPublicKeyRecordRetriever() {
         this(Lookup.getDefaultResolver());
@@ -50,7 +50,7 @@ public class DNSPublicKeyRecordRetriever implements PublicKeyRecordRetriever {
      * @see org.apache.james.jdkim.api.PublicKeyRecordRetriever#getRecords(java.lang.CharSequence, java.lang.CharSequence, java.lang.CharSequence)
      */
     public List<String> getRecords(CharSequence methodAndOptions,
-            CharSequence selector, CharSequence token)
+                                   CharSequence selector, CharSequence token)
             throws TempFailException, PermFailException {
         if (!"dns/txt".equals(methodAndOptions))
             throw new PermFailException("Only dns/txt is supported: "
@@ -67,8 +67,7 @@ public class DNSPublicKeyRecordRetriever implements PublicKeyRecordRetriever {
                 throw new TempFailException(query.getErrorString());
             }
 
-            List<String> records = convertRecordsToList(rr);
-            return records;
+            return convertRecordsToList(rr);
         } catch (TextParseException e) {
             // TODO log
             return null;
@@ -77,9 +76,8 @@ public class DNSPublicKeyRecordRetriever implements PublicKeyRecordRetriever {
 
     /**
      * Convert the given TXT Record array to a String List
-     * 
-     * @param rr
-     *                Record array
+     *
+     * @param rr Record array
      * @return list
      */
     @SuppressWarnings("unchecked")
@@ -87,33 +85,31 @@ public class DNSPublicKeyRecordRetriever implements PublicKeyRecordRetriever {
         List<String> records;
         if (rr != null && rr.length > 0) {
             records = new ArrayList<String>();
-            for (int i = 0; i < rr.length; i++) {
-                switch (rr[i].getType()) {
-                case Type.TXT:
-                    TXTRecord txt = (TXTRecord) rr[i];
-                    if (txt.getStrings().size() == 1) {
-                        // This was required until dnsjava 2.0.6 because dnsjava
-                        // was escaping
-                        // the result like it was doublequoted (JDKIM-7).
-                        // records.add(((String)txt.getStrings().get(0)).replaceAll("\\\\",
-                        // ""));
-                        records.add(((String) txt.getStrings().get(0)));
-                    } else {
-                        StringBuilder sb = new StringBuilder();
-                        for (Iterator<String> it = txt.getStrings()
-                                .iterator(); it.hasNext();) {
-                            String k = it.next();
-                            // This was required until dnsjava 2.0.6 because
-                            // dnsjava was escaping
+            for (Record aRr : rr) {
+                switch (aRr.getType()) {
+                    case Type.TXT:
+                        TXTRecord txt = (TXTRecord) aRr;
+                        if (txt.getStrings().size() == 1) {
+                            // This was required until dnsjava 2.0.6 because dnsjava
+                            // was escaping
                             // the result like it was doublequoted (JDKIM-7).
-                            // k = k.replaceAll("\\\\", "");
-                            sb.append(k);
+                            // records.add(((String)txt.getStrings().get(0)).replaceAll("\\\\",
+                            // ""));
+                            records.add(((String) txt.getStrings().get(0)));
+                        } else {
+                            StringBuilder sb = new StringBuilder();
+                            for (String k : (Iterable<String>) txt.getStrings()) {
+                                // This was required until dnsjava 2.0.6 because
+                                // dnsjava was escaping
+                                // the result like it was doublequoted (JDKIM-7).
+                                // k = k.replaceAll("\\\\", "");
+                                sb.append(k);
+                            }
+                            records.add(sb.toString());
                         }
-                        records.add(sb.toString());
-                    }
-                    break;
-                default:
-                    return null;
+                        break;
+                    default:
+                        return null;
                 }
             }
         } else {

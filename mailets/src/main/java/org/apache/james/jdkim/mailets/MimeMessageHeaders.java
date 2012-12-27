@@ -35,8 +35,8 @@ import org.apache.james.jdkim.api.Headers;
  */
 final class MimeMessageHeaders implements Headers {
 
-    private Map<String, List<String>> headers;
-    private List<String> fields;
+    private final Map<String, List<String>> headers;
+    private final List<String> fields;
 
     @SuppressWarnings("unchecked")
     public MimeMessageHeaders(MimeMessage message)
@@ -45,14 +45,14 @@ final class MimeMessageHeaders implements Headers {
         fields = new LinkedList<String>();
         for (Enumeration<String> e = message.getAllHeaderLines(); e
                 .hasMoreElements();) {
-            String head = (String) e.nextElement();
+            String head = e.nextElement();
             int p = head.indexOf(':');
             if (p <= 0)
                 throw new MessagingException("Bad header line: " + head);
             String headerName = head.substring(0, p).trim();
             String headerNameLC = headerName.toLowerCase();
             fields.add(headerName);
-            List<String> strings = (List<String>) headers.get(headerNameLC);
+            List<String> strings = headers.get(headerNameLC);
             if (strings == null) {
                 strings = new LinkedList<String>();
                 headers.put(headerNameLC, strings);

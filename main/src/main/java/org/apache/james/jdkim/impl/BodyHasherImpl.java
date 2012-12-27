@@ -99,9 +99,6 @@ public class BodyHasherImpl implements BodyHasher {
         return out;
     }
 
-    /**
-     * @see org.apache.james.jdkim.api.BodyHasher#getSignatureRecord()
-     */
     public SignatureRecord getSignatureRecord() {
         return sign;
     }
@@ -110,9 +107,6 @@ public class BodyHasherImpl implements BodyHasher {
         return digesterOS;
     }
 
-    /**
-     * @see org.apache.james.jdkim.api.BodyHasher#getDigest()
-     */
     public byte[] getDigest() {
         return getDigesterOutputStream().getDigest();
     }
