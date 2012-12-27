@@ -17,10 +17,8 @@
     specific language governing permissions and limitations
     under the License.
 -->
-<project
-    xmlns="http://maven.apache.org/POM/4.0.0"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
@@ -30,23 +28,18 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
+    <groupId>org.apache.james.jdkim</groupId>
     <artifactId>apache-jdkim-mailets</artifactId>
+    <packaging>bundle</packaging>
 
-    <name>jDKIM Mailets for Apache James</name>
+    <name>Apache James :: jDKIM :: Mailets</name>
     <description>Mailets integrating DKIM functions</description>
     <url>http://james.apache.org/jdkim/mailets/</url>
-
-    <distributionManagement>
-        <site>
-            <id>jdkim-website-mailets</id>
-            <url>scpexe://people.apache.org/www/james.apache.org/jdkim/mailets/</url>
-        </site>
-    </distributionManagement>
 
     <dependencies>
         <dependency>
             <groupId>org.apache.james</groupId>
-            <artifactId>apache-mailet</artifactId>
+            <artifactId>apache-mailet-api</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.james.jdkim</groupId>
@@ -117,7 +110,6 @@
         <dependency>
             <groupId>commons-codec</groupId>
             <artifactId>commons-codec</artifactId>
-            <version>1.4</version>
         </dependency>
     </dependencies>
 </project>

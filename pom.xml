@@ -17,17 +17,15 @@
     specific language governing permissions and limitations
     under the License.
 -->
-<project
-    xmlns="http://maven.apache.org/POM/4.0.0"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
         <groupId>org.apache.james</groupId>
         <artifactId>james-project</artifactId>
-        <version>1.8</version>
-        <relativePath></relativePath>
+        <version>1.8.1</version>
+        <relativePath/>
     </parent>
 
     <groupId>org.apache.james.jdkim</groupId>
@@ -35,7 +33,7 @@
     <version>0.3-SNAPSHOT</version>
     <packaging>pom</packaging>
 
-    <name>Apache James DomainKey Project (jDKIM)</name>
+    <name>Apache James :: jDKIM :: DomainKey Project</name>
     <description>DomainKeys Identified Mail (DKIM) Signatures</description>
     <url>http://james.apache.org/jdkim/</url>
     <inceptionYear>2009</inceptionYear>
@@ -63,33 +61,46 @@
         </site>
     </distributionManagement>
 
+    <properties>
+        <junit.version>4.10</junit.version>
+        <geronimo-activation.version>1.0.2</geronimo-activation.version>
+        <geronimo-javamail.version>1.8.3</geronimo-javamail.version>
+        <commons-codec.version>1.5</commons-codec.version>
+        <commons-logging.version>1.1.1</commons-logging.version>
+        <apache-mailet.version>2.5.0-SNAPSHOT</apache-mailet.version>
+        <dnsjava.version>2.1.1</dnsjava.version>
+        <not-yet-commons-ssl.version>0.3.11</not-yet-commons-ssl.version>
+        <apache-mime4j.version>0.7.1</apache-mime4j.version>
+        <log4j.version>1.2.16</log4j.version>
+    </properties>
+
     <dependencyManagement>
         <dependencies>
             <dependency>
                 <groupId>junit</groupId>
                 <artifactId>junit</artifactId>
-                <version>4.10</version>
+                <version>${junit.version}</version>
                 <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.geronimo.specs</groupId>
                 <artifactId>geronimo-activation_1.1_spec</artifactId>
-                <version>1.0.2</version>
+                <version>${geronimo-activation.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.geronimo.javamail</groupId>
                 <artifactId>geronimo-javamail_1.4_mail</artifactId>
-                <version>1.8.3</version>
+                <version>${geronimo-javamail.version}</version>
             </dependency>
             <dependency>
                 <groupId>commons-codec</groupId>
                 <artifactId>commons-codec</artifactId>
-                <version>1.5</version>
+                <version>${commons-codec.version}</version>
             </dependency>
             <dependency>
                 <groupId>commons-logging</groupId>
                 <artifactId>commons-logging</artifactId>
-                <version>1.1.1</version>
+                <version>${commons-logging.version}</version>
                 <exclusions>
                     <exclusion>
                         <groupId>avalon-framework</groupId>
@@ -112,7 +123,7 @@
             <dependency>
                 <groupId>org.apache.james</groupId>
                 <artifactId>apache-mailet-base</artifactId>
-                <version>1.1</version>
+                <version>${apache-mailet.version}</version>
                 <exclusions>
                     <exclusion>
                         <groupId>javax.mail</groupId>
@@ -127,7 +138,7 @@
             <dependency>
                 <groupId>org.apache.james</groupId>
                 <artifactId>apache-mailet-base</artifactId>
-                <version>1.1</version>
+                <version>${apache-mailet.version}</version>
                 <scope>test</scope>
                 <classifier>tests</classifier>
                 <exclusions>
@@ -144,7 +155,7 @@
             <dependency>
                 <groupId>org.apache.james</groupId>
                 <artifactId>apache-mailet-base</artifactId>
-                <version>1.1</version>
+                <version>${apache-mailet.version}</version>
                 <type>test-jar</type>
                 <scope>test</scope>
                 <exclusions>
@@ -160,8 +171,8 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.james</groupId>
-                <artifactId>apache-mailet</artifactId>
-                <version>2.4</version>
+                <artifactId>apache-mailet-api</artifactId>
+                <version>${apache-mailet.version}</version>
                 <exclusions>
                     <exclusion>
                         <groupId>javax.mail</groupId>
@@ -177,86 +188,56 @@
                 <groupId>log4j</groupId>
                 <artifactId>log4j</artifactId>
                 <scope>runtime</scope>
-                <version>1.2.16</version>
+                <version>${log4j.version}</version>
             </dependency>
             <dependency>
                 <groupId>dnsjava</groupId>
                 <artifactId>dnsjava</artifactId>
-                <version>2.1.1</version>
+                <version>${dnsjava.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.james.jdkim</groupId>
                 <artifactId>apache-jdkim-library</artifactId>
-                <version>0.3-SNAPSHOT</version>
+                <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.james.jdkim</groupId>
                 <artifactId>apache-jdkim-library</artifactId>
-                <version>0.3-SNAPSHOT</version>
+                <version>${project.version}</version>
                 <type>test-jar</type>
                 <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.james.jdkim</groupId>
                 <artifactId>apache-jdkim-mailets</artifactId>
-                <version>0.3-SNAPSHOT</version>
+                <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>ca.juliusdavies</groupId>
                 <artifactId>not-yet-commons-ssl</artifactId>
-                <version>0.3.11</version>
+                <version>${not-yet-commons-ssl.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.james</groupId>
                 <artifactId>apache-mime4j-core</artifactId>
-                <version>0.7.1</version>
+                <version>${apache-mime4j.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.james</groupId>
                 <artifactId>apache-mime4j-dom</artifactId>
-                <version>0.7.1</version>
+                <version>${apache-mime4j.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
 
     <build>
         <plugins>
-            <!--
-                <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-doap-plugin</artifactId>
-                <configuration>
-                <doapOptions>
-                <programmingLanguage>java</programmingLanguage>
-                <downloadPage>http://james.apache.org/download.cgi</downloadPage>
-                </doapOptions>
-                <asfExtOptions>
-                <included>true</included>
-                <name>Apache JAMES</name>
-                <pmc>http://james.apache.org</pmc>
-                <chair>Norman Maurer</chair>
-                <charter>Apache JAMES is dedicated to email related code in Java</charter>
-                <standards>
-                <standard>
-                <title>DomainKeys Identified Mail (DKIM) Signatures</title>
-                <url>http://www.ietf.org/rfc/rfc4871.txt</url>
-                <id>RFC 4871</id>
-                <body>IETF</body>
-                </standard>
-                </standards>
-                </asfExtOptions>
-                </configuration>
-                <executions>
-                <execution>
-                <id>site</id>
-                <phase>site</phase>
-                <goals>
-                <goal>generate</goal>
-                </goals>
-                </execution>
-                </executions>
-                </plugin>
-            -->
+            <plugin>
+                <groupId>org.apache.felix</groupId>
+                <artifactId>maven-bundle-plugin</artifactId>
+                <extensions>true</extensions>
+                <version>2.3.7</version>
+            </plugin>
         </plugins>
     </build>
 </project>

@@ -18,9 +18,9 @@
     under the License.
 -->
 <project
-    xmlns="http://maven.apache.org/POM/4.0.0"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+        xmlns="http://maven.apache.org/POM/4.0.0"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
@@ -31,19 +31,12 @@
     </parent>
 
     <artifactId>apache-jdkim-library</artifactId>
-    <packaging>jar</packaging>
+    <packaging>bundle</packaging>
 
-    <name>Apache JAMES jDKIM</name>
+    <name>Apache James :: jDKIM</name>
     <description>A Java implementation for the DKIM specification.</description>
     <url>http://james.apache.org/jdkim/main/</url>
     <inceptionYear>2008</inceptionYear>
-
-    <distributionManagement>
-        <site>
-            <id>jdkim-website-main</id>
-            <url>scpexe://people.apache.org/www/james.apache.org/jdkim/main/</url>
-        </site>
-    </distributionManagement>
 
     <dependencies>
         <dependency>
@@ -74,7 +67,7 @@
         </dependency>
         <dependency>
             <groupId>org.apache.james</groupId>
-            <artifactId>apache-mailet</artifactId>
+            <artifactId>apache-mailet-api</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.james</groupId>
@@ -97,31 +90,6 @@
 
     <build>
         <plugins>
-            <plugin>
-                <artifactId>maven-jar-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>test-jar</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <archive>
-                        <manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
-                        <manifestEntries>
-                            <Specification-Title>Apache jdkim</Specification-Title>
-                            <Specification-Version>${project.version}</Specification-Version>
-                            <Specification-Vendor>The Apache Software Foundation</Specification-Vendor>
-                            <Implementation-Title>Apache jdkim</Implementation-Title>
-                            <Implementation-Version>${project.version}</Implementation-Version>
-                            <Implementation-Vendor>The Apache Software Foundation</Implementation-Vendor>
-                            <Implementation-Vendor-Id>org.apache</Implementation-Vendor-Id>
-                            <url>${project.url}</url>
-                        </manifestEntries>
-                    </archive>
-                </configuration>
-            </plugin>
             <plugin>
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
@@ -170,79 +138,6 @@
                     </execution>
                 </executions>
             </plugin>
-            <plugin>
-                <groupId>org.apache.felix</groupId>
-                <artifactId>maven-bundle-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>bundle-manifest</id>
-                        <phase>process-classes</phase>
-                        <goals>
-                            <goal>manifest</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <extensions>true</extensions>
-                <configuration>
-                    <instructions>
-                        <Export-Package>org.apache.james.jdkim.*</Export-Package>
-                        <Embed-Dependency>*;scope=runtime</Embed-Dependency>
-                    </instructions>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-source-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>attach-sources</id>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <!--
-                <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-doap-plugin</artifactId>
-                <executions>
-                <execution>
-                <id>site</id>
-                <phase>site</phase>
-                <goals>
-                <goal>generate</goal>
-                </goals>
-                </execution>
-                </executions>
-                <configuration>
-                <doapOptions>
-                <programmingLanguage>java</programmingLanguage>
-                <category>mail</category>
-                <downloadPage>http://james.apache.org/download.cgi</downloadPage>
-                </doapOptions>
-                <asfExtOptions>
-                <included>true</included>
-                <pmc>http://james.apache.org</pmc>
-                <name>Apache JAMES</name>
-                <standards>
-                <standard>
-                <id>DKIM</id>
-                <title>DomainKeys Identified Mail (DKIM) Signatures</title>
-                <body>IEFT</body>
-                <url>http://www.ietf.org/rfc/rfc4871.txt</url>
-                </standard>
-                <standard>
-                <id>DKIM</id>
-                <title>DomainKeys Identified Mail (DKIM) Signatures - - Update</title>
-                <body>IEFT</body>
-                <url>http://www.ietf.org/rfc/rfc5672.txt</url>
-                </standard>
-                </standards>
-                </asfExtOptions>
-                </configuration>
-                </plugin>
-            -->
             <!-- Shading commons-codec Base64 class so that we don't have one more dependency -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -280,7 +175,8 @@
                                 </relocation>
                             </relocations>
                             <transformers>
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.ComponentsXmlResourceTransformer" />
+                                <transformer
+                                        implementation="org.apache.maven.plugins.shade.resource.ComponentsXmlResourceTransformer"/>
                             </transformers>
                         </configuration>
                     </execution>
