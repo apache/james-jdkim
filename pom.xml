@@ -63,14 +63,14 @@
 
     <properties>
         <junit.version>4.10</junit.version>
-        <geronimo-activation.version>1.0.2</geronimo-activation.version>
+        <geronimo-activation.version>1.1</geronimo-activation.version>
         <geronimo-javamail.version>1.8.3</geronimo-javamail.version>
-        <commons-codec.version>1.5</commons-codec.version>
+        <commons-codec.version>1.7</commons-codec.version>
         <commons-logging.version>1.1.1</commons-logging.version>
-        <apache-mailet.version>2.5.0-SNAPSHOT</apache-mailet.version>
+        <apache-mailet.version>2.5.0</apache-mailet.version>
         <dnsjava.version>2.1.1</dnsjava.version>
         <not-yet-commons-ssl.version>0.3.11</not-yet-commons-ssl.version>
-        <apache-mime4j.version>0.7.1</apache-mime4j.version>
+        <apache-mime4j.version>0.7.2</apache-mime4j.version>
         <log4j.version>1.2.16</log4j.version>
     </properties>
 
@@ -240,4 +240,24 @@
             </plugin>
         </plugins>
     </build>
+
+    <reporting>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>versions-maven-plugin</artifactId>
+                <version>2.0</version>
+                <reportSets>
+                    <reportSet>
+                        <reports>
+                            <report>dependency-updates-report</report>
+                            <report>plugin-updates-report</report>
+                            <report>property-updates-report</report>
+                        </reports>
+                    </reportSet>
+                </reportSets>
+            </plugin>
+        </plugins>
+    </reporting>
+
 </project>
