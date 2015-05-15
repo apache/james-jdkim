@@ -57,9 +57,10 @@ public class Message implements Headers {
     }
 
     private MessageServiceFactory newMessageBuilder() throws MimeException {
-        MimeConfig mec = new MimeConfig();
-        mec.setMaxLineLen(10000);
-        mec.setMaxHeaderLen(30000);
+        MimeConfig mec = MimeConfig.custom()
+                .setMaxLineLen(10000)
+                .setMaxHeaderLen(30000)
+                .build();
 
         MessageServiceFactory mbf = MessageServiceFactory.newInstance();
         mbf.setAttribute("MimeEntityConfig", mec);
