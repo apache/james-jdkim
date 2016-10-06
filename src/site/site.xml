@@ -21,9 +21,9 @@
 
   <bannerLeft>
     <name>JAMES jDKIM</name>
-    <src>images/logos/james-jdkim-logo.gif</src>
+    <src>images/james-logo.png</src>
     <href>http://james.apache.org/</href>
-    <alt>james-jdkim-logo.gif</alt>
+    <alt>james-logo.png</alt>
   </bannerLeft>
 
   <body>
