@@ -109,15 +109,15 @@ public class DKIMVerifyTest {
             
         };
 
-        FakeMailetConfig mci = new FakeMailetConfig("Test",
-                new FakeMailContext());
+        FakeMailetConfig mci = new FakeMailetConfig("Test", FakeMailContext.defaultContext());
 
         mailet.init(mci);
 
-        Mail mail = new FakeMail();
-        mail.setMessage(new MimeMessage(Session
+        Mail mail = FakeMail.builder()
+            .mimeMessage(new MimeMessage(Session
                 .getDefaultInstance(new Properties()),
-                new ByteArrayInputStream(message.getBytes())));
+                new ByteArrayInputStream(message.getBytes())))
+            .build();
 
         mailet.service(mail);
         return mail;

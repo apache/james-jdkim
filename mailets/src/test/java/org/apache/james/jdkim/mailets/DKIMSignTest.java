@@ -63,7 +63,7 @@ public class DKIMSignTest {
             "b+IfiEf1UeZVV5o4J+ECQDatNnS3V9qYUKjj/krNRD/U0+7eh8S2ylLqD3RlSn9K\r\n" +
             "tYGRMgAtUXtiOEizBH6bd/orzI9V9sw8yBz+ZqIH25Q=\r\n" +
             "-----END RSA PRIVATE KEY-----\r\n";
-    // "MIICdgIBADANBgkqhkiG9w0BAQEFAASCAmAwggJcAgEAAoGBANgNpgpfPBVjCpZsuGa4nrppMA3zCYNH6t8cTwd+eRI5rHSgihMznOq5mtMujfTzvRgx9jPHB8HqP83PdB3CtQP+3RgxgmJQrJYmcIp9lcckEn7J9Eevuhb5RbdxWj0IbZsF8jGwifBh7XvmD1SPKe0mla56p0QijVzZuG/0ynrpAgMBAAECgYEAjxdzCdmLRKrk3z3AX6AU2GdEQWjeuwkNoJjyKod0DkMOWevdptv/KGKnDQj/UeWALp8gbah7Fc5cVaX5RKCpG3WRO32NeFUUTGDyY2SjZR6UDAW2yXwJGNVxhA5x514f9Yz+ZeODbBSqpl6cGaUqUPq81vvSMUl5VoMn/ufuPwECQQD02QfYPhmCP8g4BVhxxlgfvj5WA7R7tWRSNCT3C0naPpwaono9+PSuhUgxRbOgFvxh8StHyXomdVBt/LzeAl6JAkEA4eTejDsmMCfxe47JnHbgpxNphYpSQBB9FZgMUU5hAXgpX3EtIS3JxjSSOx3EYoO51ZywBOWUXNcMJAXoNM0hYQJAQDnZ4/BOMqtWctN8IsQbg6Acq+Vm53hqa2HAPIlagwQfYKE0HaN7U3gkusAE4T6GT466gqcoAoSNZ3x/cmD+uQJAePyZCaiAephaKSA/8VJmXnXyNXjxNqjeJduq9T0yjZPrLNg0IKoigMsVax41WcJNnRBv4h+IR/VR5lVXmjgn4QJANq02dLdX2phQqOP+Ss1EP9TT7t6HxLbKUuoPdGVKf0q1gZEyAC1Re2I4SLMEfpt3+ivMj1X2zDzIHP5mogfblA==");
+    private static final FakeMailContext FAKE_MAIL_CONTEXT = FakeMailContext.defaultContext();
 
     @Test
     public void testDKIMSign() throws MessagingException, IOException,
@@ -73,7 +73,7 @@ public class DKIMSignTest {
         Mailet mailet = new DKIMSign();
 
         FakeMailetConfig mci = new FakeMailetConfig("Test",
-                new FakeMailContext());
+            FAKE_MAIL_CONTEXT);
         mci
                 .setProperty(
                         "signatureTemplate",
@@ -82,10 +82,11 @@ public class DKIMSignTest {
 
         mailet.init(mci);
 
-        Mail mail = new FakeMail();
-        mail.setMessage(new MimeMessage(Session
+        Mail mail = FakeMail.builder()
+            .mimeMessage(new MimeMessage(Session
                 .getDefaultInstance(new Properties()),
-                new ByteArrayInputStream(message.getBytes())));
+                new ByteArrayInputStream(message.getBytes())))
+            .build();
 
         mailet.service(mail);
 
@@ -118,18 +119,18 @@ public class DKIMSignTest {
 
         Mailet mailet = new DKIMSign();
 
-        FakeMailetConfig mci = new FakeMailetConfig("Test",
-                new FakeMailContext());
+        FakeMailetConfig mci = new FakeMailetConfig("Test", FAKE_MAIL_CONTEXT);
         mci.setProperty("signatureTemplate",
                 "v=1; t=" + ((System.currentTimeMillis() / 1000) + 1000) + "; s=selector; d=example.com; h=from:to:received:received; a=rsa-sha256; bh=; b=;");
         mci.setProperty("privateKey", TESTING_PEM);
 
         mailet.init(mci);
 
-        Mail mail = new FakeMail();
-        mail.setMessage(new MimeMessage(Session
+        Mail mail = FakeMail.builder()
+            .mimeMessage(new MimeMessage(Session
                 .getDefaultInstance(new Properties()),
-                new ByteArrayInputStream(message.getBytes())));
+                new ByteArrayInputStream(message.getBytes())))
+            .build();
 
         mailet.service(mail);
 
@@ -159,8 +160,7 @@ public class DKIMSignTest {
 
         Mailet mailet = new DKIMSign();
 
-        FakeMailetConfig mci = new FakeMailetConfig("Test",
-                new FakeMailContext());
+        FakeMailetConfig mci = new FakeMailetConfig("Test", FAKE_MAIL_CONTEXT);
         mci
                 .setProperty(
                         "signatureTemplate",
@@ -169,10 +169,11 @@ public class DKIMSignTest {
 
         mailet.init(mci);
 
-        Mail mail = new FakeMail();
-        mail.setMessage(new MimeMessage(Session
+        Mail mail = FakeMail.builder()
+            .mimeMessage(new MimeMessage(Session
                 .getDefaultInstance(new Properties()),
-                new ByteArrayInputStream(message.getBytes())));
+                new ByteArrayInputStream(message.getBytes())))
+            .build();
 
         mailet.service(mail);
 
@@ -209,8 +210,7 @@ public class DKIMSignTest {
 
         Mailet mailet = new DKIMSign();
 
-        FakeMailetConfig mci = new FakeMailetConfig("Test",
-                new FakeMailContext());
+        FakeMailetConfig mci = new FakeMailetConfig("Test", FAKE_MAIL_CONTEXT);
         mci
                 .setProperty(
                         "signatureTemplate",
@@ -222,8 +222,9 @@ public class DKIMSignTest {
 
         mailet.init(mci);
 
-        Mail mail = new FakeMail();
-        mail.setMessage(mm);
+        Mail mail = FakeMail.builder()
+            .mimeMessage(mm)
+            .build();
 
         Mailet m7bit = new ConvertTo7Bit();
         m7bit.init(mci);
@@ -254,7 +255,7 @@ public class DKIMSignTest {
         mm.setHeader("Content-Transfer-Encoding", "8bit");
         mm.saveChanges();
 
-        FakeMailContext FakeMailContext = new FakeMailContext();
+        FakeMailContext FakeMailContext = FAKE_MAIL_CONTEXT;
         FakeMailContext.getServerInfo();
         FakeMailetConfig mci = new FakeMailetConfig("Test", FakeMailContext);
         mci.setProperty(
@@ -264,8 +265,9 @@ public class DKIMSignTest {
                 "privateKey",
                 TESTING_PEM);
 
-        Mail mail = new FakeMail();
-        mail.setMessage(mm);
+        Mail mail = FakeMail.builder()
+            .mimeMessage(mm)
+            .build();
 
         Mailet mailet = new DKIMSign();
         mailet.init(mci);
@@ -299,7 +301,7 @@ public class DKIMSignTest {
         mm.setHeader("Content-Transfer-Encoding", "8bit");
         mm.saveChanges();
 
-        FakeMailContext FakeMailContext = new FakeMailContext();
+        FakeMailContext FakeMailContext = FAKE_MAIL_CONTEXT;
         FakeMailContext.getServerInfo();
         FakeMailetConfig mci = new FakeMailetConfig("Test", FakeMailContext);
         mci.setProperty(
@@ -309,8 +311,9 @@ public class DKIMSignTest {
                 "privateKey",
                 TESTING_PEM);
 
-        Mail mail = new FakeMail();
-        mail.setMessage(mm);
+        Mail mail = FakeMail.builder()
+            .mimeMessage(mm)
+            .build();
 
         Mailet mailet = new DKIMSign();
         mailet.init(mci);
