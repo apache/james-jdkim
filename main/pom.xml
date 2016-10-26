@@ -103,30 +103,6 @@
             <plugin>
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
-                <inherited>true</inherited>
-                <configuration>
-                    <excludes>
-                        <!-- test resources created by JAMES committers / we can't include ALv2 headers there -->
-                        <exclude>src/test/resources/org/apache/james/jdkim/corpus/*</exclude>
-                        <exclude>src/test/resources/org/apache/james/jdkim/Mail-DKIM/FAKE_DNS.dat</exclude>
-                        <!-- 3rd party resources described in NOTICE: see the maven-remote-resources-plugin
-                            configuration, in this file -->
-                        <exclude>src/test/resources/org/apache/james/jdkim/Mail-DKIM/corpus/*</exclude>
-                        <!-- maven / IDE artifacts created during build -->
-                        <exclude>release.properties</exclude>
-                        <exclude>dependency-reduced-pom.xml</exclude>
-                        <exclude>nbactions.xml</exclude>
-                        <exclude>**/.*/**/*</exclude>
-                    </excludes>
-                </configuration>
-                <executions>
-                    <execution>
-                        <phase>verify</phase>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                    </execution>
-                </executions>
             </plugin>
             <!-- Add NOTICE and LICENSE to generated JAR -->
             <plugin>
