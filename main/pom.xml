@@ -33,7 +33,7 @@
     <artifactId>apache-jdkim-library</artifactId>
     <packaging>bundle</packaging>
 
-    <name>Apache James :: jDKIM</name>
+    <name>Apache James :: jDKIM :: Library</name>
     <description>A Java implementation for the DKIM specification.</description>
     <url>http://james.apache.org/jdkim/main/</url>
     <inceptionYear>2008</inceptionYear>
