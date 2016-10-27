@@ -28,7 +28,6 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <groupId>org.apache.james.jdkim</groupId>
     <artifactId>apache-jdkim-mailets</artifactId>
     <packaging>bundle</packaging>
 
