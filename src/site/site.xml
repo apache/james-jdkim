@@ -19,6 +19,12 @@
 -->
 <project name="James jDKIM">
 
+    <skin>
+        <groupId>org.apache.james</groupId>
+        <artifactId>james-skin</artifactId>
+        <version>${james-skin.version}</version>
+    </skin>
+
   <bannerLeft>
     <name>JAMES jDKIM</name>
     <src>images/james-logo.png</src>
@@ -62,12 +68,6 @@
     	<item name="Library" href="http://james.apache.org/jdkim/main/index.html" />
     	<item name="Mailets" href="http://james.apache.org/jdkim/mailets/index.html" />
     </menu>
-
-    <!-- 
-    <menu name="jDKIM Project">
-      <item name="Overview" href="/index.html"/>
-    </menu>
-     -->
     
     <menu ref="reports" />
     
