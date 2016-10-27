@@ -73,6 +73,7 @@
         <apache-mime4j.version>0.8.0-SNAPSHOT</apache-mime4j.version>
         <log4j.version>1.2.16</log4j.version>
         <target.jdk>1.6</target.jdk>
+        <james-skin.version>1.8</james-skin.version>
     </properties>
 
     <dependencyManagement>
@@ -285,6 +286,26 @@
                         <exclude>src/test/resources/org/apache/james/jdkim/Mail-DKIM/corpus/*</exclude>
                     </excludes>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-site-plugin</artifactId>
+                <version>3.3</version>
+                <executions>
+                    <execution>
+                        <id>attach-descriptor</id>
+                        <goals>
+                            <goal>attach-descriptor</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.apache.maven.wagon</groupId>
+                        <artifactId>wagon-ssh</artifactId>
+                        <version>2.0</version>
+                    </dependency>
+                </dependencies>
             </plugin>
         </plugins>
     </build>
