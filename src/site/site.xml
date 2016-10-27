@@ -30,8 +30,34 @@
     <head>
       <link rel="meta" title="DOAP" href="${project.url}/doap_maven-doap-plugin.rdf" type="application/rdf+xml"/>
     </head>
-    
-    <menu name="jDKIM" inherit="top">
+
+
+      <links>
+          <item
+                  name="Home"
+                  href="http://james.apache.org/index.html" />
+          <item
+                  name="James"
+                  href="http://james.apache.org/index.html" />
+          <item
+                  name="Mime4J"
+                  href="http://james.apache.org/mime4j/index.html" />
+          <item
+                  name="jSieve"
+                  href="http://james.apache.org/jsieve/index.html" />
+          <item
+                  name="jSPF"
+                  href="http://james.apache.org/jspf/index.html" />
+          <item
+                  name="jDKIM"
+                  href="http://james.apache.org/jdkim/index.html" />
+          <item
+                  name="Hupa"
+                  href="http://james.apache.org/hupa/index.html" />
+      </links>
+
+
+      <menu name="jDKIM" inherit="top">
     	<item name="Project" href="http://james.apache.org/jdkim/index.html" />
     	<item name="Library" href="http://james.apache.org/jdkim/main/index.html" />
     	<item name="Mailets" href="http://james.apache.org/jdkim/mailets/index.html" />
