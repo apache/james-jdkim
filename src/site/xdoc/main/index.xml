@@ -26,18 +26,18 @@
     </properties>
     <body>
         <section name="Java DKIM Library">
-		<p>This is a DKIM implementation library written in Java.</p>
-		<p>The architecture is interface based and pluggable. You can tweak it almost in every behaviour.</p>
-		<p>The architecture is thought to handle multiple signatures with performance in mind: body hashing
-for multiple signatures is computed concurrently in a single stream run.
-		</p>
-		<p>The whole internal verification/signing is dove via OutputStream leaving much more flexibility than
-the use of InputStream. As the InputStream approach is easier from the user side the default
-implementation simply prepare the OutputStream and copy the supplied InputStream to the OutputStream.</p>
+            <p>This is a DKIM implementation library written in Java.</p>
+            <p>The architecture is interface based and pluggable. You can tweak it almost in every behaviour.</p>
+            <p>The architecture is thought to handle multiple signatures with performance in mind: body hashing
+                for multiple signatures is computed concurrently in a single stream run.
+            </p>
+            <p>The whole internal verification/signing is dove via OutputStream leaving much more flexibility than
+                the use of InputStream. As the InputStream approach is easier from the user side the default
+                implementation simply prepare the OutputStream and copy the supplied InputStream to the OutputStream.</p>
 
-<p>In order to reduce depencencies and to not reinvent the wheel the resulting library includes a
-"shaded" version of the commons-codec 1.4 classes needed to do Base64 encoding/decoding.</p>
-		
+            <p>In order to reduce depencencies and to not reinvent the wheel the resulting library includes a
+                "shaded" version of the commons-codec 1.4 classes needed to do Base64 encoding/decoding.</p>
+
         </section>
     </body>
 </document>

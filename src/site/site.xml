@@ -64,17 +64,17 @@
 
 
       <menu name="jDKIM" inherit="top">
-    	<item name="Project" href="http://james.apache.org/jdkim/index.html" />
-    	<item name="Library" href="http://james.apache.org/jdkim/main/index.html" />
-    	<item name="Mailets" href="http://james.apache.org/jdkim/mailets/index.html" />
+    	<item name="Overview" href="/index.html" />
+    	<item name="Library" href="/main/index.html" />
+    	<item name="Mailets" href="/mailets/index.html" />
+        <item name="Issue Tracker" href="https://issues.apache.org/jira/browse/JDKIM" />
+        <item name="Related Projects" href="/index.html" collapse="true">
+          <item name="jSPF" href="http://james.apache.org/jspf/index.html" />
+          <item name="DKIM Javamail" href="http://dkim-javamail.sourceforge.net" />
+          <item name="JavaDKIM" href="http://www.badpenguin.co.uk/dkim/" />
+        </item>
+        <item name="Download Releases" href="http://james.apache.org/download.cgi#Apache_jDKIM"/>
     </menu>
-    
-    <menu ref="reports" />
-    
-    <menu name="Related Projects">
-    	<item name="jSPF" href="http://james.apache.org/jspf/index.html" />
-    	<item name="DKIM Javamail" href="http://dkim-javamail.sourceforge.net" />
-    	<item name="JavaDKIM" href="http://www.badpenguin.co.uk/dkim/" />
-    </menu>
+
   </body>
 </project>
