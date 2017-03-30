@@ -24,7 +24,7 @@
     <parent>
         <groupId>org.apache.james</groupId>
         <artifactId>james-project</artifactId>
-        <version>3.0.0-beta5-SNAPSHOT</version>
+        <version>3.0.0-beta6-SNAPSHOT</version>
     </parent>
 
     <groupId>org.apache.james.jdkim</groupId>
@@ -39,7 +39,6 @@
 
     <modules>
         <module>main</module>
-        <module>mailets</module>
         <module>assemble</module>
     </modules>
 
@@ -66,10 +65,9 @@
         <geronimo-javamail.version>1.8.3</geronimo-javamail.version>
         <commons-codec.version>1.7</commons-codec.version>
         <commons-logging.version>1.1.1</commons-logging.version>
-        <apache-mailet.version>3.0.0-beta5-SNAPSHOT</apache-mailet.version>
         <dnsjava.version>2.1.1</dnsjava.version>
         <not-yet-commons-ssl.version>0.3.11</not-yet-commons-ssl.version>
-        <apache-mime4j.version>0.8.0-SNAPSHOT</apache-mime4j.version>
+        <apache-mime4j.version>0.8.0</apache-mime4j.version>
         <log4j.version>1.2.16</log4j.version>
     </properties>
 
@@ -120,70 +118,6 @@
                 </exclusions>
             </dependency>
             <dependency>
-                <groupId>org.apache.james</groupId>
-                <artifactId>apache-mailet-base</artifactId>
-                <version>${apache-mailet.version}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>javax.mail</groupId>
-                        <artifactId>mail</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>javax.activation</groupId>
-                        <artifactId>activation</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.james</groupId>
-                <artifactId>apache-mailet-base</artifactId>
-                <version>${apache-mailet.version}</version>
-                <scope>test</scope>
-                <classifier>tests</classifier>
-                <exclusions>
-                    <exclusion>
-                        <groupId>javax.mail</groupId>
-                        <artifactId>mail</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>javax.activation</groupId>
-                        <artifactId>activation</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.james</groupId>
-                <artifactId>apache-mailet-base</artifactId>
-                <version>${apache-mailet.version}</version>
-                <type>test-jar</type>
-                <scope>test</scope>
-                <exclusions>
-                    <exclusion>
-                        <groupId>javax.mail</groupId>
-                        <artifactId>mail</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>javax.activation</groupId>
-                        <artifactId>activation</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.james</groupId>
-                <artifactId>apache-mailet-api</artifactId>
-                <version>${apache-mailet.version}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>javax.mail</groupId>
-                        <artifactId>mail</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>javax.activation</groupId>
-                        <artifactId>activation</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-            <dependency>
                 <groupId>log4j</groupId>
                 <artifactId>log4j</artifactId>
                 <scope>runtime</scope>
@@ -205,11 +139,6 @@
                 <version>${project.version}</version>
                 <type>test-jar</type>
                 <scope>test</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.james.jdkim</groupId>
-                <artifactId>apache-jdkim-mailets</artifactId>
-                <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>ca.juliusdavies</groupId>
