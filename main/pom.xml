@@ -57,20 +57,6 @@
         </dependency>
         <dependency>
             <groupId>org.apache.james</groupId>
-            <artifactId>apache-mailet-base</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.james</groupId>
-            <artifactId>apache-mailet-base</artifactId>
-            <scope>test</scope>
-            <classifier>tests</classifier>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.james</groupId>
-            <artifactId>apache-mailet-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.james</groupId>
             <artifactId>apache-mime4j-core</artifactId>
         </dependency>
         <dependency>

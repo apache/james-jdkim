@@ -40,10 +40,6 @@
             <artifactId>apache-jdkim-library</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.apache.james.jdkim</groupId>
-            <artifactId>apache-jdkim-mailets</artifactId>
-        </dependency>
-        <dependency>
             <groupId>dnsjava</groupId>
             <artifactId>dnsjava</artifactId>
         </dependency>
