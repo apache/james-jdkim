@@ -80,7 +80,7 @@ public abstract class DKIMCommon {
             // NOTE check this getter is case insensitive
             List<String> hl = h.getFields(header.toString());
             if (hl != null && hl.size() > 0) {
-                Integer done = processedHeader.get(header.toString());
+                Integer done = processedHeader.get(header.toString().toLowerCase());
                 if (done == null)
                     done = 0;
                 int doneHeaders = done + 1;
@@ -88,7 +88,7 @@ public abstract class DKIMCommon {
                     String fv = hl.get(hl.size() - doneHeaders);
                     updateSignature(signature, relaxedHeaders, header, fv);
                     signature.update("\r\n".getBytes());
-                    processedHeader.put(header.toString(), doneHeaders);
+                    processedHeader.put(header.toString().toLowerCase(), doneHeaders);
                 }
             }
         }
