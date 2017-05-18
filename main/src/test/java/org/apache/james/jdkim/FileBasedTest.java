@@ -33,7 +33,7 @@ import java.net.URL;
 import java.util.List;
 
 /**
- * Creates a TestSuite running the test for each .msg file in the test resouce
+ * Creates a TestSuite running the test for each .msg file in the test resource
  * folder. Allow running of a single test from Unit testing GUIs
  */
 public class FileBasedTest extends TestCase {
@@ -203,16 +203,20 @@ public class FileBasedTest extends TestCase {
                 "pmta",
                 "myspace.com",
                 "k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQChRebhcm4h8BkIYHRxg1GlKLsDkwdrqkFJ8f88xHQ5Gf3NH4I4e06M3XQ+B4tWWK/rX0srwXFgrJPzKZK+x7gN89nmqyM+NNaM+Wm2C0GjTpx6639zK3bAAGYCm0L9lGD7PgDxpWok+YogH0Ml4acEwDw/cnhErAWAnX8doPliawIDAQAB");
+        pkr.addRecord(
+                "mail",
+                "sqli.com",
+                "k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC1CTqmkuRWkxlHcv1peAz3c0RuXHthVO1xx1Hy4HryZUJwSJo/R3cnEwKorQvlRuDSMgXSLLxI8u6n7h6mzRmHdsS/A+pKc7nx/6WS4N6U57PSNqOclxfwa27m/EIL6KTk9KDhaKsXxquQUBkP1CQEUZHPhQ/t7s4dmU/kvGFgNQIDAQAB");
 
         try {
             List<SignatureRecord> res = new DKIMVerifier(pkr).verify(is);
             if (getName().startsWith("NONE_"))
                 assertNull(res);
             if (getName().startsWith("FAIL_"))
-                fail("Expected failure");
+                fail("Test for " + file + " failed: Expected failure");
         } catch (PermFailException e) {
             if (!getName().startsWith("FAIL_"))
-                fail(e.getMessage());
+                fail("Test for " + file + " failed: " + e.getMessage());
         }
     }
 
