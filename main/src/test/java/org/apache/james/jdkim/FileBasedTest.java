@@ -203,6 +203,10 @@ public class FileBasedTest extends TestCase {
                 "pmta",
                 "myspace.com",
                 "k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQChRebhcm4h8BkIYHRxg1GlKLsDkwdrqkFJ8f88xHQ5Gf3NH4I4e06M3XQ+B4tWWK/rX0srwXFgrJPzKZK+x7gN89nmqyM+NNaM+Wm2C0GjTpx6639zK3bAAGYCm0L9lGD7PgDxpWok+YogH0Ml4acEwDw/cnhErAWAnX8doPliawIDAQAB");
+        pkr.addRecord(
+                "mail",
+                "sqli.com",
+                "k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC1CTqmkuRWkxlHcv1peAz3c0RuXHthVO1xx1Hy4HryZUJwSJo/R3cnEwKorQvlRuDSMgXSLLxI8u6n7h6mzRmHdsS/A+pKc7nx/6WS4N6U57PSNqOclxfwa27m/EIL6KTk9KDhaKsXxquQUBkP1CQEUZHPhQ/t7s4dmU/kvGFgNQIDAQAB");
 
         try {
             List<SignatureRecord> res = new DKIMVerifier(pkr).verify(is);
