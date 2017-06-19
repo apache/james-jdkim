@@ -70,7 +70,7 @@
         <apache-mailet.version>3.0.0-beta5</apache-mailet.version>
         <dnsjava.version>2.1.1</dnsjava.version>
         <not-yet-commons-ssl.version>0.3.11</not-yet-commons-ssl.version>
-        <apache-mime4j.version>0.8.0</apache-mime4j.version>
+        <apache-mime4j.version>0.8.1</apache-mime4j.version>
         <log4j.version>1.2.16</log4j.version>
         <target.jdk>1.6</target.jdk>
         <james-skin.version>1.8</james-skin.version>
