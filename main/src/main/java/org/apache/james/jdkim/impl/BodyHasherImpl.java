@@ -80,7 +80,7 @@ public class BodyHasherImpl implements BodyHasher {
         setOutputStream(out);
     }
 
-    static OutputStream prepareCanonicalizerOutputStream(int limit,
+    private OutputStream prepareCanonicalizerOutputStream(int limit,
             boolean relaxedBody, OutputStream dout) {
         OutputStream out = dout;
         if (limit != -1)

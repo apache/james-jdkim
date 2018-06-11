@@ -19,6 +19,9 @@
 
 package org.apache.james.jdkim.impl;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.james.jdkim.api.PublicKeyRecordRetriever;
 import org.apache.james.jdkim.exceptions.PermFailException;
 import org.apache.james.jdkim.exceptions.TempFailException;
@@ -28,10 +31,6 @@ import org.xbill.DNS.Resolver;
 import org.xbill.DNS.TXTRecord;
 import org.xbill.DNS.TextParseException;
 import org.xbill.DNS.Type;
-
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
 
 public class DNSPublicKeyRecordRetriever implements PublicKeyRecordRetriever {
 

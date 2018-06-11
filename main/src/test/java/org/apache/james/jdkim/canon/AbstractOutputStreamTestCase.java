@@ -43,7 +43,6 @@ public abstract class AbstractOutputStreamTestCase extends TestCase {
         byte[] buffer = new byte[307];
         int read;
         int chunksCounter = 0; // 
-        int bytesCounter = 0; // 
         while ((read = is.read(buffer, 0,
                 (buffer.length / (chunksCounter % 8 + 1)))) > 0) {
             if (read == buffer.length && chunksCounter % 13 % 7 % 2 == 1) {
@@ -57,7 +56,6 @@ public abstract class AbstractOutputStreamTestCase extends TestCase {
             if (chunksCounter % 3 == 2)
                 os.flush();
             chunksCounter++;
-            bytesCounter += read;
         }
         os.close();
     }

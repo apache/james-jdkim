@@ -27,7 +27,6 @@ import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.spec.InvalidKeySpecException;
 import java.util.Enumeration;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -152,7 +151,6 @@ public class DKIMSign extends GenericMailet {
 
     }
 
-    @SuppressWarnings("unchecked")
     private void prependHeader(MimeMessage message, String signatureHeader)
             throws MessagingException {
         List<String> prevHeader = new LinkedList<String>();

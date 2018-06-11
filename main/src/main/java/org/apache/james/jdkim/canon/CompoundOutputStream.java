@@ -21,7 +21,6 @@ package org.apache.james.jdkim.canon;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.Iterator;
 import java.util.List;
 
 public class CompoundOutputStream extends OutputStream {

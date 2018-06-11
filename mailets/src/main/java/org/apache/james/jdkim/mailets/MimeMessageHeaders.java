@@ -38,7 +38,6 @@ final class MimeMessageHeaders implements Headers {
     private final Map<String, List<String>> headers;
     private final List<String> fields;
 
-    @SuppressWarnings("unchecked")
     public MimeMessageHeaders(MimeMessage message)
             throws MessagingException {
         headers = new HashMap<String, List<String>>();

@@ -22,7 +22,6 @@ package org.apache.james.jdkim.canon;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
