@@ -27,8 +27,6 @@ import javax.mail.MessagingException;
 import javax.mail.Session;
 import javax.mail.internet.MimeMessage;
 
-import junit.framework.TestCase;
-
 import org.apache.james.jdkim.DKIMVerifier;
 import org.apache.james.jdkim.MockPublicKeyRecordRetriever;
 import org.apache.james.jdkim.exceptions.FailException;
@@ -109,7 +107,10 @@ public class DKIMVerifyTest {
             
         };
 
-        FakeMailetConfig mci = new FakeMailetConfig("Test", FakeMailContext.defaultContext());
+        FakeMailetConfig mci = FakeMailetConfig.builder()
+                .mailetName("Test")
+                .mailetContext(FakeMailContext.defaultContext())
+                .build();
 
         mailet.init(mci);
 

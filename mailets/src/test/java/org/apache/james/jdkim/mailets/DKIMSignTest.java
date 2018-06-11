@@ -72,13 +72,14 @@ public class DKIMSignTest {
 
         Mailet mailet = new DKIMSign();
 
-        FakeMailetConfig mci = new FakeMailetConfig("Test",
-            FAKE_MAIL_CONTEXT);
-        mci
+        FakeMailetConfig mci = FakeMailetConfig.builder()
+                .mailetName("Test")
+                .mailetContext(FAKE_MAIL_CONTEXT)
                 .setProperty(
                         "signatureTemplate",
-                        "v=1; s=selector; d=example.com; h=from:to:received:received; a=rsa-sha256; bh=; b=;");
-        mci.setProperty("privateKey", TESTING_PEM);
+                        "v=1; s=selector; d=example.com; h=from:to:received:received; a=rsa-sha256; bh=; b=;")
+                .setProperty("privateKey", TESTING_PEM)
+                .build();
 
         mailet.init(mci);
 
@@ -119,10 +120,14 @@ public class DKIMSignTest {
 
         Mailet mailet = new DKIMSign();
 
-        FakeMailetConfig mci = new FakeMailetConfig("Test", FAKE_MAIL_CONTEXT);
-        mci.setProperty("signatureTemplate",
-                "v=1; t=" + ((System.currentTimeMillis() / 1000) + 1000) + "; s=selector; d=example.com; h=from:to:received:received; a=rsa-sha256; bh=; b=;");
-        mci.setProperty("privateKey", TESTING_PEM);
+        FakeMailetConfig mci = FakeMailetConfig.builder()
+                .mailetName("Test")
+                .mailetContext(FAKE_MAIL_CONTEXT)
+                .setProperty(
+                        "signatureTemplate",
+                        "v=1; t=" + ((System.currentTimeMillis() / 1000) + 1000) + "; s=selector; d=example.com; h=from:to:received:received; a=rsa-sha256; bh=; b=;")
+                .setProperty("privateKey", TESTING_PEM)
+                .build();
 
         mailet.init(mci);
 
@@ -160,12 +165,14 @@ public class DKIMSignTest {
 
         Mailet mailet = new DKIMSign();
 
-        FakeMailetConfig mci = new FakeMailetConfig("Test", FAKE_MAIL_CONTEXT);
-        mci
+        FakeMailetConfig mci = FakeMailetConfig.builder()
+                .mailetName("Test")
+                .mailetContext(FAKE_MAIL_CONTEXT)
                 .setProperty(
                         "signatureTemplate",
-                        "v=1; t=; s=selector; d=example.com; h=from:to:received:received; a=rsa-sha256; bh=; b=;");
-        mci.setProperty("privateKey", TESTING_PEM);
+                        "v=1; t=; s=selector; d=example.com; h=from:to:received:received; a=rsa-sha256; bh=; b=;")
+                .setProperty("privateKey", TESTING_PEM)
+                .build();
 
         mailet.init(mci);
 
@@ -210,15 +217,14 @@ public class DKIMSignTest {
 
         Mailet mailet = new DKIMSign();
 
-        FakeMailetConfig mci = new FakeMailetConfig("Test", FAKE_MAIL_CONTEXT);
-        mci
+        FakeMailetConfig mci = FakeMailetConfig.builder()
+                .mailetName("Test")
+                .mailetContext(FAKE_MAIL_CONTEXT)
                 .setProperty(
                         "signatureTemplate",
-                        "v=1; s=selector; d=example.com; h=from:to:received:received; a=rsa-sha256; bh=; b=;");
-        mci
-                .setProperty(
-                        "privateKey",
-                        TESTING_PEM);
+                        "v=1; s=selector; d=example.com; h=from:to:received:received; a=rsa-sha256; bh=; b=;")
+                .setProperty("privateKey", TESTING_PEM)
+                .build();
 
         mailet.init(mci);
 
@@ -257,13 +263,15 @@ public class DKIMSignTest {
 
         FakeMailContext FakeMailContext = FAKE_MAIL_CONTEXT;
         FakeMailContext.getServerInfo();
-        FakeMailetConfig mci = new FakeMailetConfig("Test", FakeMailContext);
-        mci.setProperty(
-                "signatureTemplate",
-                "v=1; s=selector; d=example.com; h=from:to:received:received; a=rsa-sha256; bh=; b=;");
-        mci.setProperty(
-                "privateKey",
-                TESTING_PEM);
+
+        FakeMailetConfig mci = FakeMailetConfig.builder()
+                .mailetName("Test")
+                .mailetContext(FAKE_MAIL_CONTEXT)
+                .setProperty(
+                        "signatureTemplate",
+                        "v=1; s=selector; d=example.com; h=from:to:received:received; a=rsa-sha256; bh=; b=;")
+                .setProperty("privateKey", TESTING_PEM)
+                .build();
 
         Mail mail = FakeMail.builder()
             .mimeMessage(mm)
@@ -303,13 +311,15 @@ public class DKIMSignTest {
 
         FakeMailContext FakeMailContext = FAKE_MAIL_CONTEXT;
         FakeMailContext.getServerInfo();
-        FakeMailetConfig mci = new FakeMailetConfig("Test", FakeMailContext);
-        mci.setProperty(
-                "signatureTemplate",
-                "v=1; s=selector; d=example.com; h=from:to:received:received; a=rsa-sha256; bh=; b=;");
-        mci.setProperty(
-                "privateKey",
-                TESTING_PEM);
+
+        FakeMailetConfig mci = FakeMailetConfig.builder()
+                .mailetName("Test")
+                .mailetContext(FAKE_MAIL_CONTEXT)
+                .setProperty(
+                        "signatureTemplate",
+                        "v=1; s=selector; d=example.com; h=from:to:received:received; a=rsa-sha256; bh=; b=;")
+                .setProperty("privateKey", TESTING_PEM)
+                .build();
 
         Mail mail = FakeMail.builder()
             .mimeMessage(mm)
