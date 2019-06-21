@@ -83,7 +83,7 @@ public class TagValue {
         while (tStart < tStop
                 && (data.charAt(tStop) == ' ' || data.charAt(tStop) == '\t')) {
             tStop--;
-            if ((tStart <= tStop - 1 && data.charAt(tStop) == '\n' && data
+            while ((tStart <= tStop - 1 && data.charAt(tStop) == '\n' && data
                     .charAt(tStop - 1) == '\r')
                     || (tStart < tStop && (data.charAt(tStop) == ' ' || data
                             .charAt(tStop) == '\t'))) {

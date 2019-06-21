@@ -73,7 +73,7 @@ public class TagValueTest {
     @Test
     public void testInvalidFWSSyntax() {
         try {
-            new TagValue("p=test \r\n\r\n ");
+            new TagValue("p=test \r\n\r\n");
             Assert.fail("expecting WSP after CRLF to handle it as FWS");
         } catch (IllegalStateException e) {
         }
@@ -122,6 +122,8 @@ public class TagValueTest {
                 "p=ciao;s=cips;v=DKIM1;"));
         Assert.assertTrue(tagValuesEquals("p\r\n = ciao; s=cips\r\n\t; v=DKIM1;",
                 "p=ciao;s=cips;v=DKIM1;"));
+        Assert.assertTrue(tagValuesEquals("p=ciao\r\n\r\n  ; \r\n   s=cips\r\n\t; v=DKIM1;",
+            "p=ciao;s=cips;v=DKIM1;"));
     }
 
     @Test
