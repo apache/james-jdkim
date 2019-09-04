@@ -51,10 +51,6 @@
             <groupId>org.apache.james.jdkim</groupId>
             <artifactId>apache-jdkim-library</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.apache.james.jdkim</groupId>
-            <artifactId>apache-jdkim-mailets</artifactId>
-        </dependency>
     </dependencies>
 
     <build>
