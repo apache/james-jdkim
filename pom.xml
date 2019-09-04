@@ -71,7 +71,7 @@
         <dnsjava.version>2.1.9</dnsjava.version>
         <not-yet-commons-ssl.version>0.3.11</not-yet-commons-ssl.version>
         <apache-mime4j.version>0.8.1</apache-mime4j.version>
-        <log4j.version>1.2.16</log4j.version>
+        <log4j.version>2.12.1</log4j.version>
         <target.jdk>1.6</target.jdk>
         <james-skin.version>1.8</james-skin.version>
     </properties>
@@ -187,12 +187,6 @@
                 </exclusions>
             </dependency>
             <dependency>
-                <groupId>log4j</groupId>
-                <artifactId>log4j</artifactId>
-                <scope>runtime</scope>
-                <version>${log4j.version}</version>
-            </dependency>
-            <dependency>
                 <groupId>dnsjava</groupId>
                 <artifactId>dnsjava</artifactId>
                 <version>${dnsjava.version}</version>
@@ -213,6 +207,12 @@
                 <groupId>org.apache.james.jdkim</groupId>
                 <artifactId>apache-jdkim-mailets</artifactId>
                 <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-core</artifactId>
+                <scope>runtime</scope>
+                <version>${log4j.version}</version>
             </dependency>
             <dependency>
                 <groupId>ca.juliusdavies</groupId>
