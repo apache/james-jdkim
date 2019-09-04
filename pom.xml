@@ -65,7 +65,7 @@
         <junit.version>4.12</junit.version>
         <geronimo-activation.version>1.1</geronimo-activation.version>
         <geronimo-javamail.version>1.8.3</geronimo-javamail.version>
-        <commons-codec.version>1.7</commons-codec.version>
+        <commons-codec.version>1.13</commons-codec.version>
         <commons-logging.version>1.1.1</commons-logging.version>
         <apache-mailet.version>3.1.0-SNAPSHOT</apache-mailet.version>
         <dnsjava.version>2.1.1</dnsjava.version>
