@@ -39,9 +39,9 @@
     <inceptionYear>2009</inceptionYear>
 
     <modules>
-        <module>main</module>
-        <module>mailets</module>
         <module>assemble</module>
+        <module>mailets</module>
+        <module>main</module>
     </modules>
 
     <scm>
@@ -62,37 +62,26 @@
     </distributionManagement>
 
     <properties>
-        <junit.version>4.12</junit.version>
-        <geronimo-activation.version>1.1</geronimo-activation.version>
-        <geronimo-javamail.version>1.8.3</geronimo-javamail.version>
+        <apache-mailet.version>3.1.0-SNAPSHOT</apache-mailet.version>
+        <apache-mime4j.version>0.8.3</apache-mime4j.version>
         <commons-codec.version>1.13</commons-codec.version>
         <commons-logging.version>1.2</commons-logging.version>
-        <apache-mailet.version>3.1.0-SNAPSHOT</apache-mailet.version>
         <dnsjava.version>2.1.9</dnsjava.version>
-        <not-yet-commons-ssl.version>0.3.11</not-yet-commons-ssl.version>
-        <apache-mime4j.version>0.8.3</apache-mime4j.version>
-        <log4j.version>2.12.1</log4j.version>
-        <target.jdk>1.6</target.jdk>
+        <geronimo-activation.version>1.1</geronimo-activation.version>
+        <geronimo-javamail.version>1.8.3</geronimo-javamail.version>
         <james-skin.version>1.8</james-skin.version>
+        <junit.version>4.12</junit.version>
+        <log4j.version>2.12.1</log4j.version>
+        <not-yet-commons-ssl.version>0.3.11</not-yet-commons-ssl.version>
+        <target.jdk>1.6</target.jdk>
     </properties>
 
     <dependencyManagement>
         <dependencies>
             <dependency>
-                <groupId>junit</groupId>
-                <artifactId>junit</artifactId>
-                <version>${junit.version}</version>
-                <scope>test</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.geronimo.specs</groupId>
-                <artifactId>geronimo-activation_1.1_spec</artifactId>
-                <version>${geronimo-activation.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.geronimo.javamail</groupId>
-                <artifactId>geronimo-javamail_1.4_mail</artifactId>
-                <version>${geronimo-javamail.version}</version>
+                <groupId>ca.juliusdavies</groupId>
+                <artifactId>not-yet-commons-ssl</artifactId>
+                <version>${not-yet-commons-ssl.version}</version>
             </dependency>
             <dependency>
                 <groupId>commons-codec</groupId>
@@ -109,16 +98,52 @@
                         <artifactId>avalon-framework</artifactId>
                     </exclusion>
                     <exclusion>
-                        <groupId>logkit</groupId>
-                        <artifactId>logkit</artifactId>
-                    </exclusion>
-                    <exclusion>
                         <groupId>log4j</groupId>
                         <artifactId>log4j</artifactId>
                     </exclusion>
                     <exclusion>
+                        <groupId>logkit</groupId>
+                        <artifactId>logkit</artifactId>
+                    </exclusion>
+                    <exclusion>
                         <groupId>javax.servlet</groupId>
                         <artifactId>servlet-api</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>dnsjava</groupId>
+                <artifactId>dnsjava</artifactId>
+                <version>${dnsjava.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>junit</groupId>
+                <artifactId>junit</artifactId>
+                <version>${junit.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.geronimo.javamail</groupId>
+                <artifactId>geronimo-javamail_1.4_mail</artifactId>
+                <version>${geronimo-javamail.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.geronimo.specs</groupId>
+                <artifactId>geronimo-activation_1.1_spec</artifactId>
+                <version>${geronimo-activation.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.james</groupId>
+                <artifactId>apache-mailet-api</artifactId>
+                <version>${apache-mailet.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>javax.activation</groupId>
+                        <artifactId>activation</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>javax.mail</groupId>
+                        <artifactId>mail</artifactId>
                     </exclusion>
                 </exclusions>
             </dependency>
@@ -128,12 +153,29 @@
                 <version>${apache-mailet.version}</version>
                 <exclusions>
                     <exclusion>
+                        <groupId>javax.activation</groupId>
+                        <artifactId>activation</artifactId>
+                    </exclusion>
+                    <exclusion>
                         <groupId>javax.mail</groupId>
                         <artifactId>mail</artifactId>
                     </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.james</groupId>
+                <artifactId>apache-mailet-base</artifactId>
+                <version>${apache-mailet.version}</version>
+                <type>test-jar</type>
+                <scope>test</scope>
+                <exclusions>
                     <exclusion>
                         <groupId>javax.activation</groupId>
                         <artifactId>activation</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>javax.mail</groupId>
+                        <artifactId>mail</artifactId>
                     </exclusion>
                 </exclusions>
             </dependency>
@@ -156,40 +198,13 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.james</groupId>
-                <artifactId>apache-mailet-base</artifactId>
-                <version>${apache-mailet.version}</version>
-                <type>test-jar</type>
-                <scope>test</scope>
-                <exclusions>
-                    <exclusion>
-                        <groupId>javax.mail</groupId>
-                        <artifactId>mail</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>javax.activation</groupId>
-                        <artifactId>activation</artifactId>
-                    </exclusion>
-                </exclusions>
+                <artifactId>apache-mime4j-core</artifactId>
+                <version>${apache-mime4j.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.james</groupId>
-                <artifactId>apache-mailet-api</artifactId>
-                <version>${apache-mailet.version}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>javax.mail</groupId>
-                        <artifactId>mail</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>javax.activation</groupId>
-                        <artifactId>activation</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-            <dependency>
-                <groupId>dnsjava</groupId>
-                <artifactId>dnsjava</artifactId>
-                <version>${dnsjava.version}</version>
+                <artifactId>apache-mime4j-dom</artifactId>
+                <version>${apache-mime4j.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.james.jdkim</groupId>
@@ -214,21 +229,6 @@
                 <scope>runtime</scope>
                 <version>${log4j.version}</version>
             </dependency>
-            <dependency>
-                <groupId>ca.juliusdavies</groupId>
-                <artifactId>not-yet-commons-ssl</artifactId>
-                <version>${not-yet-commons-ssl.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.james</groupId>
-                <artifactId>apache-mime4j-core</artifactId>
-                <version>${apache-mime4j.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.james</groupId>
-                <artifactId>apache-mime4j-dom</artifactId>
-                <version>${apache-mime4j.version}</version>
-            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -249,6 +249,26 @@
                     <source>${target.jdk}</source>
                     <target>${target.jdk}</target>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-site-plugin</artifactId>
+                <version>3.7.1</version>
+                <executions>
+                    <execution>
+                        <id>attach-descriptor</id>
+                        <goals>
+                            <goal>attach-descriptor</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.apache.maven.wagon</groupId>
+                        <artifactId>wagon-ssh</artifactId>
+                        <version>3.3.3</version>
+                    </dependency>
+                </dependencies>
             </plugin>
             <plugin>
                 <groupId>org.apache.rat</groupId>
@@ -286,26 +306,6 @@
                         <exclude>src/test/resources/org/apache/james/jdkim/Mail-DKIM/corpus/*</exclude>
                     </excludes>
                 </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-site-plugin</artifactId>
-                <version>3.7.1</version>
-                <executions>
-                    <execution>
-                        <id>attach-descriptor</id>
-                        <goals>
-                            <goal>attach-descriptor</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <dependencies>
-                    <dependency>
-                        <groupId>org.apache.maven.wagon</groupId>
-                        <artifactId>wagon-ssh</artifactId>
-                        <version>3.3.3</version>
-                    </dependency>
-                </dependencies>
             </plugin>
         </plugins>
     </build>
