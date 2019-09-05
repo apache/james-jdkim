@@ -1,7 +1,9 @@
 JAMES jDKIM library
 -------------------
 
-Contains library and mailets dealing with crytography.
+Contains library dealing with crytography.
+
+The mailet has been moved to James project: https://github.com/apache/james-project/tree/master/server/mailet/dkim
 
 Cryptography Notice
 -------------------
