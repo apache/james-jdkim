@@ -1,0 +1,4 @@
+= Apache James JDKIM documentation
+
+
+TODO: This is a placeholder. Migrate older documentation.

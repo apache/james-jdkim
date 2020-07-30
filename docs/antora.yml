@@ -1,0 +1,4 @@
+name: jdkim
+title: Apache James JDKIM
+version: '0.3-SNAPSHOT'
+prerelease: true
