@@ -8,7 +8,7 @@
   "License"); you may not use this file except in compliance
   with the License.  You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+    https://www.apache.org/licenses/LICENSE-2.0
 
   Unless required by applicable law or agreed to in writing,
   software distributed under the License is distributed on an
@@ -28,7 +28,7 @@
   <bannerLeft>
     <name>JAMES jDKIM</name>
     <src>images/james-logo.png</src>
-    <href>http://james.apache.org/</href>
+    <href>https://james.apache.org/</href>
     <alt>james-logo.png</alt>
   </bannerLeft>
 
@@ -41,25 +41,25 @@
       <links>
           <item
                   name="Home"
-                  href="http://james.apache.org/index.html" />
+                  href="https://james.apache.org/index.html" />
           <item
                   name="Server"
-                  href="http://james.apache.org/documentation.html" />
+                  href="https://james.apache.org/documentation.html" />
           <item
                   name="Mime4J"
-                  href="http://james.apache.org/mime4j/index.html" />
+                  href="https://james.apache.org/mime4j/index.html" />
           <item
                   name="jSieve"
-                  href="http://james.apache.org/jsieve/index.html" />
+                  href="https://james.apache.org/jsieve/index.html" />
           <item
                   name="jSPF"
-                  href="http://james.apache.org/jspf/index.html" />
+                  href="https://james.apache.org/jspf/index.html" />
           <item
                   name="jDKIM"
-                  href="http://james.apache.org/jdkim/index.html" />
+                  href="https://james.apache.org/jdkim/index.html" />
           <item
                   name="Hupa"
-                  href="http://james.apache.org/hupa/index.html" />
+                  href="https://james.apache.org/hupa/index.html" />
       </links>
 
 
@@ -69,11 +69,11 @@
     	<item name="Mailets" href="/mailets/index.html" />
         <item name="Issue Tracker" href="https://issues.apache.org/jira/browse/JDKIM" />
         <item name="Related Projects" href="/index.html" collapse="true">
-          <item name="jSPF" href="http://james.apache.org/jspf/index.html" />
-          <item name="DKIM Javamail" href="http://dkim-javamail.sourceforge.net" />
-          <item name="JavaDKIM" href="http://www.badpenguin.co.uk/dkim/" />
+          <item name="jSPF" href="https://james.apache.org/jspf/index.html" />
+          <item name="DKIM Javamail" href="https://dkim-javamail.sourceforge.net" />
+          <item name="JavaDKIM" href="https://www.badpenguin.co.uk/dkim/" />
         </item>
-        <item name="Download Releases" href="http://james.apache.org/download.cgi#Apache_jDKIM"/>
+        <item name="Download Releases" href="https://james.apache.org/download.cgi#Apache_jDKIM"/>
     </menu>
 
   </body>
