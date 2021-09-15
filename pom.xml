@@ -62,7 +62,7 @@
 
     <properties>
         <apache-mime4j.version>0.8.3</apache-mime4j.version>
-        <commons-codec.version>1.13</commons-codec.version>
+        <commons-codec.version>1.15</commons-codec.version>
         <commons-logging.version>1.2</commons-logging.version>
         <dnsjava.version>3.4.1</dnsjava.version>
         <james-skin.version>1.8</james-skin.version>
