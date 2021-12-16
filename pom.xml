@@ -67,7 +67,7 @@
         <dnsjava.version>3.4.1</dnsjava.version>
         <james-skin.version>1.8</james-skin.version>
         <junit.version>4.13.2</junit.version>
-        <log4j.version>2.14.1</log4j.version>
+        <log4j.version>2.16.0</log4j.version>
         <not-yet-commons-ssl.version>0.3.11</not-yet-commons-ssl.version>
         <target.jdk>1.8</target.jdk>
     </properties>
