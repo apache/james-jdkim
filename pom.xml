@@ -67,7 +67,6 @@
         <dnsjava.version>3.4.1</dnsjava.version>
         <james-skin.version>1.8</james-skin.version>
         <junit.version>4.13.2</junit.version>
-        <log4j.version>2.14.1</log4j.version>
         <not-yet-commons-ssl.version>0.3.11</not-yet-commons-ssl.version>
         <target.jdk>1.8</target.jdk>
     </properties>
@@ -139,12 +138,6 @@
                 <version>${project.version}</version>
                 <type>test-jar</type>
                 <scope>test</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.logging.log4j</groupId>
-                <artifactId>log4j-core</artifactId>
-                <scope>runtime</scope>
-                <version>${log4j.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
