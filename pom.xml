@@ -44,9 +44,9 @@
     </modules>
 
     <scm>
-        <connection>scm:svn:http://svn.apache.org/repos/asf/james/jdkim/trunk</connection>
-        <developerConnection>scm:svn:https://svn.apache.org/repos/asf/james/jdkim/trunk</developerConnection>
-        <url>http://svn.apache.org/viewcvs.cgi/james/jdkim/trunk/?root=Apache-SVN</url>
+        <connection>scm:git:https://git-wip-us.apache.org/repos/asf/james-jdkim.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com/apache/james-jdkim.git</developerConnection>
+        <url>http://git-wip-us.apache.org/repos/asf/james-jdkim.git</url>
     </scm>
     <issueManagement>
         <system>JIRA</system>
