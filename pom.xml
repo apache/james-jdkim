@@ -64,7 +64,7 @@
         <apache-mime4j.version>0.8.10</apache-mime4j.version>
         <commons-codec.version>1.15</commons-codec.version>
         <commons-logging.version>1.2</commons-logging.version>
-        <dnsjava.version>3.4.1</dnsjava.version>
+        <dnsjava.version>3.6.0</dnsjava.version>
         <james-skin.version>1.8</james-skin.version>
         <junit.version>4.13.2</junit.version>
         <not-yet-commons-ssl.version>0.3.11</not-yet-commons-ssl.version>
