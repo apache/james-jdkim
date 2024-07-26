@@ -28,7 +28,6 @@
     </parent>
 
     <artifactId>apache-jdkim-library</artifactId>
-    <packaging>bundle</packaging>
 
     <name>Apache James :: jDKIM</name>
     <description>A Java implementation for the DKIM specification.</description>
