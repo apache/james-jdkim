@@ -23,7 +23,7 @@
     <parent>
         <artifactId>apache-jdkim-project</artifactId>
         <groupId>org.apache.james.jdkim</groupId>
-        <version>0.5-SNAPSHOT</version>
+        <version>0.4</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
