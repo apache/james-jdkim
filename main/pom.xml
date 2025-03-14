@@ -105,20 +105,6 @@
                                     <include>commons-codec:commons-codec</include>
                                 </includes>
                             </artifactSet>
-                            <filters>
-                                <filter>
-                                    <artifact>commons-codec:commons-codec</artifact>
-                                    <excludes>
-                                        <exclude>org/apache/commons/codec/String*</exclude>
-                                        <exclude>org/apache/commons/codec/language/*</exclude>
-                                        <exclude>org/apache/commons/codec/net/*</exclude>
-                                        <exclude>org/apache/commons/codec/digest/*</exclude>
-                                        <exclude>org/apache/commons/codec/binary/He*</exclude>
-                                        <exclude>org/apache/commons/codec/binary/Binary*</exclude>
-                                        <exclude>org/apache/commons/codec/binary/*Stream*</exclude>
-                                    </excludes>
-                                </filter>
-                            </filters>
                             <relocations>
                                 <relocation>
                                     <pattern>org.apache.commons.codec</pattern>
