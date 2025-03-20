@@ -246,13 +246,13 @@ public class DKIMVerifier extends DKIMCommon {
                 if (pos > 0) {
                     String v = signatureField.substring(pos + 1, signatureField
                             .length());
-                    SignatureRecord signatureRecord;
+                    SignatureRecord signatureRecord = null;
                     try {
                         signatureRecord = newSignatureRecord(v);
                         // validate
                         signatureRecord.validate();
                     } catch (IllegalStateException e) {
-                        throw new PermFailException("Invalid signature record: " + e.getMessage(), e);
+                        throw new PermFailException("Invalid signature record: " + e.getMessage(), signatureRecord, e);
                     }
 
                     // Specification say we MAY refuse to verify the signature.
@@ -261,22 +261,22 @@ public class DKIMVerifier extends DKIMCommon {
                         long elapsed = (System.currentTimeMillis() / 1000 - signedTime);
                         if (elapsed < -3600 * 24 * 365 * 3) {
                             throw new PermFailException("Signature date is more than "
-                                    + -elapsed / (3600 * 24 * 365) + " years in the future.");
+                                    + -elapsed / (3600 * 24 * 365) + " years in the future.", signatureRecord);
                         } else if (elapsed < -3600 * 24 * 30 * 3) {
                             throw new PermFailException("Signature date is more than "
-                                    + -elapsed / (3600 * 24 * 30) + " months in the future.");
+                                    + -elapsed / (3600 * 24 * 30) + " months in the future.", signatureRecord);
                         } else if (elapsed < -3600 * 24 * 3) {
                             throw new PermFailException("Signature date is more than "
-                                    + -elapsed / (3600 * 24) + " days in the future.");
+                                    + -elapsed / (3600 * 24) + " days in the future.", signatureRecord);
                         } else if (elapsed < -3600 * 3) {
                             throw new PermFailException("Signature date is more than "
-                                    + -elapsed / 3600 + " hours in the future.");
+                                    + -elapsed / 3600 + " hours in the future.", signatureRecord);
                         } else if (elapsed < -60 * 3) {
                             throw new PermFailException("Signature date is more than "
-                                    + -elapsed / 60 + " minutes in the future.");
+                                    + -elapsed / 60 + " minutes in the future.", signatureRecord);
                         } else if (elapsed < 0) {
                             throw new PermFailException("Signature date is "
-                                    + elapsed + " seconds in the future.");
+                                    + elapsed + " seconds in the future.", signatureRecord);
                         }
                     }
 
@@ -403,7 +403,7 @@ public class DKIMVerifier extends DKIMCommon {
                         .put(
                                 "DKIM-Signature:" + bhj.getSignatureRecord().toString(),
                                 new PermFailException(
-                                        "Computed bodyhash is different from the expected one"));
+                                        "Computed bodyhash is different from the expected one", bhj.getSignatureRecord()));
             } else {
                 verifiedSignatures.add(bhj.getSignatureRecord());
             }
@@ -475,7 +475,7 @@ public class DKIMVerifier extends DKIMCommon {
             try {
                 publicKey = key.getPublicKey();
             } catch (IllegalStateException e) {
-                throw new PermFailException("Invalid Public Key: " + e.getMessage(), e);
+                throw new PermFailException("Invalid Public Key: " + e.getMessage(), sign, e);
             }
             signature.initVerify(publicKey);
 
@@ -484,11 +484,11 @@ public class DKIMVerifier extends DKIMCommon {
             if (!signature.verify(decoded))
                 throw new PermFailException("Header signature does not verify", sign);
         } catch (InvalidKeyException e) {
-            throw new PermFailException(e.getMessage(), e);
+            throw new PermFailException(e.getMessage(), sign, e);
         } catch (NoSuchAlgorithmException e) {
-            throw new PermFailException(e.getMessage(), e);
+            throw new PermFailException(e.getMessage(), sign, e);
         } catch (SignatureException e) {
-            throw new PermFailException(e.getMessage(), e);
+            throw new PermFailException(e.getMessage(), sign, e);
         }
     }
 
