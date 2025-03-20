@@ -119,27 +119,27 @@ public class DKIMVerifier extends DKIMCommon {
                     .matches()) {
                 throw new PermFailException("inapplicable key identity local="
                         + sign.getIdentityLocalPart() + " Pattern: "
-                        + pkr.getGranularityPattern().pattern(), sign.getIdentity().toString());
+                        + pkr.getGranularityPattern().pattern(), sign);
             }
 
             if (!pkr.isHashMethodSupported(sign.getHashMethod())) {
                 throw new PermFailException("inappropriate hash for a="
-                        + sign.getHashKeyType() + "/" + sign.getHashMethod(), sign.getIdentity().toString());
+                        + sign.getHashKeyType() + "/" + sign.getHashMethod(), sign);
             }
             if (!pkr.isKeyTypeSupported(sign.getHashKeyType())) {
                 throw new PermFailException("inappropriate key type for a="
-                        + sign.getHashKeyType() + "/" + sign.getHashMethod(), sign.getIdentity().toString());
+                        + sign.getHashKeyType() + "/" + sign.getHashMethod(), sign);
             }
 
             if (pkr.isDenySubdomains()) {
                 if (!sign.getIdentity().toString().toLowerCase().endsWith(
                         ("@" + sign.getDToken()).toLowerCase())) {
                     throw new PermFailException(
-                            "AUID in subdomain of SDID is not allowed by the public key record.", sign.getIdentity().toString());
+                            "AUID in subdomain of SDID is not allowed by the public key record.", sign);
                 }
             }
         } catch (IllegalStateException e) {
-            throw new PermFailException("Invalid public key: " + e.getMessage(), sign.getIdentity().toString());
+            throw new PermFailException("Invalid public key: " + e.getMessage(), sign);
         }
     }
 
@@ -179,16 +179,16 @@ public class DKIMVerifier extends DKIMCommon {
         }
         if (key == null) {
             if (lastTempFailure != null) {
-                if (sign != null) lastTempFailure.setRelatedRecordIdentity(sign.getIdentity().toString());
+                if (sign != null) lastTempFailure.setRelatedRecord(sign);
                 throw lastTempFailure;
             } else if (lastPermFailure != null) {
-                if (sign != null) lastPermFailure.setRelatedRecordIdentity(sign.getIdentity().toString());
+                if (sign != null) lastPermFailure.setRelatedRecord(sign);
                 throw lastPermFailure;
             }            // this is unexpected because the publicKeySelector always returns
             // null or exception
             else {
                 throw new PermFailException(
-                        "no key for signature [unexpected condition]", sign.getIdentity().toString());
+                        "no key for signature [unexpected condition]", sign);
             }
         }
         return key;
@@ -482,7 +482,7 @@ public class DKIMVerifier extends DKIMCommon {
             signatureCheck(h, sign, headers, signature);
 
             if (!signature.verify(decoded))
-                throw new PermFailException("Header signature does not verify");
+                throw new PermFailException("Header signature does not verify", sign);
         } catch (InvalidKeyException e) {
             throw new PermFailException(e.getMessage(), e);
         } catch (NoSuchAlgorithmException e) {
