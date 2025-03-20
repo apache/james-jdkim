@@ -23,7 +23,9 @@ import org.apache.james.jdkim.api.BodyHasher;
 import org.apache.james.jdkim.api.Headers;
 import org.apache.james.jdkim.api.PublicKeyRecord;
 import org.apache.james.jdkim.api.PublicKeyRecordRetriever;
+import org.apache.james.jdkim.api.Result;
 import org.apache.james.jdkim.api.SignatureRecord;
+import org.apache.james.jdkim.exceptions.CompositeFailException;
 import org.apache.james.jdkim.exceptions.FailException;
 import org.apache.james.jdkim.exceptions.PermFailException;
 import org.apache.james.jdkim.exceptions.TempFailException;
@@ -42,6 +44,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.security.Signature;
 import java.security.SignatureException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -53,6 +56,7 @@ import java.util.Map;
 public class DKIMVerifier extends DKIMCommon {
 
     private final PublicKeyRecordRetriever publicKeyRecordRetriever;
+    private final List<Result> result = new ArrayList<>();
 
     public DKIMVerifier() {
         this.publicKeyRecordRetriever = new MultiplexingPublicKeyRecordRetriever(
@@ -209,9 +213,7 @@ public class DKIMVerifier extends DKIMCommon {
         try {
             try {
                 message = new Message(is);
-            } catch (RuntimeException e) {
-                throw e;
-            } catch (IOException e) {
+            } catch (RuntimeException | IOException e) {
                 throw e;
             } catch (Exception e1) {
                 // This can only be a MimeException but we don't declare to allow usage of
@@ -244,8 +246,7 @@ public class DKIMVerifier extends DKIMCommon {
             try {
                 int pos = signatureField.indexOf(':');
                 if (pos > 0) {
-                    String v = signatureField.substring(pos + 1, signatureField
-                            .length());
+                    String v = signatureField.substring(pos + 1);
                     SignatureRecord signatureRecord = null;
                     try {
                         signatureRecord = newSignatureRecord(v);
@@ -303,9 +304,7 @@ public class DKIMVerifier extends DKIMCommon {
                     throw new PermFailException(
                             "unexpected bad signature field");
                 }
-            } catch (TempFailException e) {
-                signatureExceptions.put(signatureField, e);
-            } catch (PermFailException e) {
+            } catch (TempFailException | PermFailException e) {
                 signatureExceptions.put(signatureField, e);
             } catch (RuntimeException e) {
                 signatureExceptions.put(signatureField, new PermFailException(
@@ -313,12 +312,8 @@ public class DKIMVerifier extends DKIMCommon {
             }
         }
 
-        if (bodyHashJobs.isEmpty()) {
-            if (signatureExceptions.size() > 0) {
-                throw prepareException(signatureExceptions);
-            } else {
-                throw new PermFailException("Unexpected condition with " + fields);
-            }
+        if (bodyHashJobs.isEmpty() && signatureExceptions.isEmpty()) {
+            throw new PermFailException("Unexpected condition with " + fields);
         }
 
         return new CompoundBodyHasher(bodyHashJobs, signatureExceptions);
@@ -409,28 +404,66 @@ public class DKIMVerifier extends DKIMCommon {
             }
         }
 
+        for(SignatureRecord s: verifiedSignatures) {
+            result.add(new Result(s));
+        }
+        result.addAll(resultsFromExceptions(compoundBodyHasher.getSignatureExceptions()));
+
         if (verifiedSignatures.isEmpty()) {
             throw prepareException(compoundBodyHasher.getSignatureExceptions());
         } else {
-            // There is no access to the signatureExceptions when
-            // there is at least one valid signature (JDKIM-14)
-            /*
-            for (Iterator i = signatureExceptions.keySet().iterator(); i
-                    .hasNext();) {
-                String f = (String) i.next();
-                System.out.println("DKIM-Error:"
-                        + ((FailException) signatureExceptions.get(f))
-                                .getMessage() + " FIELD: " + f);
-            }
-            */
-            /*
-            for (Iterator i = verifiedSignatures.iterator(); i.hasNext();) {
-                SignatureRecord sr = (SignatureRecord) i.next();
-                System.out.println("DKIM-Pass:" + sr);
-            }
-            */
             return verifiedSignatures;
         }
+    }
+
+    /**
+     * Return the results of all signature checks, success and fail.
+     *
+     * @return List of {@link Result} object.
+     */
+    public List<Result> getResults() {
+        return result;
+    }
+
+    /**
+     * Returns true when all signature verification are successful. A message without dkim-signature is considered a success.
+     *
+     * @return true when success
+     */
+    public boolean isSuccess() {
+        return result.stream().allMatch(Result::isSuccess);
+    }
+
+    /**
+     * Clears results list for the DKIMVerifier instance
+     */
+    public void resetResults() {
+        result.clear();
+    }
+
+    private List<Result> resultsFromExceptions(Map<String, FailException> exceptions) {
+        List<Result> results = new ArrayList<>();
+        for (Map.Entry<String, FailException> e : exceptions.entrySet()) {
+            SignatureRecord rec = e.getValue().getRelatedRecord();
+            if (rec == null) {
+                rec = new SignatureRecordImpl("v=1; d=invalid; h=from; s=invalid; b=invalidsig");
+            }
+
+            Result.Type resultType = Result.Type.NONE;
+            if (e.getValue() instanceof TempFailException) {
+                resultType = Result.Type.TEMPERROR;
+            } else if (e.getValue() instanceof PermFailException) {
+                if (e.getValue().getRelatedRecord() == null) {
+                    //FailException without the SignatureRecord
+                    resultType = Result.Type.PERMERROR;
+                } else {
+                    resultType = Result.Type.FAIL;
+                }
+            }
+            results.add(new Result(e.getValue().getMessage(), e.getKey() != null ? e.getKey() : "", rec, resultType));
+        }
+
+        return results;
     }
 
     /**
@@ -446,10 +479,7 @@ public class DKIMVerifier extends DKIMCommon {
             return signatureExceptions.values().iterator()
                     .next();
         } else {
-            // TODO loops signatureExceptions to give a more complete
-            // response, using nested exception or a compound exception.
-            // System.out.println(signatureExceptions);
-            return new PermFailException("found " + signatureExceptions.size()
+            return new CompositeFailException(signatureExceptions.values(), "found " + signatureExceptions.size()
                     + " invalid signatures");
         }
     }

@@ -60,6 +60,8 @@ public interface SignatureRecord {
     public abstract void validate();
 
     public abstract byte[] getSignature();
+
+    public abstract CharSequence getRawSignature();
     
     public abstract void setSignature(byte[] newSignature);
     

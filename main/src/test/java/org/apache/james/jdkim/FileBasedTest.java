@@ -209,7 +209,9 @@ public class FileBasedTest extends TestCase {
                 "k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC1CTqmkuRWkxlHcv1peAz3c0RuXHthVO1xx1Hy4HryZUJwSJo/R3cnEwKorQvlRuDSMgXSLLxI8u6n7h6mzRmHdsS/A+pKc7nx/6WS4N6U57PSNqOclxfwa27m/EIL6KTk9KDhaKsXxquQUBkP1CQEUZHPhQ/t7s4dmU/kvGFgNQIDAQAB");
 
         try {
-            List<SignatureRecord> res = new DKIMVerifier(pkr).verify(is);
+            DKIMVerifier verifier = new DKIMVerifier(pkr);
+            List<SignatureRecord> res = verifier.verify(is);
+            assertEquals(1, verifier.getResults().size());
             if (getName().startsWith("NONE_"))
                 assertNull(res);
             if (getName().startsWith("FAIL_"))

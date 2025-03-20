@@ -22,6 +22,7 @@ package org.apache.james.jdkim;
 import junit.framework.Test;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
+import org.apache.james.jdkim.api.Result;
 import org.apache.james.jdkim.api.SignatureRecord;
 import org.apache.james.jdkim.exceptions.FailException;
 
@@ -111,7 +112,26 @@ public class PerlDKIMTest extends TestCase {
             expectFailure = true;
 
         try {
-            List<SignatureRecord> res = new DKIMVerifier(pkr).verify(is);
+            DKIMVerifier verifier = new DKIMVerifier(pkr);
+            List<SignatureRecord> res = verifier.verify(is);
+
+            if (getName().matches("good_dk_7|good_dk_6|dk_headers_2|good_dk_3")
+                || getName().matches("|good_dk_gmail|dk_headers_1|good_dk_5|good_dk_4")
+                    || getName().matches("good_dk_2|good_dk_yahoo|bad_dk_1|bad_dk_2|good_dk_1|dk_multiple_1")) {
+                assertEquals(0, verifier.getResults().size());
+            } else if (getName().equals("multiple_2")) {
+                assertEquals(4, verifier.getResults().size());
+                assertEquals(1, verifier.getResults().stream().filter(r -> r.getResultType() == Result.Type.PASS).count());
+                assertEquals(1, verifier.getResults().stream().filter(r -> r.getResultType() == Result.Type.FAIL).count());
+                assertEquals(2, verifier.getResults().stream().filter(r -> r.getResultType() == Result.Type.PERMERROR).count());
+                assertEquals(1, verifier.getResults().stream().filter(r -> r.getResultType() == Result.Type.PASS
+                        && r.getHeaderText().equals("dkim=pass header.d=messiah.edu header.s=selector1 header.b=keocS8z7y+ut")).count());
+                assertEquals(1, verifier.getResults().stream().filter(r -> r.getResultType() == Result.Type.FAIL
+                        && r.getHeaderText().equals("dkim=fail header.d=messiah.edu header.s=selector1 header.b=shouldfailut")).count());
+            } else {
+                assertEquals(1, verifier.getResults().size());
+            }
+            assertTrue(verifier.getResults().stream().allMatch(f  -> f.getRecord().getRawSignature() != null));
             if (expectNull)
                 assertNull(res);
             if (expectFailure)

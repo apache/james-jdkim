@@ -284,6 +284,10 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
         return Base64.decodeBase64(getValue("b").toString().getBytes());
     }
 
+    public CharSequence getRawSignature() {
+        return getValue("b");
+    }
+
     public int getBodyHashLimit() {
         String limit = getValue("l").toString();
         if (ALL.equals(limit))
