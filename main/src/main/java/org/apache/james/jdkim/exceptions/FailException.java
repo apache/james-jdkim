@@ -19,11 +19,13 @@
 
 package org.apache.james.jdkim.exceptions;
 
+import org.apache.james.jdkim.api.SignatureRecord;
+
 public class FailException extends Exception {
 
     private static final long serialVersionUID = 1584103235607992818L;
 
-    private String relatedRecordIdentity = null;
+    private SignatureRecord relatedRecord = null;
 
     public FailException(String error) {
         super(error);
@@ -34,10 +36,17 @@ public class FailException extends Exception {
     }
 
     public String getRelatedRecordIdentity() {
-        return relatedRecordIdentity;
+        if(relatedRecord != null) {
+            return relatedRecord.getIdentity().toString();
+        }
+        return null;
     }
 
-    public void setRelatedRecordIdentity(String relatedRecordIdentity) {
-        this.relatedRecordIdentity = relatedRecordIdentity;
+    public SignatureRecord getRelatedRecord() {
+        return relatedRecord;
+    }
+
+    public void setRelatedRecord(SignatureRecord relatedRecord) {
+        this.relatedRecord = relatedRecord;
     }
 }
