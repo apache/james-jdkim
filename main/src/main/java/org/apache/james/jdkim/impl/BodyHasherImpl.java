@@ -45,13 +45,13 @@ public class BodyHasherImpl implements BodyHasher {
             md = MessageDigest.getInstance(sign.getHashAlgo().toString());
         } catch (NoSuchAlgorithmException e) {
             throw new PermFailException("Unsupported algorythm: "
-                    + sign.getHashAlgo(), e);
+                    + sign.getHashAlgo(), sign, e);
         }
         
         try {
             sign.validate();
         } catch (IllegalStateException e) {
-            throw new PermFailException("Invalid signature template", e);
+            throw new PermFailException("Invalid signature template", sign, e);
         }
 
         int limit = sign.getBodyHashLimit();
@@ -65,7 +65,7 @@ public class BodyHasherImpl implements BodyHasher {
                         .getBodyCanonicalisationMethod())) {
             throw new PermFailException(
                     "Unsupported body canonicalization method: "
-                            + sign.getBodyCanonicalisationMethod());
+                            + sign.getBodyCanonicalisationMethod(), sign);
         }
 
         DigestOutputStream dout = new DigestOutputStream(md);

@@ -121,12 +121,12 @@ public class DKIMSigner extends DKIMCommon {
 
             return "DKIM-Signature:" + bhj.getSignatureRecord().toString();
         } catch (InvalidKeyException e) {
-            throw new PermFailException("Invalid key: " + e.getMessage(), e);
+            throw new PermFailException("Invalid key: " + e.getMessage(), bhj.getSignatureRecord(), e);
         } catch (NoSuchAlgorithmException e) {
-            throw new PermFailException("Unknown algorythm: " + e.getMessage(),
+            throw new PermFailException("Unknown algorythm: " + e.getMessage(), bhj.getSignatureRecord(),
                     e);
         } catch (SignatureException e) {
-            throw new PermFailException("Signing exception: " + e.getMessage(),
+            throw new PermFailException("Signing exception: " + e.getMessage(), bhj.getSignatureRecord(),
                     e);
         }
     }
