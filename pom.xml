@@ -63,7 +63,6 @@
     <properties>
         <apache-mime4j.version>0.8.11</apache-mime4j.version>
         <commons-codec.version>1.17.1</commons-codec.version>
-        <commons-logging.version>1.3.3</commons-logging.version>
         <dnsjava.version>3.6.0</dnsjava.version>
         <james-skin.version>1.8</james-skin.version>
         <junit.version>4.13.2</junit.version>
@@ -82,29 +81,6 @@
                 <groupId>commons-codec</groupId>
                 <artifactId>commons-codec</artifactId>
                 <version>${commons-codec.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>commons-logging</groupId>
-                <artifactId>commons-logging</artifactId>
-                <version>${commons-logging.version}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>avalon-framework</groupId>
-                        <artifactId>avalon-framework</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>log4j</groupId>
-                        <artifactId>log4j</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>logkit</groupId>
-                        <artifactId>logkit</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>javax.servlet</groupId>
-                        <artifactId>servlet-api</artifactId>
-                    </exclusion>
-                </exclusions>
             </dependency>
             <dependency>
                 <groupId>dnsjava</groupId>
