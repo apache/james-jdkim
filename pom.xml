@@ -61,7 +61,7 @@
     </distributionManagement>
 
     <properties>
-        <apache-mime4j.version>0.8.11</apache-mime4j.version>
+        <apache-mime4j.version>0.8.12</apache-mime4j.version>
         <commons-codec.version>1.17.1</commons-codec.version>
         <dnsjava.version>3.6.0</dnsjava.version>
         <james-skin.version>1.8</james-skin.version>
