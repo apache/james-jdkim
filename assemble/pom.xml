@@ -35,10 +35,6 @@
 
     <dependencies>
         <dependency>
-            <groupId>ca.juliusdavies</groupId>
-            <artifactId>not-yet-commons-ssl</artifactId>
-        </dependency>
-        <dependency>
             <groupId>dnsjava</groupId>
             <artifactId>dnsjava</artifactId>
         </dependency>
