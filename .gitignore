@@ -1,3 +1,7 @@
 .idea
-target
 *.iml
+/main/dependency-reduced-pom.xml
+/assemble/target
+/target
+/main/target
+
