@@ -48,8 +48,8 @@ public class TagValue {
     // we may use a TreeMap because we may need to know original order.
     private final Map<String, CharSequence> tagValues;
 
-    protected final Set<String> mandatoryTags = new HashSet<String>();
-    protected final Map<String, CharSequence> defaults = new HashMap<String, CharSequence>();
+    protected final Set<String> mandatoryTags = new HashSet<>();
+    protected final Map<String, CharSequence> defaults = new HashMap<>();
     private String stringRepresentation = null;
 
     protected Set<String> tagSet() {
@@ -125,7 +125,7 @@ public class TagValue {
     protected Map<String, CharSequence> newTagValue() {
         // extensions may override this to use TreeMaps in order to keep track
         // of orders
-        return new HashMap<String, CharSequence>();
+        return new HashMap<>();
     }
 
     protected void init() {
@@ -144,7 +144,7 @@ public class TagValue {
                 // TODO check whether this is correct or not
                 // this allow FWS/WSP after the final ";"
                 String rest = data.substring(i);
-                if (rest.length() > 0
+                if (!rest.isEmpty()
                         && trimFWS(rest, 0, rest.length() - 1, true).length() > 0) {
                     throw new IllegalStateException(
                             "Unexpected termination at position " + i + ": "
@@ -204,11 +204,8 @@ public class TagValue {
             return false;
         TagValue other = (TagValue) obj;
         if (tagValues == null) {
-            if (other.tagValues != null)
-                return false;
-        } else if (!tagValues.equals(other.tagValues))
-            return false;
-        return true;
+            return other.tagValues == null;
+        } else return tagValues.equals(other.tagValues);
     }
 
     public Set<String> getTags() {
@@ -242,7 +239,7 @@ public class TagValue {
     }
 
     protected List<CharSequence> stringToColonSeparatedList(String h, Pattern pattern) {
-        List<CharSequence> headers = new ArrayList<CharSequence>();
+        List<CharSequence> headers = new ArrayList<>();
         for (int i = 0; i < h.length(); i++) {
             int p = h.indexOf(':', i);
             if (p == -1)

@@ -75,12 +75,12 @@ public abstract class DKIMCommon {
         // NOTE: this could be improved by using iterators.
         // NOTE: this relies on the list returned by Message being in insertion
         // order
-        Map<String, Integer> processedHeader = new HashMap<String, Integer>();
+        Map<String, Integer> processedHeader = new HashMap<>();
 
         for (CharSequence header : headers) {
             // NOTE check this getter is case insensitive
             List<String> hl = h.getFields(header.toString());
-            if (hl != null && hl.size() > 0) {
+            if (hl != null && !hl.isEmpty()) {
                 String lowerCaseHeader = header.toString().toLowerCase(Locale.US);
                 Integer done = processedHeader.get(lowerCaseHeader);
                 if (done == null)

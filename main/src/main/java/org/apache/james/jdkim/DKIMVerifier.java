@@ -152,8 +152,8 @@ public class DKIMVerifier extends DKIMCommon {
      *
      * @param sign the signature record
      * @return an "applicable" PublicKeyRecord
-     * @throws TempFailException
-     * @throws PermFailException
+     * @throws TempFailException For temporary error
+     * @throws PermFailException For unrecoverable failure
      */
     public PublicKeyRecord publicRecordLookup(SignatureRecord sign)
             throws TempFailException, PermFailException {
@@ -183,10 +183,10 @@ public class DKIMVerifier extends DKIMCommon {
         }
         if (key == null) {
             if (lastTempFailure != null) {
-                if (sign != null) lastTempFailure.setRelatedRecord(sign);
+                lastTempFailure.setRelatedRecord(sign);
                 throw lastTempFailure;
             } else if (lastPermFailure != null) {
-                if (sign != null) lastPermFailure.setRelatedRecord(sign);
+                lastPermFailure.setRelatedRecord(sign);
                 throw lastPermFailure;
             }            // this is unexpected because the publicKeySelector always returns
             // null or exception
@@ -204,7 +204,7 @@ public class DKIMVerifier extends DKIMCommon {
      *
      * @param is inputStream
      * @return a list of verified signature records.
-     * @throws IOException
+     * @throws IOException If error occurs handling data
      * @throws FailException if no signature can be verified
      */
     public List<SignatureRecord> verify(InputStream is) throws IOException,
@@ -240,8 +240,8 @@ public class DKIMVerifier extends DKIMCommon {
         // For each DKIM-signature we prepare an hashjob.
         // We calculate all hashes concurrently so to read
         // the inputstream only once.
-        Map<String, BodyHasherImpl> bodyHashJobs = new HashMap<String, BodyHasherImpl>();
-        Hashtable<String, FailException> signatureExceptions = new Hashtable<String, FailException>();
+        Map<String, BodyHasherImpl> bodyHashJobs = new HashMap<>();
+        Hashtable<String, FailException> signatureExceptions = new Hashtable<>();
         for (String signatureField : fields) {
             try {
                 int pos = signatureField.indexOf(':');
@@ -326,7 +326,7 @@ public class DKIMVerifier extends DKIMCommon {
      * @param messageHeaders  parsed headers
      * @param bodyInputStream input stream for the body.
      * @return a list of verified signature records
-     * @throws IOException
+     * @throws IOException If error occurs handling data
      * @throws FailException if no signature can be verified
      */
     public List<SignatureRecord> verify(Headers messageHeaders,
@@ -388,7 +388,7 @@ public class DKIMVerifier extends DKIMCommon {
      */
     private List<SignatureRecord> verify(CompoundBodyHasher compoundBodyHasher)
             throws FailException {
-        List<SignatureRecord> verifiedSignatures = new LinkedList<SignatureRecord>();
+        List<SignatureRecord> verifiedSignatures = new LinkedList<>();
         for (BodyHasherImpl bhj : compoundBodyHasher.getBodyHashJobs().values()) {
             byte[] computedHash = bhj.getDigest();
             byte[] expectedBodyHash = bhj.getSignatureRecord().getBodyHash();
@@ -492,7 +492,7 @@ public class DKIMVerifier extends DKIMCommon {
      * @param decoded the expected signature hash
      * @param key     the DKIM public key record
      * @param headers the list of signed headers
-     * @throws PermFailException
+     * @throws PermFailException If signature or public key validation fails
      */
     private void signatureVerify(Headers h, SignatureRecord sign,
                                  byte[] decoded, PublicKeyRecord key, List<CharSequence> headers)
@@ -513,11 +513,7 @@ public class DKIMVerifier extends DKIMCommon {
 
             if (!signature.verify(decoded))
                 throw new PermFailException("Header signature does not verify", sign);
-        } catch (InvalidKeyException e) {
-            throw new PermFailException(e.getMessage(), sign, e);
-        } catch (NoSuchAlgorithmException e) {
-            throw new PermFailException(e.getMessage(), sign, e);
-        } catch (SignatureException e) {
+        } catch (InvalidKeyException | NoSuchAlgorithmException | SignatureException e) {
             throw new PermFailException(e.getMessage(), sign, e);
         }
     }

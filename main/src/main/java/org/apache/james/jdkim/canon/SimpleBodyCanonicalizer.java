@@ -45,7 +45,7 @@ public class SimpleBodyCanonicalizer extends FilterOutputStream {
             System.out.println("I:(" + lastWasCR + "|" + countCRLF + ") ["
                     + new String(b, off, len) + "]");
         if (lastWasCR) {
-            if (len > 0 && b[off] == '\n') {
+            if (b[off] == '\n') {
                 countCRLF++;
                 lastWasCR = false;
                 off++;
@@ -77,7 +77,7 @@ public class SimpleBodyCanonicalizer extends FilterOutputStream {
 
     public void write(int b) throws IOException {
         if (DEEP_DEBUG)
-            System.out.println("B:(" + lastWasCR + "|" + countCRLF + ") [" + "" + (char) b + "]");
+            System.out.println("B:(" + lastWasCR + "|" + countCRLF + ") [" + (char) b + "]");
         if (lastWasCR && '\n' == b) {
             lastWasCR = false;
             countCRLF++;

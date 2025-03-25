@@ -31,11 +31,9 @@ import org.apache.james.jdkim.exceptions.FailException;
 
 /**
  * CompoundBodyHasher is used for verification purpose.
- * 
  * It contains a compund output stream that will calculate
  * the body hash for multiple signatures.
- * 
- * This object is a container for "bodyHashJobs" and 
+ * This object is a container for "bodyHashJobs" and
  * "signatureExceptions" for 2-stage verification process.
  */
 public class CompoundBodyHasher implements BodyHasher {
@@ -52,7 +50,7 @@ public class CompoundBodyHasher implements BodyHasher {
             o = bodyHashJobs.values().iterator().next()
                     .getOutputStream();
         } else {
-            List<OutputStream> outputStreams = new LinkedList<OutputStream>();
+            List<OutputStream> outputStreams = new LinkedList<>();
             for (BodyHasherImpl bhj : bodyHashJobs.values()) {
                 outputStreams.add(bhj.getOutputStream());
             }

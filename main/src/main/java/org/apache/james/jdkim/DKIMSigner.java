@@ -65,9 +65,7 @@ public class DKIMSigner extends DKIMCommon {
         try {
             try {
                 message = new Message(is);
-            } catch (RuntimeException e) {
-                throw e;
-            } catch (IOException e) {
+            } catch (RuntimeException | IOException e) {
                 throw e;
             } catch (Exception e1) {
                 // This can only be a MimeException but we don't declare to allow usage of

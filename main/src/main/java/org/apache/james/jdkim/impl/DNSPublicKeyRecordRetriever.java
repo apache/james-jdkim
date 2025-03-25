@@ -79,7 +79,6 @@ public class DNSPublicKeyRecordRetriever implements PublicKeyRecordRetriever {
      * @param rr Record array
      * @return list
      */
-    @SuppressWarnings("unchecked")
     public static List<String> convertRecordsToList(Record[] rr) {
         List<String> records;
         if (rr != null && rr.length > 0) {
