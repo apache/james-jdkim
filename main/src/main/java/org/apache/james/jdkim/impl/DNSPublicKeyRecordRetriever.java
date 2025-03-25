@@ -19,8 +19,10 @@
 
 package org.apache.james.jdkim.impl;
 
-import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.apache.james.jdkim.api.PublicKeyRecordRetriever;
 import org.apache.james.jdkim.exceptions.PermFailException;
@@ -46,7 +48,7 @@ public class DNSPublicKeyRecordRetriever implements PublicKeyRecordRetriever {
     }
 
     /**
-     * @see org.apache.james.jdkim.api.PublicKeyRecordRetriever#getRecords(java.lang.CharSequence, java.lang.CharSequence, java.lang.CharSequence)
+     * {@inheritDoc}
      */
     public List<String> getRecords(CharSequence methodAndOptions,
                                    CharSequence selector, CharSequence token)
@@ -54,66 +56,27 @@ public class DNSPublicKeyRecordRetriever implements PublicKeyRecordRetriever {
         if (!"dns/txt".equals(methodAndOptions))
             throw new PermFailException("Only dns/txt is supported: "
                     + methodAndOptions + " options unsupported.");
+        Lookup query;
         try {
-            Lookup query = new Lookup(selector + "._domainkey." + token,
-                    Type.TXT);
-            query.setResolver(resolver);
-
-            Record[] rr = query.run();
-            int queryResult = query.getResult();
-
-            if (queryResult == Lookup.TRY_AGAIN) {
-                throw new TempFailException(query.getErrorString());
-            }
-
-            return convertRecordsToList(rr);
+            query = new Lookup(selector + "._domainkey." + token, Type.TXT);
         } catch (TextParseException e) {
-            // TODO log
-            return null;
+            throw new PermFailException("Invalid dns record", e);
         }
-    }
+        query.setResolver(resolver);
 
-    /**
-     * Convert the given TXT Record array to a String List
-     *
-     * @param rr Record array
-     * @return list
-     */
-    public static List<String> convertRecordsToList(Record[] rr) {
-        List<String> records;
-        if (rr != null && rr.length > 0) {
-            records = new ArrayList<String>();
-            for (Record aRr : rr) {
-                switch (aRr.getType()) {
-                    case Type.TXT:
-                        TXTRecord txt = (TXTRecord) aRr;
-                        if (txt.getStrings().size() == 1) {
-                            // This was required until dnsjava 2.0.6 because dnsjava
-                            // was escaping
-                            // the result like it was doublequoted (JDKIM-7).
-                            // records.add(((String)txt.getStrings().get(0)).replaceAll("\\\\",
-                            // ""));
-                            records.add(((String) txt.getStrings().get(0)));
-                        } else {
-                            StringBuilder sb = new StringBuilder();
-                            for (String k : (Iterable<String>) txt.getStrings()) {
-                                // This was required until dnsjava 2.0.6 because
-                                // dnsjava was escaping
-                                // the result like it was doublequoted (JDKIM-7).
-                                // k = k.replaceAll("\\\\", "");
-                                sb.append(k);
-                            }
-                            records.add(sb.toString());
-                        }
-                        break;
-                    default:
-                        return null;
-                }
-            }
-        } else {
-            records = null;
+        Record[] rr = query.run();
+
+        if (query.getResult() == Lookup.TRY_AGAIN) {
+            throw new TempFailException(query.getErrorString());
         }
-        return records;
-    }
 
+        if (rr == null || rr.length == 0) {
+            return Collections.emptyList();
+        }
+
+        return Arrays.stream(rr)
+                .filter(r -> r.getType() == Type.TXT)
+                .map(r -> String.join("", ((TXTRecord) r).getStrings()))
+                .collect(Collectors.toList());
+    }
 }
