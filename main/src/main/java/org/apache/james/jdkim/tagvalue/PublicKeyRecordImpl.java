@@ -131,7 +131,7 @@ public class PublicKeyRecordImpl extends TagValue implements PublicKeyRecord {
                 throw new IllegalStateException("Syntax error in granularity: "
                         + g);
         }
-        if (g.length() == 0) {
+        if (g.isEmpty()) {
             // TODO this works but smells too much as an hack.
             // in case of "g=" with nothing specified then we return a pattern
             // that won't match
@@ -156,7 +156,7 @@ public class PublicKeyRecordImpl extends TagValue implements PublicKeyRecord {
     public List<CharSequence> getFlags() {
         String flags = getValue("t").toString();
         String[] flagsStrings = flags.split(":");
-        List<CharSequence> res = new ArrayList<CharSequence>();
+        List<CharSequence> res = new ArrayList<>();
         for (String flagsString : flagsStrings) {
             res.add(trimFWS(flagsString, 0, flagsString.length() - 1,
                     true));

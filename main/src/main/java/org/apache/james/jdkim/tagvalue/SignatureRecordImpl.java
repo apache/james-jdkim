@@ -325,7 +325,7 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
     public List<CharSequence> getRecordLookupMethods() {
         String flags = getValue("q").toString();
         String[] flagsStrings = flags.split(":");
-        List<CharSequence> res = new LinkedList<CharSequence>();
+        List<CharSequence> res = new LinkedList<>();
         for (String flagsString : flagsStrings) {
             // TODO add validation method[/option]
             // if (VALIDATION)
@@ -345,7 +345,7 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
         setValue("bh", bodyHash);
         // If a t=; parameter is present in the signature, make sure to 
         // fill it with the current timestamp
-        if (getValue("t") != null && getValue("t").toString().trim().length() == 0) {
+        if (getValue("t") != null && getValue("t").toString().trim().isEmpty()) {
             setValue("t", "" + (System.currentTimeMillis() / 1000));
         }
     }

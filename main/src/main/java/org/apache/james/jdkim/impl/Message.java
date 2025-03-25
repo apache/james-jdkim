@@ -41,7 +41,7 @@ import java.util.List;
  */
 public class Message implements Headers {
 
-    private org.apache.james.mime4j.dom.Message message;
+    private final org.apache.james.mime4j.dom.Message message;
 
     /**
      * Creates a new <code>Header</code> from the specified stream.
@@ -87,7 +87,7 @@ public class Message implements Headers {
     }
 
     private List<String> convertFields(List<Field> res) {
-        List<String> res2 = new LinkedList<String>();
+        List<String> res2 = new LinkedList<>();
         MessageWriter mw;
         try {
             mw = newMessageBuilder().newMessageWriter();
@@ -102,7 +102,7 @@ public class Message implements Headers {
                 // writeField always ends with CRLF and we don't want it.
                 byte[] fieldbytes = bos.toByteArray();
                 field = new String(fieldbytes, 0, fieldbytes.length - 2);
-            } catch (IOException e) {
+            } catch (IOException ignored) {
             }
             res2.add(field);
         }

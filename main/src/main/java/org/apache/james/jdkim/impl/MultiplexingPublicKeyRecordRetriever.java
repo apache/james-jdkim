@@ -33,7 +33,7 @@ public class MultiplexingPublicKeyRecordRetriever implements
     private final Map<String, PublicKeyRecordRetriever> retrievers;
 
     public MultiplexingPublicKeyRecordRetriever() {
-        retrievers = new HashMap<String, PublicKeyRecordRetriever>();
+        retrievers = new HashMap<>();
     }
 
     public MultiplexingPublicKeyRecordRetriever(String methodName,
