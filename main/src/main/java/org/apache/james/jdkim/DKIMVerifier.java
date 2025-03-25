@@ -312,10 +312,6 @@ public class DKIMVerifier extends DKIMCommon {
             }
         }
 
-        if (bodyHashJobs.isEmpty() && signatureExceptions.isEmpty()) {
-            throw new PermFailException("Unexpected condition with " + fields);
-        }
-
         return new CompoundBodyHasher(bodyHashJobs, signatureExceptions);
     }
 
