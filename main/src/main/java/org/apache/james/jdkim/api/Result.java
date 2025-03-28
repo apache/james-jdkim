@@ -112,7 +112,7 @@ public class Result {
                     reasonMsg = "valid signature";
                     break;
                 case NONE:
-                    reasonMsg = "not signed";
+                    reasonMsg = "unknown error";
                     break;
                 default:
                     reasonMsg = errorMessage != null ? errorMessage : "";
@@ -147,7 +147,7 @@ public class Result {
      * @return Returns true if success
      */
     public boolean isSuccess() {
-        return type == Type.PASS || type == Type.NONE || type == Type.NEUTRAL;
+        return type == Type.PASS;
     }
 
     /**
