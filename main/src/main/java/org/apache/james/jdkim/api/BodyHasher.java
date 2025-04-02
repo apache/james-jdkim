@@ -23,6 +23,6 @@ import java.io.OutputStream;
 
 public interface BodyHasher {
 
-    public abstract OutputStream getOutputStream();
+    OutputStream getOutputStream();
 
 }
