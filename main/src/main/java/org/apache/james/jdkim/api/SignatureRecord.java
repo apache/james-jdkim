@@ -27,48 +27,48 @@ import java.util.List;
  */
 public interface SignatureRecord {
 
-    public final static String RELAXED = "relaxed";
-    public final static String SIMPLE = "simple";
-    public final static String ALL = ";all;";
+    String RELAXED = "relaxed";
+    String SIMPLE = "simple";
+    String ALL = ";all;";
 
-    public abstract List<CharSequence> getHeaders();
+    List<CharSequence> getHeaders();
 
-    public abstract CharSequence getIdentityLocalPart();
+    CharSequence getIdentityLocalPart();
 
-    public abstract CharSequence getIdentity();
+    CharSequence getIdentity();
 
-    public abstract CharSequence getHashKeyType();
+    CharSequence getHashKeyType();
 
-    public abstract CharSequence getHashMethod();
+    CharSequence getHashMethod();
 
-    public abstract CharSequence getHashAlgo();
+    CharSequence getHashAlgo();
 
-    public abstract CharSequence getSelector();
+    CharSequence getSelector();
 
-    public abstract CharSequence getDToken();
+    CharSequence getDToken();
 
-    public abstract byte[] getBodyHash();
+    byte[] getBodyHash();
 
-    public abstract int getBodyHashLimit();
+    int getBodyHashLimit();
 
-    public abstract String getHeaderCanonicalisationMethod();
+    String getHeaderCanonicalisationMethod();
 
-    public abstract String getBodyCanonicalisationMethod();
+    String getBodyCanonicalisationMethod();
 
-    public abstract List<CharSequence> getRecordLookupMethods();
+    List<CharSequence> getRecordLookupMethods();
 
-    public abstract void validate();
+    void validate();
 
-    public abstract byte[] getSignature();
+    byte[] getSignature();
 
-    public abstract CharSequence getRawSignature();
+    CharSequence getRawSignature();
     
-    public abstract void setSignature(byte[] newSignature);
+    void setSignature(byte[] newSignature);
     
-    public abstract void setBodyHash(byte[] newBodyHash);
+    void setBodyHash(byte[] newBodyHash);
     
-    public abstract String toUnsignedString();
+    String toUnsignedString();
 
-    public abstract Long getSignatureTimestamp();
+    Long getSignatureTimestamp();
 
 }

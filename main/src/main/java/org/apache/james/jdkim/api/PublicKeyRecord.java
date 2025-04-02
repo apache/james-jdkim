@@ -25,32 +25,32 @@ import java.util.regex.Pattern;
 
 public interface PublicKeyRecord {
 
-    public final static String ANY = ";any;";
+    String ANY = ";any;";
 
-    public abstract void validate();
+    void validate();
 
-    public abstract boolean isHashMethodSupported(CharSequence hash);
+    boolean isHashMethodSupported(CharSequence hash);
 
-    public abstract boolean isKeyTypeSupported(CharSequence hash);
-
-    /**
-     * @return null if "any", otherwise a list of supported methods
-     */
-    public abstract List<CharSequence> getAcceptableHashMethods();
+    boolean isKeyTypeSupported(CharSequence hash);
 
     /**
      * @return null if "any", otherwise a list of supported methods
      */
-    public abstract List<CharSequence> getAcceptableKeyTypes();
+    List<CharSequence> getAcceptableHashMethods();
 
-    public abstract Pattern getGranularityPattern();
+    /**
+     * @return null if "any", otherwise a list of supported methods
+     */
+    List<CharSequence> getAcceptableKeyTypes();
 
-    public abstract PublicKey getPublicKey();
+    Pattern getGranularityPattern();
 
-    public abstract List<CharSequence> getFlags();
+    PublicKey getPublicKey();
 
-    public abstract boolean isTesting();
+    List<CharSequence> getFlags();
 
-    public abstract boolean isDenySubdomains();
+    boolean isTesting();
+
+    boolean isDenySubdomains();
 
 }
