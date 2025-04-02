@@ -62,7 +62,7 @@ public class DNSPublicKeyRetrieverTest {
     public void testRetrieve() throws TempFailException, PermFailException {
         PublicKeyRecordRetriever pkr = new DNSPublicKeyRecordRetriever();
         pkr.getRecords("dns/txt", "lima", "yahoogroups.com");
-        pkr.getRecords("dns/txt", "gamma", "gmail.com");
+        pkr.getRecords("dns/txt", "20230601", "gmail.com");
 
         new TagValue(pkr.getRecords("dns/txt", "lima", "yahoogroups.com").get(0));
     }
