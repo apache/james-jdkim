@@ -23,6 +23,7 @@ import org.apache.james.jdkim.api.PublicKeyRecordRetriever;
 import org.apache.james.jdkim.exceptions.PermFailException;
 import org.apache.james.jdkim.exceptions.TempFailException;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -33,16 +34,32 @@ import java.util.Map;
  * local map.
  */
 public class MockPublicKeyRecordRetriever implements PublicKeyRecordRetriever {
+    public static class Record {
+        String selector;
+        String domain;
+        String record;
+
+        public Record(String selector, String domain, String record) {
+            assert (selector != null) : "selector cannot be null";
+            assert (domain != null) : "domain cannot be null";
+            assert (record != null) : "record cannot be null";
+
+            this.selector = selector;
+            this.domain = domain;
+            this.record = record;
+        }
+
+        public static Record of(String selector, String domain, String record) {
+            return new Record(selector, domain, record);
+        }
+    }
+
     private static final String _DOMAINKEY = "._domainkey.";
     private final Map<String, List<String>> records = new HashMap<String, List<String>>();
 
-    public void addRecord(String selector, String token, String record) {
-        String key = selector + _DOMAINKEY + token;
-        List<String> l = records.get(key);
-        if (l == null) {
-            l = new LinkedList<String>();
-            records.put(key, l);
-        }
+    public void addRecord(String selector, String domain, String record) {
+        String key = selector + _DOMAINKEY + domain;
+        List<String> l = records.computeIfAbsent(key, k -> new LinkedList<>());
         if (record != null) {
             l.add(record);
         }
@@ -54,6 +71,17 @@ public class MockPublicKeyRecordRetriever implements PublicKeyRecordRetriever {
     public MockPublicKeyRecordRetriever(String record, CharSequence selector,
                                         CharSequence token) {
         addRecord(selector.toString(), token.toString(), record);
+    }
+
+    public MockPublicKeyRecordRetriever(Record... records) {
+        Arrays.stream(records).forEach(this::addRecord);
+    }
+
+    private void addRecord(Record record) {
+        String key = record.selector + _DOMAINKEY + record.domain;
+        List<String> l = records.computeIfAbsent(key, k -> new LinkedList<>());
+        l.add(record.record);
+
     }
 
     public List<String> getRecords(CharSequence methodAndOptions,

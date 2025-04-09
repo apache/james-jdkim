@@ -1,5 +1,25 @@
-Release 0.2
--------------------
+= jDKIM Release notes
+
+== Release 0.5
+
+Api has been refined and documented a bit but is still not considered mature and will change in future releases.
+
+=== Notable changes since 0.2
+
+ * Mailet has been extracted back to james project
+ * jDKIM API is still considered unstable and is likely to change in future releases
+ * Default parsing is done using mime4j 0.8.12 parser.
+
+=== Breaking api changes:
+ - MultiplexingPublicKeyRecordRetriever can no longer be instantiated without any methods
+ - MultiplexingPublicKeyRecordRetriever#addRetriever is made private
+ - `dkimQuotedPrintableDecode` was moved from `SignatureRecordImpl` to `org.apache.james.jdkim.parser.DKIMQuotedPrintable`
+   since it is not specific to SignatureRecordImpl.
+
+While technically a public API I don't expect many users of the lib to call this directly.
+Updating the static import should be acceptable for the few who do.
+
+== Release 0.2
 
 jDKIM is a DKIM implementation library written in Java. It provides both verification and signing
 and also provides Mailets for the Apache JAMES project.
@@ -19,9 +39,7 @@ implementation simply prepare the OutputStream and copy the supplied InputStream
 In order to reduce depencencies and to not reinvent the wheel the resulting library includes a
 "shaded" version of the commons-codec 1.4 classes needed to do Base64 encoding/decoding.
 
-Notes
------
-
+=== Notes
  * jDKIM API is still considered unstable and is likely to change in future releases
  * Default parsing is done using mime4j 0.7 parser.
  * The mailet does rely on javamail parsing instead of mime4j.

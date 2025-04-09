@@ -1,0 +1,88 @@
+= JAMES jDKIM library
+
+
+Library dealing with parsing and crytography to sign and verify DKIM signatures.
+
+The mailet has been moved to James project: https://github.com/apache/james-project/tree/master/server/mailet/dkim
+
+== Usage
+
+A full example is available in
+https://github.com/apache/james-jdkim/blob/master/main/src/test/java/org/apache/james/jdkim/DKIMTest.java[DKIMTest]
+
+=== Signing
+
+Signing a mime message can be achieved using the following snippet
+
+[source,java]
+----
+import java.io.InputStream;
+import java.security.PrivateKey;
+
+String signatureTemplate = "v=1; a=rsa-sha256; c=simple; d=messiah.edu; h=date:from:subject; q=dns/txt; s=selector2;";
+
+PrivateKey privateKey = null;
+DKIMSigner dkimSigner = new DKIMSigner(signatureTemplate, privateKey);
+// You need to provide the input stream of the mime message, it will be parsed
+// by mime4j
+InputStream stream = null;
+String signature = dkimSigner.sign(inputStream);
+// `signature` contains the full header
+// DKIM-Signature: a=rsa-sha256; q=dns/txt; b=Axa8s/g...U1SIw==; c=simple; s=selector2; d=messiah.edu; v=1; bh=6pQ...6g=; h=date:from:subject;
+----
+
+More advanced usage such as including multiple signatures can be found in
+https://github.com/apache/james-jdkim/blob/master/main/src/test/java/org/apache/james/jdkim/DKIMTest.java[DKIMTest]
+
+=== Verifying
+
+Verifying a mime message DKIM signatures can be achieved using the following
+snippet. The verifier always verifies all the signatures.
+
+[source,java]
+----
+import java.io.InputStream;
+// You can override the resolver in the constructor, use your own
+// implementation of a retriever or use multiple implementations using a
+// `MultiplexingPublicKeyRecordRetriever`
+PublicKeyRecordRetriever keyRecordRetriever = new DNSPublicKeyRecordRetriever();
+DKIMVerifier verifier = new DKIMVerifier(keyRecordRetriever);
+InputStream stream = null; // you need to provide the input stream of the mime message
+List<SignatureRecord> verifiedSignatures = verifier.verify(stream);
+// `verifiedSignatures` contains only the signatures that have successfully
+// passed the validation.
+// If you want to query all the results including all the failures, you can
+// retrieve them from the verifier
+List<Result> results = verifier.getResults();
+----
+
+== Cryptography Notice
+
+----
+   This distribution includes cryptographic software.  The country in 
+   which you currently reside may have restrictions on the import, 
+   possession, use, and/or re-export to another country, of 
+   encryption software.  BEFORE using any encryption software, please 
+   check your country's laws, regulations and policies concerning the
+   import, possession, or use, and re-export of encryption software, to 
+   see if this is permitted.  See http://www.wassenaar.org for more
+   information.
+
+   The U.S. Government Department of Commerce, Bureau of Industry and
+   Security (BIS), has classified this software as Export Commodity 
+   Control Number (ECCN) 5D002.C.1, which includes information security
+   software using or performing cryptographic functions with asymmetric
+   algorithms.  The form and manner of this Apache Software Foundation
+   distribution makes it eligible for export under the License Exception
+   ENC Technology Software Unrestricted (TSU) exception (see the BIS 
+   Export Administration Regulations, Section 740.13) for both object 
+   code and source code.
+
+   The following provides more details on the included cryptographic
+   software:
+    		
+    - jDKIM includes code designed to work with Java SE Security
+
+    Export classifications and source links can be found
+    at http://www.apache.org/licenses/exports/.
+----
