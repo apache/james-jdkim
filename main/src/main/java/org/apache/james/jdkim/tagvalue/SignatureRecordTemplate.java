@@ -19,42 +19,50 @@
 
 package org.apache.james.jdkim.tagvalue;
 
-import static org.apache.james.jdkim.parser.DKIMQuotedPrintable.dkimQuotedPrintableDecode;
-
-import org.apache.commons.codec.binary.Base64;
-import org.apache.james.jdkim.api.SignatureRecord;
-
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Pattern;
 
-public class SignatureRecordImpl extends TagValue implements SignatureRecord {
+import org.apache.commons.codec.binary.Base64;
+import org.apache.james.jdkim.api.HashMethod;
+import org.apache.james.jdkim.api.SignatureRecord;
+import org.apache.james.jdkim.api.SigningAlgorithm;
+import org.apache.james.jdkim.parser.DKIMQuotedPrintable;
+
+public class SignatureRecordTemplate extends TagValue implements SignatureRecord {
 
     // TODO ftext is defined as a sequence of at least one in %d33-57 or
     // %d59-126
     private static final Pattern hdrNamePattern = Pattern.compile("^[^: \r\n\t]+$");
 
-    public SignatureRecordImpl(String data) {
+    public SignatureRecordTemplate(String data) {
         super(data);
         validate();
+        Set<String> tags = getTags();
+        defaults.forEach((key, value) -> {
+                    if (!tags.contains(key) && !"l".equals(key)) {
+                        setValue(key, value.toString());
+                    }
+                }
+        );
     }
 
     protected void init() {
         mandatoryTags.add("v");
-        mandatoryTags.add("a");
-        mandatoryTags.add("b");
-        mandatoryTags.add("bh");
         mandatoryTags.add("d");
         mandatoryTags.add("h");
         mandatoryTags.add("s");
 
+        defaults.put("b", "");
+        defaults.put("bh", "");
         defaults.put("c", SIMPLE + "/" + SIMPLE);
         defaults.put("l", ALL);
         defaults.put("q", "dns/txt");
     }
 
     /**
-     * @see org.apache.james.jdkim.api.SignatureRecord#validate()
+     * @see SignatureRecord#validate()
      */
     public void validate() throws IllegalStateException {
         super.validate();
@@ -126,7 +134,7 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
     }
 
     /**
-     * @see org.apache.james.jdkim.api.SignatureRecord#getHeaders()
+     * @see SignatureRecord#getHeaders()
      */
     public List<CharSequence> getHeaders() {
         return stringToColonSeparatedList(getValue("h").toString(),
@@ -142,7 +150,7 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
     }
 
     /**
-     * @see org.apache.james.jdkim.api.SignatureRecord#getIdentityLocalPart()
+     * @see SignatureRecord#getIdentityLocalPart()
      */
     public CharSequence getIdentityLocalPart() {
         String identity = getIdentity().toString();
@@ -154,14 +162,14 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
      * This may throws IllegalArgumentException on invalid "i" content,
      * but should always happen during validation!
      *
-     * @see org.apache.james.jdkim.api.SignatureRecord#getIdentity()
+     * @see SignatureRecord#getIdentity()
      */
     public CharSequence getIdentity() {
-        return dkimQuotedPrintableDecode(getValue("i"));
+        return DKIMQuotedPrintable.dkimQuotedPrintableDecode(getValue("i"));
     }
 
     /**
-     * @see org.apache.james.jdkim.api.SignatureRecord#getHashKeyType()
+     * @see SignatureRecord#getHashKeyType()
      */
     public CharSequence getHashKeyType() {
         String a = getValue("a").toString();
@@ -174,7 +182,7 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
     }
 
     /**
-     * @see org.apache.james.jdkim.api.SignatureRecord#getHashMethod()
+     * @see SignatureRecord#getHashMethod()
      */
     public CharSequence getHashMethod() {
         String a = getValue("a").toString();
@@ -186,7 +194,7 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
     }
 
     /**
-     * @see org.apache.james.jdkim.api.SignatureRecord#getHashAlgo()
+     * @see SignatureRecord#getHashAlgo()
      */
     public CharSequence getHashAlgo() {
         String a = getValue("a").toString();
@@ -201,14 +209,14 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
     }
 
     /**
-     * @see org.apache.james.jdkim.api.SignatureRecord#getSelector()
+     * @see SignatureRecord#getSelector()
      */
     public CharSequence getSelector() {
         return getValue("s");
     }
 
     /**
-     * @see org.apache.james.jdkim.api.SignatureRecord#getDToken()
+     * @see SignatureRecord#getDToken()
      */
     public CharSequence getDToken() {
         return getValue("d");
@@ -286,6 +294,22 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
         if (getValue("t") != null && getValue("t").toString().trim().isEmpty()) {
             setValue("t", "" + (System.currentTimeMillis() / 1000));
         }
+    }
+
+    public SignatureRecordImpl toSignatureRecord(SigningAlgorithm algorithm, HashMethod hashMethod, byte[] bodyHash, byte[] signature) {
+        setValue("a", algorithm.asTagValue() + "-" + hashMethod.asTagValue());
+
+        String bodyHashTagValue = new String(Base64.encodeBase64(bodyHash));
+        setValue("bh", bodyHashTagValue);
+
+        String signatureTagValue = new String(Base64.encodeBase64(signature));
+        setValue("b", signatureTagValue);
+        // If a t=; parameter is present in the signature, make sure to
+        // fill it with the current timestamp
+        if (getValue("t") != null && getValue("t").toString().trim().isEmpty()) {
+            setValue("t", "" + (System.currentTimeMillis() / 1000));
+        }
+        return new SignatureRecordImpl(this.toString());
     }
 
     public String toUnsignedString() {
