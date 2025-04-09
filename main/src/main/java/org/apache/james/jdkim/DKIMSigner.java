@@ -29,7 +29,7 @@ import org.apache.james.jdkim.exceptions.FailException;
 import org.apache.james.jdkim.exceptions.PermFailException;
 import org.apache.james.jdkim.impl.BodyHasherImpl;
 import org.apache.james.jdkim.impl.Message;
-import org.apache.james.jdkim.tagvalue.SignatureRecordImpl;
+import org.apache.james.jdkim.tagvalue.SignatureRecordTemplate;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -54,7 +54,7 @@ public class DKIMSigner {
     }
 
     public SignatureRecord newSignatureRecordTemplate(String record) {
-        return new SignatureRecordImpl(record);
+        return new SignatureRecordTemplate(record);
     }
 
     public BodyHasher newBodyHasher(SignatureRecord signRecord)

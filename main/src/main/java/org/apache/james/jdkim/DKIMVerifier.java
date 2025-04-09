@@ -38,6 +38,7 @@ import org.apache.james.jdkim.impl.Message;
 import org.apache.james.jdkim.impl.MultiplexingPublicKeyRecordRetriever;
 import org.apache.james.jdkim.tagvalue.PublicKeyRecordImpl;
 import org.apache.james.jdkim.tagvalue.SignatureRecordImpl;
+import org.apache.james.jdkim.tagvalue.SignatureRecordTemplate;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -159,7 +160,6 @@ public class DKIMVerifier {
      */
     public PublicKeyRecord publicRecordLookup(SignatureRecord sign)
             throws TempFailException, PermFailException {
-        // System.out.println(sign);
         PublicKeyRecord key = null;
         TempFailException lastTempFailure = null;
         PermFailException lastPermFailure = null;
@@ -252,8 +252,6 @@ public class DKIMVerifier {
                     SignatureRecord signatureRecord = null;
                     try {
                         signatureRecord = newSignatureRecord(v);
-                        // validate
-                        signatureRecord.validate();
                     } catch (IllegalStateException e) {
                         throw new PermFailException("Invalid signature record: " + e.getMessage(), signatureRecord, e);
                     }
@@ -444,7 +442,7 @@ public class DKIMVerifier {
         for (Map.Entry<String, FailException> e : exceptions.entrySet()) {
             SignatureRecord rec = e.getValue().getRelatedRecord();
             if (rec == null) {
-                rec = new SignatureRecordImpl("v=1; d=invalid; h=from; s=invalid; b=invalidsig");
+                rec = new SignatureRecordTemplate("v=1; d=invalid; h=from; s=invalid; b=invalidsig");
             }
 
             Result.Type resultType = Result.Type.NONE;
