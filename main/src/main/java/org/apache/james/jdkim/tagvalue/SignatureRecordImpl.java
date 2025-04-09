@@ -19,10 +19,11 @@
 
 package org.apache.james.jdkim.tagvalue;
 
+import static org.apache.james.jdkim.parser.DKIMQuotedPrintable.dkimQuotedPrintableDecode;
+
 import org.apache.commons.codec.binary.Base64;
 import org.apache.james.jdkim.api.SignatureRecord;
 
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -156,70 +157,6 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
      */
     public CharSequence getIdentity() {
         return dkimQuotedPrintableDecode(getValue("i"));
-    }
-
-    public static String dkimQuotedPrintableDecode(CharSequence input)
-            throws IllegalArgumentException {
-        StringBuilder sb = new StringBuilder(input.length());
-        // TODO should we fail on WSP that is not part of FWS?
-        // the specification in 2.6 DKIM-Quoted-Printable is not
-        // clear
-        int state = 0;
-        int start = 0;
-        int d = 0;
-        boolean lastWasNL = false;
-        for (int i = 0; i < input.length(); i++) {
-            if (lastWasNL && input.charAt(i) != ' ' && input.charAt(i) != '\t') {
-                throw new IllegalArgumentException(
-                        "Unexpected LF not part of an FWS");
-            }
-            lastWasNL = false;
-            switch (state) {
-                case 0:
-                    switch (input.charAt(i)) {
-                        case ' ':
-                        case '\t':
-                        case '\r':
-                        case '\n':
-                            if ('\n' == input.charAt(i))
-                                lastWasNL = true;
-                            sb.append(input.subSequence(start, i));
-                            start = i + 1;
-                            // ignoring whitespace by now.
-                            break;
-                        case '=':
-                            sb.append(input.subSequence(start, i));
-                            state = 1;
-                            break;
-                    }
-                    break;
-                case 1:
-                case 2:
-                    if (input.charAt(i) >= '0' && input.charAt(i) <= '9'
-                            || input.charAt(i) >= 'A' && input.charAt(i) <= 'F') {
-                        int v = Arrays.binarySearch("0123456789ABCDEF".getBytes(),
-                                (byte) input.charAt(i));
-                        if (state == 1) {
-                            state = 2;
-                            d = v;
-                        } else {
-                            d = d * 16 + v;
-                            sb.append((char) d);
-                            state = 0;
-                            start = i + 1;
-                        }
-                    } else {
-                        throw new IllegalArgumentException(
-                                "Invalid input sequence at " + i);
-                    }
-            }
-        }
-        if (state != 0) {
-            throw new IllegalArgumentException(
-                    "Invalid quoted printable termination");
-        }
-        sb.append(input.subSequence(start, input.length()));
-        return sb.toString();
     }
 
     /**

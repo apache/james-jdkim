@@ -31,6 +31,7 @@ public interface SignatureRecord {
     String SIMPLE = "simple";
     String ALL = ";all;";
 
+
     List<CharSequence> getHeaders();
 
     CharSequence getIdentityLocalPart();
