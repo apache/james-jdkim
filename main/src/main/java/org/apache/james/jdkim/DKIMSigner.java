@@ -19,6 +19,8 @@
 
 package org.apache.james.jdkim;
 
+import static org.apache.james.jdkim.DKIMCommon.signatureCheck;
+
 import org.apache.commons.codec.binary.Base64;
 import org.apache.james.jdkim.api.BodyHasher;
 import org.apache.james.jdkim.api.Headers;
@@ -41,7 +43,7 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.List;
 
-public class DKIMSigner extends DKIMCommon {
+public class DKIMSigner {
 
     private final PrivateKey privateKey;
     private final String signatureRecordTemplate;
