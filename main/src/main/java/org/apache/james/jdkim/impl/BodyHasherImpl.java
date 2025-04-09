@@ -75,9 +75,9 @@ public class BodyHasherImpl implements BodyHasher {
             out = new DebugOutputStream(out);
         out = prepareCanonicalizerOutputStream(limit, relaxedBody, out);
 
-        setSignatureRecord(sign);
-        setDigestOutputStream(dout);
-        setOutputStream(out);
+        this.sign = sign;
+        this.digesterOS = dout;
+        this.out = out;
     }
 
     private OutputStream prepareCanonicalizerOutputStream(int limit,
@@ -103,24 +103,8 @@ public class BodyHasherImpl implements BodyHasher {
         return sign;
     }
 
-    private DigestOutputStream getDigesterOutputStream() {
-        return digesterOS;
-    }
-
     public byte[] getDigest() {
-        return getDigesterOutputStream().getDigest();
-    }
-
-    public void setSignatureRecord(SignatureRecord sign) {
-        this.sign = sign;
-    }
-
-    public void setDigestOutputStream(DigestOutputStream dout) {
-        this.digesterOS = dout;
-    }
-
-    public void setOutputStream(OutputStream out) {
-        this.out = out;
+        return digesterOS.getDigest();
     }
 
 }
