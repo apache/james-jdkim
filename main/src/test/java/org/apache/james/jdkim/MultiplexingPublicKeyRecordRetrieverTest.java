@@ -19,78 +19,105 @@
 
 package org.apache.james.jdkim;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.james.jdkim.api.PublicKeyRecordRetriever;
 import org.apache.james.jdkim.exceptions.FailException;
 import org.apache.james.jdkim.exceptions.PermFailException;
 import org.apache.james.jdkim.exceptions.TempFailException;
 import org.apache.james.jdkim.impl.MultiplexingPublicKeyRecordRetriever;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import org.assertj.core.util.Sets;
 import org.junit.Test;
-
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
 
 public class MultiplexingPublicKeyRecordRetrieverTest {
 
-    private final PublicKeyRecordRetriever myMethodRetriever = new PublicKeyRecordRetriever() {
-
-        public List<String> getRecords(CharSequence methodAndOption,
-                                       CharSequence selector, CharSequence token)
-                throws TempFailException, PermFailException {
-            List<String> l = new ArrayList<String>();
-            l.add(selector.toString());
-            l.add(token.toString());
-            return l;
-        }
-
+    private final PublicKeyRecordRetriever myMethodRetriever = (methodAndOption, selector, token) -> {
+        List<String> l = new ArrayList<>();
+        l.add(selector.toString());
+        l.add(token.toString());
+        return l;
     };
 
+
     @Test
-    public void testMultiplexingPublicKeyRecordRetriever() {
-        MultiplexingPublicKeyRecordRetriever pkrr = new MultiplexingPublicKeyRecordRetriever();
-        try {
-            pkrr.getRecords("method", "selector", "token");
-            fail("method is unknown");
-        } catch (FailException e) {
-        }
+    public void should_retrieve_records_by_known_method()
+            throws TempFailException, PermFailException {
+        MultiplexingPublicKeyRecordRetriever pkrr = new MultiplexingPublicKeyRecordRetriever(
+                "mymethod",
+                myMethodRetriever
+        );
+
+        check(pkrr, "mymethod");
     }
 
     @Test
-    public void testMultiplexingPublicKeyRecordRetrieverStringPublicKeyRecordRetriever()
+    public void should_retrieve_records_by_known_method_with_options()
             throws TempFailException, PermFailException {
         MultiplexingPublicKeyRecordRetriever pkrr = new MultiplexingPublicKeyRecordRetriever(
-                "mymethod", myMethodRetriever);
-        check(pkrr, "mymethod");
+                "mymethod",
+                myMethodRetriever
+        );
+
+        check(pkrr, "mymethod/option");
     }
+
+
+    @Test
+    public void should_fail_on_unknown_method() throws TempFailException, PermFailException {
+        MultiplexingPublicKeyRecordRetriever retriever = new MultiplexingPublicKeyRecordRetriever(
+                "mymethod",
+                myMethodRetriever
+        );
+        check(retriever, "mymethod");
+        assertThatThrownBy(() ->
+                retriever.getRecords("unknownMethod", "selector", "token")
+        ).isInstanceOf(FailException.class);
+    }
+
+    @Test
+    public void should_retrieve_records_from_several_known_methods() throws TempFailException, PermFailException {
+        MultiplexingPublicKeyRecordRetriever retriever = new MultiplexingPublicKeyRecordRetriever(
+                Sets.set(
+                        MultiplexingPublicKeyRecordRetriever.Entry.of("myMethod", myMethodRetriever),
+                        MultiplexingPublicKeyRecordRetriever.Entry.of("myOtherMethod", myMethodRetriever)
+                )
+        );
+        check(retriever, "myMethod");
+        check(retriever, "myOtherMethod");
+        assertThatThrownBy(() ->
+                retriever.getRecords("unknownMethod", "selector", "token")
+        ).isInstanceOf(FailException.class);
+    }
+
+    @Test
+    public void should_retrieve_records_from_several_known_methods_with_mixed_option() throws TempFailException, PermFailException {
+        MultiplexingPublicKeyRecordRetriever retriever = new MultiplexingPublicKeyRecordRetriever(
+                Sets.set(
+                        MultiplexingPublicKeyRecordRetriever.Entry.of("myMethod", myMethodRetriever),
+                        MultiplexingPublicKeyRecordRetriever.Entry.of("myOtherMethod", myMethodRetriever)
+                )
+        );
+        check(retriever, "myMethod");
+        check(retriever, "myMethod/option");
+        check(retriever, "myOtherMethod");
+        check(retriever, "myOtherMethod/option");
+        assertThatThrownBy(() ->
+                retriever.getRecords("unknownMethod", "selector", "token")
+        ).isInstanceOf(FailException.class);
+        assertThatThrownBy(() ->
+                retriever.getRecords("unknownMethod/option", "selector", "token")
+        ).isInstanceOf(FailException.class);
+    }
+
 
     private void check(MultiplexingPublicKeyRecordRetriever pkrr, String method)
             throws TempFailException, PermFailException {
-        List<String> l = pkrr.getRecords(method, "selector", "token");
-        Iterator<String> i = l.iterator();
-        assertEquals("selector", i.next());
-        assertEquals("token", i.next());
-        try {
-            l = pkrr.getRecords("anothermethod", "selector", "token");
-            fail("anothermethod is not declared");
-        } catch (FailException e) {
-        }
-    }
-
-    @Test
-    public void testAddRetriever() throws TempFailException, PermFailException {
-        MultiplexingPublicKeyRecordRetriever pkrr = new MultiplexingPublicKeyRecordRetriever();
-        pkrr.addRetriever("mymethod", myMethodRetriever);
-        check(pkrr, "mymethod");
-    }
-
-    @Test
-    public void testAddRetrieverWithOptions() throws TempFailException,
-            PermFailException {
-        MultiplexingPublicKeyRecordRetriever pkrr = new MultiplexingPublicKeyRecordRetriever();
-        pkrr.addRetriever("mymethod", myMethodRetriever);
-        check(pkrr, "mymethod/option");
+        List<String> records = pkrr.getRecords(method, "selector", "token");
+        assertThat(records).containsExactly("selector", "token");
     }
 
 }

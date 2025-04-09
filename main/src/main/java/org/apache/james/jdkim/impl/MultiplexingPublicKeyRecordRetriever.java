@@ -22,6 +22,7 @@ package org.apache.james.jdkim.impl;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.james.jdkim.api.PublicKeyRecordRetriever;
 import org.apache.james.jdkim.exceptions.PermFailException;
@@ -29,10 +30,22 @@ import org.apache.james.jdkim.exceptions.TempFailException;
 
 public class MultiplexingPublicKeyRecordRetriever implements
         PublicKeyRecordRetriever {
+    public static class Entry{
+        String methodName;
+        PublicKeyRecordRetriever retriever;
 
+        private Entry(String methodName, PublicKeyRecordRetriever retriever) {
+            this.methodName = methodName;
+            this.retriever = retriever;
+        }
+
+        public static Entry of(String methodName, PublicKeyRecordRetriever retriever){
+            return new Entry(methodName, retriever);
+        }
+    }
     private final Map<String, PublicKeyRecordRetriever> retrievers;
 
-    public MultiplexingPublicKeyRecordRetriever() {
+    private MultiplexingPublicKeyRecordRetriever() {
         retrievers = new HashMap<>();
     }
 
@@ -41,8 +54,14 @@ public class MultiplexingPublicKeyRecordRetriever implements
         this();
         addRetriever(methodName, pkrr);
     }
+    public MultiplexingPublicKeyRecordRetriever(Set<Entry> retrieverEntries) {
+        this();
+        retrieverEntries.forEach(it ->
+                addRetriever(it.methodName, it.retriever)
+        );
+    }
 
-    public void addRetriever(String methodName, PublicKeyRecordRetriever pkrr) {
+    private void addRetriever(String methodName, PublicKeyRecordRetriever pkrr) {
         retrievers.put(methodName, pkrr);
     }
 
