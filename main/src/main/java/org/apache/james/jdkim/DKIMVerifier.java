@@ -19,6 +19,8 @@
 
 package org.apache.james.jdkim;
 
+import static org.apache.james.jdkim.DKIMCommon.signatureCheck;
+
 import org.apache.james.jdkim.api.BodyHasher;
 import org.apache.james.jdkim.api.Headers;
 import org.apache.james.jdkim.api.PublicKeyRecord;
@@ -53,7 +55,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-public class DKIMVerifier extends DKIMCommon {
+public class DKIMVerifier {
 
     private final PublicKeyRecordRetriever publicKeyRecordRetriever;
     private final List<Result> result = new ArrayList<>();
