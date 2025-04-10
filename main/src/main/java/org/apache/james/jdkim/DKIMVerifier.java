@@ -414,6 +414,10 @@ public class DKIMVerifier {
 
     /**
      * Return the results of all signature checks, success and fail.
+     * If a message doesn't have a DKIM-Signature header the result list will
+     * be empty. Use {@link Result#getResultType} or {@link Result#isSuccess}
+     * to get verification result of each DKIM-Signature check. Call {@link #resetResults}
+     * if the same instance of {@code DKIMVerifier} is reused for a new {@code verify} call.
      *
      * @return List of {@link Result} object.
      */
@@ -422,12 +426,35 @@ public class DKIMVerifier {
     }
 
     /**
-     * Returns true when all signature verification are successful. A message without dkim-signature is considered a success.
+     * Returns {@code true} if ALL the signatures are successfully verified or if
+     * the message doesn't have a DKIM-Signature header.
+     * Use {@link #hasAnyValidSignature} to check if the message passed the DKIM check,
+     * do not use this method, a message needs at least one valid DKIM signature, not ALL.
+     * This method is NOT DMARC compliant.
+     * Call {@code DKIMVerifier.verify} before using this method. Use {@link #getResults}
+     * to get result details.
      *
-     * @return true when success
+     * @return {@code true} if ALL signatures are successfully verified or if there's no DKIM-Signature header,
+     * {@code false} if the message is signed and invalid signatures was found.
+     * @see #hasAnyValidSignature
+     * @see #getResults
      */
     public boolean isSuccess() {
         return result.stream().allMatch(Result::isSuccess);
+    }
+
+    /**
+     * Returns {@code true} if at least one signature is successfully verified.
+     * A message pass the DKIM check when at least one signature is valid.
+     * This method is DMARC compliant, and should be called after {@code DKIMVerifier.verify}.
+     * Use {@link #getResults} to get result details.
+     *
+     * @return {@code true} if a valid signature is found,
+     * {@code false} if there's no valid signature.
+     * @see #getResults
+     */
+    public boolean hasAnyValidSignature() {
+        return result.stream().anyMatch(Result::isSuccess);
     }
 
     /**
