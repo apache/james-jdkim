@@ -440,15 +440,6 @@ public class DKIMVerifier {
     }
 
     /**
-     * Returns true when all signature verification are successful. A message without dkim-signature is considered a success.
-     *
-     * @return true when success
-     */
-    public boolean isSuccess() {
-        return result.stream().allMatch(Result::isSuccess);
-    }
-
-    /**
      * Clears results list for the DKIMVerifier instance
      */
     public void resetResults() {
