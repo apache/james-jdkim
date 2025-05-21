@@ -29,7 +29,7 @@
 
     <groupId>org.apache.james.jdkim</groupId>
     <artifactId>apache-jdkim-project</artifactId>
-    <version>0.5-SNAPSHOT</version>
+    <version>0.5</version>
     <packaging>pom</packaging>
 
     <name>Apache James :: jDKIM :: DomainKey Project</name>
@@ -46,7 +46,7 @@
         <connection>scm:git:https://git-wip-us.apache.org/repos/asf/james-jdkim.git</connection>
         <developerConnection>scm:git:ssh://git@github.com/apache/james-jdkim.git</developerConnection>
         <url>http://git-wip-us.apache.org/repos/asf/james-jdkim.git</url>
-      <tag>HEAD</tag>
+      <tag>apache-jdkim-project-0.5</tag>
   </scm>
     <issueManagement>
         <system>JIRA</system>
