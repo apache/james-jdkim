@@ -47,6 +47,8 @@ import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.security.Signature;
 import java.security.SignatureException;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -258,26 +260,24 @@ public class DKIMVerifier {
 
                     // Specification say we MAY refuse to verify the signature.
                     if (signatureRecord.getSignatureTimestamp() != null) {
-                        long signedTime = signatureRecord.getSignatureTimestamp();
-                        long elapsed = (System.currentTimeMillis() / 1000 - signedTime);
-                        if (elapsed < -3600 * 24 * 365 * 3) {
+                        Instant signedTime = Instant.ofEpochSecond(signatureRecord.getSignatureTimestamp());
+                        Instant now = Instant.now();
+                        if (signedTime.isAfter(now.plusSeconds(300))) {
+                            // RFC 6376, Section 3.5 page 25, about clock drift:
+                            // Receivers MAY add a 'fudge factor' to allow for such possible drift.
+                            Duration diff = Duration.between(now, signedTime);
+                            String diffText;
+                            if (diff.toMillis() >= 86400000) {
+                                diffText = diff.toDays() + " day(s)";
+                            } else if (diff.toMillis() >= 3600000) {
+                                diffText = diff.toHours() + " hour(s)";
+                            } else if (diff.toMillis() >= 60000) {
+                                diffText = diff.toMinutes() + " minute(s)";
+                            } else {
+                                diffText = (diff.toMillis() / 1000) + " second(s)";
+                            }
                             throw new PermFailException("Signature date is more than "
-                                    + -elapsed / (3600 * 24 * 365) + " years in the future.", signatureRecord);
-                        } else if (elapsed < -3600 * 24 * 30 * 3) {
-                            throw new PermFailException("Signature date is more than "
-                                    + -elapsed / (3600 * 24 * 30) + " months in the future.", signatureRecord);
-                        } else if (elapsed < -3600 * 24 * 3) {
-                            throw new PermFailException("Signature date is more than "
-                                    + -elapsed / (3600 * 24) + " days in the future.", signatureRecord);
-                        } else if (elapsed < -3600 * 3) {
-                            throw new PermFailException("Signature date is more than "
-                                    + -elapsed / 3600 + " hours in the future.", signatureRecord);
-                        } else if (elapsed < -60 * 3) {
-                            throw new PermFailException("Signature date is more than "
-                                    + -elapsed / 60 + " minutes in the future.", signatureRecord);
-                        } else if (elapsed < 0) {
-                            throw new PermFailException("Signature date is "
-                                    + elapsed + " seconds in the future.", signatureRecord);
+                                    + diffText + " in the future.", signatureRecord);
                         }
                     }
 
