@@ -27,15 +27,14 @@ import org.apache.james.jdkim.api.PublicKeyRecord;
 import org.apache.james.jdkim.api.PublicKeyRecordRetriever;
 import org.apache.james.jdkim.api.Result;
 import org.apache.james.jdkim.api.SignatureRecord;
+import org.apache.james.jdkim.api.VerifierOptions;
 import org.apache.james.jdkim.exceptions.CompositeFailException;
 import org.apache.james.jdkim.exceptions.FailException;
 import org.apache.james.jdkim.exceptions.PermFailException;
 import org.apache.james.jdkim.exceptions.TempFailException;
 import org.apache.james.jdkim.impl.BodyHasherImpl;
 import org.apache.james.jdkim.impl.CompoundBodyHasher;
-import org.apache.james.jdkim.impl.DNSPublicKeyRecordRetriever;
 import org.apache.james.jdkim.impl.Message;
-import org.apache.james.jdkim.impl.MultiplexingPublicKeyRecordRetriever;
 import org.apache.james.jdkim.tagvalue.PublicKeyRecordImpl;
 import org.apache.james.jdkim.tagvalue.SignatureRecordImpl;
 import org.apache.james.jdkim.tagvalue.SignatureRecordTemplate;
@@ -59,17 +58,24 @@ import java.util.List;
 import java.util.Map;
 
 public class DKIMVerifier {
-
-    private final PublicKeyRecordRetriever publicKeyRecordRetriever;
     private final List<Result> result = new ArrayList<>();
+    private final VerifierOptions options;
 
     public DKIMVerifier() {
-        this.publicKeyRecordRetriever = new MultiplexingPublicKeyRecordRetriever(
-                "dns", new DNSPublicKeyRecordRetriever());
+        this(new VerifierOptions.Builder().build());
+    }
+
+    /**
+     * Constructor with configuration, see {@link VerifierOptions.Builder} for available options.
+     *
+     * @param verifierOptions An instance of VerifierOptions, use {@link VerifierOptions.Builder}
+     */
+    public DKIMVerifier(VerifierOptions verifierOptions) {
+        this.options = verifierOptions;
     }
 
     public DKIMVerifier(PublicKeyRecordRetriever publicKeyRecordRetriever) {
-        this.publicKeyRecordRetriever = publicKeyRecordRetriever;
+        this(new VerifierOptions.Builder().withPublicKeyRecordRetriever(publicKeyRecordRetriever).build());
     }
 
     protected PublicKeyRecord newPublicKeyRecord(String record) {
@@ -87,7 +93,7 @@ public class DKIMVerifier {
 
     protected PublicKeyRecordRetriever getPublicKeyRecordRetriever()
             throws PermFailException {
-        return publicKeyRecordRetriever;
+        return options.getPublicKeyRecordRetriever();
     }
 
     public PublicKeyRecord publicKeySelector(List<String> records)
@@ -262,7 +268,7 @@ public class DKIMVerifier {
                     if (signatureRecord.getSignatureTimestamp() != null) {
                         Instant signedTime = Instant.ofEpochSecond(signatureRecord.getSignatureTimestamp());
                         Instant now = Instant.now();
-                        if (signedTime.isAfter(now.plusSeconds(300))) {
+                        if (signedTime.isAfter(now.plus(options.getClockDriftTolerance()))) {
                             // RFC 6376, Section 3.5 page 25, about clock drift:
                             // Receivers MAY add a 'fudge factor' to allow for such possible drift.
                             Duration diff = Duration.between(now, signedTime);

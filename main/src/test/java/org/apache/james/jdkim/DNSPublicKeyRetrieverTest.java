@@ -21,6 +21,7 @@ package org.apache.james.jdkim;
 
 import org.apache.james.jdkim.api.PublicKeyRecord;
 import org.apache.james.jdkim.api.PublicKeyRecordRetriever;
+import org.apache.james.jdkim.api.VerifierOptions;
 import org.apache.james.jdkim.exceptions.FailException;
 import org.apache.james.jdkim.exceptions.PermFailException;
 import org.apache.james.jdkim.exceptions.TempFailException;
@@ -112,7 +113,7 @@ public class DNSPublicKeyRetrieverTest {
         String signedMessage = res + "\r\n"
                 + "From: test@example.com\r\nTo: test@example.com\r\n\r\nbody\r\n";
 
-        new DKIMVerifier(mockPublicKeyRecordRetriever)
+        new DKIMVerifier(new VerifierOptions.Builder().withPublicKeyRecordRetriever(mockPublicKeyRecordRetriever).build())
                 .verify(new ByteArrayInputStream(signedMessage.getBytes()));
 
     }

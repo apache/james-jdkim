@@ -23,6 +23,7 @@ import junit.framework.Test;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
 import org.apache.james.jdkim.api.SignatureRecord;
+import org.apache.james.jdkim.api.VerifierOptions;
 import org.apache.james.jdkim.exceptions.PermFailException;
 
 import java.io.File;
@@ -209,7 +210,7 @@ public class FileBasedTest extends TestCase {
                 "k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC1CTqmkuRWkxlHcv1peAz3c0RuXHthVO1xx1Hy4HryZUJwSJo/R3cnEwKorQvlRuDSMgXSLLxI8u6n7h6mzRmHdsS/A+pKc7nx/6WS4N6U57PSNqOclxfwa27m/EIL6KTk9KDhaKsXxquQUBkP1CQEUZHPhQ/t7s4dmU/kvGFgNQIDAQAB");
 
         try {
-            DKIMVerifier verifier = new DKIMVerifier(pkr);
+            DKIMVerifier verifier = new DKIMVerifier(new VerifierOptions.Builder().withPublicKeyRecordRetriever(pkr).build());
             List<SignatureRecord> res = verifier.verify(is);
             assertEquals(1, verifier.getResults().size());
             if (getName().startsWith("NONE_"))
