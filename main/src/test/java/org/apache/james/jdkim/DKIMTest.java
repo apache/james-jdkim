@@ -40,6 +40,7 @@ import org.apache.james.jdkim.MockPublicKeyRecordRetriever.Record;
 import org.apache.james.jdkim.api.Headers;
 import org.apache.james.jdkim.api.Result;
 import org.apache.james.jdkim.api.SignatureRecord;
+import org.apache.james.jdkim.api.VerifierOptions;
 import org.apache.james.jdkim.impl.Message;
 import org.junit.Test;
 
@@ -67,7 +68,7 @@ public class DKIMTest {
     private static final String SIGNATURE_TEMPLATE_3 = "v=1; a=rsa-sha256; c=simple; d=messiah.edu; h=date:from:subject; q=dns/txt; s=selector3;";
 
     private final DKIMSigner dkimSigner = new DKIMSigner(SIGNATURE_TEMPLATE, TestKeys.privateKey);
-    private final DKIMVerifier verifier = new DKIMVerifier(keyRecordRetriever);
+    private final DKIMVerifier verifier = new DKIMVerifier(new VerifierOptions.Builder().withPublicKeyRecordRetriever(keyRecordRetriever).build());
 
     @Test
     public void should_verify_generated_signature_single_key() throws Exception {

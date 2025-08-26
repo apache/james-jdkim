@@ -24,6 +24,7 @@ import junit.framework.TestCase;
 import junit.framework.TestSuite;
 import org.apache.james.jdkim.api.Result;
 import org.apache.james.jdkim.api.SignatureRecord;
+import org.apache.james.jdkim.api.VerifierOptions;
 import org.apache.james.jdkim.exceptions.FailException;
 
 import java.io.BufferedReader;
@@ -112,7 +113,7 @@ public class PerlDKIMTest extends TestCase {
             expectFailure = true;
 
         try {
-            DKIMVerifier verifier = new DKIMVerifier(pkr);
+            DKIMVerifier verifier = new DKIMVerifier(new VerifierOptions.Builder().withPublicKeyRecordRetriever(pkr).build());
             List<SignatureRecord> res = verifier.verify(is);
 
             if (getName().matches("good_dk_7|good_dk_6|dk_headers_2|good_dk_3")
