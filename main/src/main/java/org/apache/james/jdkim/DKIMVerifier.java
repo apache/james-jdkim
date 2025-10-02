@@ -295,9 +295,13 @@ public class DKIMVerifier {
 
                     List<CharSequence> signedHeadersList = signatureRecord.getHeaders();
 
-                    byte[] decoded = signatureRecord.getSignature();
-                    signatureVerify(messageHeaders, signatureRecord, decoded,
-                            publicKeyRecord, signedHeadersList);
+                    try {
+                        byte[] decoded = signatureRecord.getSignature();
+                        signatureVerify(messageHeaders, signatureRecord, decoded,
+                                publicKeyRecord, signedHeadersList);
+                    } catch (IllegalArgumentException e) {
+                        throw new PermFailException("Invalid signature record: " + e.getMessage(), signatureRecord, e);
+                    }
 
                     // we track all canonicalizations+limit+bodyHash we
                     // see so to be able to check all of them in a single

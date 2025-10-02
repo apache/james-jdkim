@@ -21,9 +21,9 @@ package org.apache.james.jdkim.tagvalue;
 
 import static org.apache.james.jdkim.parser.DKIMQuotedPrintable.dkimQuotedPrintableDecode;
 
-import org.apache.commons.codec.binary.Base64;
 import org.apache.james.jdkim.api.SignatureRecord;
 
+import java.util.Base64;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -215,11 +215,11 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
     }
 
     public byte[] getBodyHash() {
-        return Base64.decodeBase64(getValue("bh").toString().getBytes());
+        return decodeBase64TagValue("bh");
     }
 
     public byte[] getSignature() {
-        return Base64.decodeBase64(getValue("b").toString().getBytes());
+        return decodeBase64TagValue("b");
     }
 
     public CharSequence getRawSignature() {
@@ -274,12 +274,12 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
     }
 
     public void setSignature(byte[] newSignature) {
-        String signature = new String(Base64.encodeBase64(newSignature));
+        String signature = new String(Base64.getMimeDecoder().decode(newSignature));
         setValue("b", signature);
     }
 
     public void setBodyHash(byte[] newBodyHash) {
-        String bodyHash = new String(Base64.encodeBase64(newBodyHash));
+        String bodyHash = new String(Base64.getMimeDecoder().decode(newBodyHash));
         setValue("bh", bodyHash);
         // If a t=; parameter is present in the signature, make sure to 
         // fill it with the current timestamp

@@ -24,6 +24,7 @@ import org.apache.james.jdkim.tagvalue.SignatureRecordImpl;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import org.junit.Assert;
 import org.junit.Test;
 
 public class SignatureRecordImplTest {
@@ -132,4 +133,19 @@ public class SignatureRecordImplTest {
         ).hasMessageContaining("expired");
     }
 
+    @Test
+    public void should_parse_signature_with_newline_between_padding() {
+        String signature = "v=1; a=rsa-sha256; q=dns/txt; c=simple; s=selector2; d=messiah.edu; bh=6pQY\r\n" +
+                "    5V6Dw8mCYWq017gfbpv+x2X4GvOhIIZtKw6iU6g=; h=date:from:subject; b=Axa\r\n" +
+                "    8s/gTnnJ8em45KV/AQw33hQ4uYtBKiQp3dLq7oRFt+WmDZ5ZErPq4lBVXfP+IAvP+Au9\r\n" +
+                "    1J8270ivn1J/6E0YqKntn4s1hjcNBPPRVohvmlcQ1mEMd6DuYDtWjDFwG2GWZwtilaPY\r\n" +
+                "    2afhlTuAbHkn8nHm7MVtAGETO8QQ2zfD1NSGzKbNYP9I+hrDJq5ajka6PZn1d+mDhUH5\r\n" +
+                "    Px8yScYqo5i8Z8GXaejSIu7RsLDuxtOO2cuClRi8MKGxc7MiGndMufXB8xbS1L80IFly\r\n" +
+                "    unOVY5eBaqnnhF2YrDDQfZ6DTqorzX6D5dNjpjOG6AbsqkW83Drx0TTV/5M0raU1SIw=\r\n" +
+                "    =";
+
+        SignatureRecordImpl signatureRecord = new SignatureRecordImpl(signature);
+        Assert.assertTrue(signatureRecord.getSignature().length > 0);
+        Assert.assertTrue(signatureRecord.getBodyHash().length > 0);
+    }
 }

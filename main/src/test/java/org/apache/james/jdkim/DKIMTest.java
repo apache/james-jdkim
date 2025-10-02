@@ -33,9 +33,9 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.List;
 
-import org.apache.commons.codec.binary.Base64;
 import org.apache.james.jdkim.MockPublicKeyRecordRetriever.Record;
 import org.apache.james.jdkim.api.Headers;
 import org.apache.james.jdkim.api.Result;
@@ -49,12 +49,12 @@ public class DKIMTest {
             Record.of(
                     "selector2",
                     "messiah.edu",
-                    "k=rsa; p=" + Base64.encodeBase64String(TestKeys.publicKey.getEncoded()) + ";"
+                    "k=rsa; p=" + Base64.getEncoder().encodeToString(TestKeys.publicKey.getEncoded()) + ";"
             ),
             Record.of(
                     "selector3",
                     "messiah.edu",
-                    "k=rsa; p=" + Base64.encodeBase64String(TestKeys.publicKey_2.getEncoded()) + ";"
+                    "k=rsa; p=" + Base64.getEncoder().encodeToString(TestKeys.publicKey_2.getEncoded()) + ";"
             )
     );
 

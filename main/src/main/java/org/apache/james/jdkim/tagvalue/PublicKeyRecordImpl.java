@@ -19,7 +19,6 @@
 
 package org.apache.james.jdkim.tagvalue;
 
-import org.apache.commons.codec.binary.Base64;
 import org.apache.james.jdkim.api.PublicKeyRecord;
 
 import java.security.KeyFactory;
@@ -29,6 +28,7 @@ import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -178,7 +178,7 @@ public class PublicKeyRecordImpl extends TagValue implements PublicKeyRecord {
     public PublicKey getPublicKey() {
         try {
             String p = getValue("p").toString();
-            byte[] key = Base64.decodeBase64(p.getBytes());
+            byte[] key = Base64.getMimeDecoder().decode(p.getBytes());
             KeyFactory keyFactory;
             keyFactory = KeyFactory.getInstance(getValue("k").toString());
             X509EncodedKeySpec pubSpec = new X509EncodedKeySpec(key);

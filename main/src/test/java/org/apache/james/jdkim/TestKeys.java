@@ -31,8 +31,7 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
-
-import org.apache.commons.codec.binary.Base64;
+import java.util.Base64;
 
 public class TestKeys {
     public static final PrivateKey privateKey = loadPrivateKey("org/apache/james/jdkim/keys/private.key");
@@ -50,7 +49,7 @@ public class TestKeys {
                     .replace("-----BEGIN PUBLIC KEY-----", "")
                     .replace("-----END PUBLIC KEY-----", "")
                     .replaceAll(System.lineSeparator(), "");
-            byte[] encoded = Base64.decodeBase64(keyText);
+            byte[] encoded = Base64.getMimeDecoder().decode(keyText);
             KeyFactory keyFactory = KeyFactory.getInstance("RSA");
             X509EncodedKeySpec keySpec = new X509EncodedKeySpec(encoded);
             return keyFactory.generatePublic(keySpec);
@@ -71,7 +70,7 @@ public class TestKeys {
                     .replace("-----BEGIN PRIVATE KEY-----", "")
                     .replace("-----END PRIVATE KEY-----", "")
                     .replaceAll(System.lineSeparator(), "");
-            byte[] encoded = Base64.decodeBase64(keyText);
+            byte[] encoded = Base64.getMimeDecoder().decode(keyText);
             KeyFactory keyFactory = KeyFactory.getInstance("RSA");
             PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(encoded);
             return keyFactory.generatePrivate(keySpec);
