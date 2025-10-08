@@ -33,6 +33,8 @@ public class ArcSealVerifyData {
     public String getB64Signature() {
         return _b64;
     }
-    public String getSignedData() { return
-            _dataToVerify; }
+    
+    public String getSignedData() {
+        return _dataToVerify;
+   }
 }
