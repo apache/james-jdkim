@@ -75,7 +75,7 @@ public class ARCChainValidator {
     private String validatePreviousArcHops(Message message, Header messageHeaders, int myInstance) {
         ARCVerifier arcVerifier = new ARCVerifier(_keyRecordRetriever);
         Map<Integer, List<Field>> arcHeadersByI = arcVerifier.getArcHeadersByI(messageHeaders.getFields());
-        int numArcInstances = myInstance -1;
+        int numArcInstances = myInstance - 1;
         boolean isArcSetStructureOK = arcVerifier.validateArcSetStructure(arcHeadersByI);
         if (!isArcSetStructureOK) {
             return "fail";
