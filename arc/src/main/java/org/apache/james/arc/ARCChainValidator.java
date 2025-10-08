@@ -84,8 +84,8 @@ public class ARCChainValidator {
         Set<Field> prevArcSet;
         prevArcSet = arcVerifier.extractArcSet(messageHeaders, numArcInstances);
         if  (prevArcSet != null) {
-            boolean amsOk = checkArcAms (prevArcSet, message, arcVerifier);
-            boolean asOk = checkArcSeal (messageHeaders.getFields(), numArcInstances, arcVerifier);
+            boolean amsOk = checkArcAms(prevArcSet, message, arcVerifier);
+            boolean asOk = checkArcSeal(messageHeaders.getFields(), numArcInstances, arcVerifier);
             if (amsOk && asOk) {
                 return "pass";
             }
