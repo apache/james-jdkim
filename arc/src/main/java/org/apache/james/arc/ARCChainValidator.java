@@ -78,7 +78,7 @@ public class ARCChainValidator {
         int numArcInstances = myInstance -1;
         boolean isArcSetStructureOK = arcVerifier.validateArcSetStructure(arcHeadersByI);
         if (!isArcSetStructureOK) {
-            return  "fail";
+            return "fail";
         }
 
         Set<Field> prevArcSet;
