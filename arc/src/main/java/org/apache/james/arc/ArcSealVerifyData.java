@@ -18,23 +18,20 @@
  ****************************************************************/
 package org.apache.james.arc;
 
-public class ArcSealVerifyData {
-    private String _b64;
-    private String _dataToVerify;
+public final class ArcSealVerifyData {
+    private final String b64;
+    private final String dataToVerify;
 
-    public void setSignedData(String _dataToVerify) {
-        this._dataToVerify = _dataToVerify;
-    }
-
-    public void setB64Signature(String _b64) {
-        this._b64 = _b64;
+    public ArcSealVerifyData(String b64, String dataToVerify) {
+        this.b64 = b64;
+        this.dataToVerify = dataToVerify;
     }
 
     public String getB64Signature() {
-        return _b64;
+        return b64;
     }
-    
+
     public String getSignedData() {
-        return _dataToVerify;
-   }
+        return dataToVerify;
+    }
 }

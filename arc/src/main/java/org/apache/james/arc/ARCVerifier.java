@@ -308,7 +308,7 @@ public class ARCVerifier {
     }
 
     public ArcSealVerifyData buildArcSealSigningData(Map<Integer, List<Field>> headersByI, int targetI) {
-        ArcSealVerifyData result = new ArcSealVerifyData();
+        ArcSealVerifyData result = null;
         StringBuilder signingData = new StringBuilder();
 
         //Iterate over hops in ascending i order, for the last hop, make sure to clear b= tag on the ARC-Seal
@@ -336,18 +336,16 @@ public class ARCVerifier {
                     .append(":").append(canonicalizeBody(f.getBody()))
                     .append("\r\n"));
 
-            if (hopI == targetI) { // this is last hop so we need to clear b= tag on the ARC-Seal Header and not tail it with CRLF
-                as.ifPresent(f -> {
-                    Map<String, String> tags = parseTagList(f.getBody());
-                    String signatureB64 = tags.get("b");
-                    String b64 = signatureB64
-                            .replaceAll("\\s+", "")   // remove spaces, tabs, newlines
-                            .replace(";", "");
-                    String arcSealBodyClearedB= f.getBody().replaceAll("\\bb=([^;]*)", "b=");
-                    signingData.append(f.getName().toLowerCase(Locale.ROOT)).append(":").append(canonicalizeBody(arcSealBodyClearedB));
-                    result.setB64Signature(b64);
-                    result.setSignedData(signingData.toString());
-                });
+            if (hopI == targetI && as.isPresent()) { // this is last hop so we need to clear b= tag on the ARC-Seal Header and not tail it with CRLF
+                Field asField = as.get();
+                Map<String, String> tags = parseTagList(asField.getBody());
+                String signatureB64 = tags.get("b");
+                String b64 = signatureB64.replaceAll("\\s+", "").replace(";", "");
+                String arcSealBodyClearedB = asField.getBody().replaceAll("\\bb=([^;]*)", "b=");
+                signingData.append(asField.getName().toLowerCase(Locale.ROOT))
+                        .append(":").append(canonicalizeBody(arcSealBodyClearedB));
+                result = new ArcSealVerifyData(b64, signingData.toString());
+                break; // we have the target hop, can exit loop
             }
             else { // this is one of the previous hops, not the last one, so we want to preserve b= tag on the ARC-Seal and tail it with CRLF
                 as.ifPresent(f -> signingData

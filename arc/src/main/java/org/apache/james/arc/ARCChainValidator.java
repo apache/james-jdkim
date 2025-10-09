@@ -56,29 +56,29 @@ public class ARCChainValidator {
         this._keyRecordRetriever = keyRecordRetriever;
     }
 
-    public String validateArcChain(Message message) {
+    public ArcValidationResult validateArcChain(Message message) {
 
         Header messageHeaders = message.getHeader();
         int curInstance = getCurrentInstance(messageHeaders);  // Incremented by 1
 
         if (curInstance == 1) { //we are the first ARC Hop and there is no previous ARC hops in the chain to validate
-            return "none";
+            return ArcValidationResult.NONE;
         }
         else if (curInstance > 51) { // Not allowed to be > 50
-            return "fail";
+            return ArcValidationResult.FAIL;
         }
         else { // there are previous ARC hops that need to be validated
             return validatePreviousArcHops(message, messageHeaders, curInstance);
         }
     }
 
-    private String validatePreviousArcHops(Message message, Header messageHeaders, int myInstance) {
+    private ArcValidationResult validatePreviousArcHops(Message message, Header messageHeaders, int myInstance) {
         ARCVerifier arcVerifier = new ARCVerifier(_keyRecordRetriever);
         Map<Integer, List<Field>> arcHeadersByI = arcVerifier.getArcHeadersByI(messageHeaders.getFields());
         int numArcInstances = myInstance - 1;
         boolean isArcSetStructureOK = arcVerifier.validateArcSetStructure(arcHeadersByI);
         if (!isArcSetStructureOK) {
-            return "fail";
+            return ArcValidationResult.FAIL;
         }
 
         Set<Field> prevArcSet;
@@ -87,10 +87,10 @@ public class ARCChainValidator {
             boolean amsOk = checkArcAms(prevArcSet, message, arcVerifier);
             boolean asOk = checkArcSeal(messageHeaders.getFields(), numArcInstances, arcVerifier);
             if (amsOk && asOk) {
-                return "pass";
+                return ArcValidationResult.PASS;
             }
         }
-        return  "fail";
+        return  ArcValidationResult.FAIL;
     }
 
     private boolean checkArcAms(Set<Field> prevArcSet, Message message, ARCVerifier arcVerifier){

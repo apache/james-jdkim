@@ -25,8 +25,6 @@ import org.apache.james.mime4j.message.DefaultMessageWriter;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.StringWriter;
 import java.security.PrivateKey;
 import java.time.Instant;
 import java.util.HashMap;
@@ -102,7 +100,7 @@ public class ArcSetBuilder {
             Header headers = message.getHeader();
             ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
             AuthResultsBuilder authResultsBuilder = new AuthResultsBuilder(_dmarcResponse, _dmarcNonResponse, _authService, keyRecordRetriever);
-            String cv = arcChainValidator.validateArcChain(message);
+            String cv = arcChainValidator.validateArcChain(message).name().toLowerCase();
             int instance = arcChainValidator.getCurrentInstance(headers);
 
             //Build ARC-Authentication-Results header
@@ -131,7 +129,7 @@ public class ArcSetBuilder {
             fmContext.put("cv", cv);
 
             //Build and add ARC-AMS header
-            String amsTemplate = mergeTemplate(_arcAmsTemplate, fmContext);
+            String amsTemplate = fillArcTemplate(_arcAmsTemplate, instance, timestamp);
             ARCSigner amsSigner = new ARCSigner(amsTemplate, _arcPrivateKey);
             String amsHeader = amsSigner.generateAms(new ByteArrayInputStream(os.toByteArray()));
             String amsValue = amsHeader.split(ARC_ELEMENT)[1];
@@ -139,7 +137,7 @@ public class ArcSetBuilder {
             headersToSeal.put(ARC_MESSAGE_SIGNATURE, amsValue);
 
             //Build and add ARC-Seal header
-            String asTemplate = mergeTemplate(_arcSealTemplate, fmContext);
+            String asTemplate = fillArcSealTemplate(_arcSealTemplate, instance, timestamp, cv);
             ARCSigner asSigner = new ARCSigner(asTemplate, _arcPrivateKey);
             String asHeader = asSigner.sealHeaders(headersToSeal );
             String asValue = asHeader.split(ARC_ELEMENT)[1];
@@ -151,17 +149,14 @@ public class ArcSetBuilder {
         return arcHeaders;
     }
 
-    private String mergeTemplate(String templateString, Map<String, Object> context) throws IOException {
-        try (StringWriter writer = new StringWriter()) {
-            freemarker.template.Configuration cfg = new freemarker.template.Configuration(freemarker.template.Configuration.VERSION_2_3_31);
-            cfg.setTemplateLoader(new freemarker.cache.StringTemplateLoader());
-            freemarker.cache.StringTemplateLoader loader = (freemarker.cache.StringTemplateLoader) cfg.getTemplateLoader();
-            loader.putTemplate("template", templateString);
-            freemarker.template.Template template = cfg.getTemplate("template");
-            template.process(context, writer);
-            return writer.toString();
-        } catch (freemarker.template.TemplateException e) {
-            throw new IOException("Error merging template", e);
-        }
+    private String fillArcSealTemplate(String template, int instance, long timestamp, String cv) {
+        String filledCv = template.replaceAll("cv=\\s*;", "cv=" + cv + ";");
+        return fillArcTemplate(filledCv, instance, timestamp);
+    }
+
+    private String fillArcTemplate(String template, int instance, long timestamp) {
+        return template
+                .replaceAll("i=\\s*;", "i=" + instance + ";")
+                .replaceAll("t=\\s*;", "t=" + timestamp + ";");
     }
 }

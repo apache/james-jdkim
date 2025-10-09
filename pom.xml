@@ -67,6 +67,7 @@
         <james-skin.version>1.8</james-skin.version>
         <junit.version>4.13.2</junit.version>
         <target.jdk>11</target.jdk>
+        <jspf-resolver.version>1.0.5</jspf-resolver.version>
     </properties>
 
     <dependencyManagement>

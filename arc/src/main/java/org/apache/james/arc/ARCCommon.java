@@ -18,7 +18,6 @@
  ****************************************************************/
 package org.apache.james.arc;
 
-import org.apache.james.arc.exceptions.ArcException;
 import org.apache.james.jdkim.api.Headers;
 import org.apache.james.jdkim.api.SignatureRecord;
 import org.apache.james.jdkim.exceptions.PermFailException;
@@ -26,14 +25,8 @@ import org.apache.james.jdkim.exceptions.PermFailException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.security.KeyFactory;
-import java.security.NoSuchAlgorithmException;
-import java.security.PrivateKey;
 import java.security.Signature;
 import java.security.SignatureException;
-import java.security.spec.InvalidKeySpecException;
-import java.security.spec.PKCS8EncodedKeySpec;
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;

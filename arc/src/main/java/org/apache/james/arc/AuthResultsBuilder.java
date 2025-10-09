@@ -28,8 +28,6 @@ import org.apache.james.jdkim.tagvalue.SignatureRecordImpl;
 import org.apache.james.mime4j.dom.Message;
 import org.apache.james.mime4j.message.DefaultMessageWriter;
 
-import javax.mail.internet.AddressException;
-import javax.mail.internet.InternetAddress;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -74,7 +72,6 @@ public class AuthResultsBuilder {
 
         // 1. Run SPF check
         String spfResultText  = _keyRecordRetriever.getSpfRecord(helo, from, ip);
-
 
         // 2. Run DKIM verification
         String dkimResultFull;
@@ -170,16 +167,11 @@ public class AuthResultsBuilder {
     private String runDmarcCheck(Message message, String spfHeaderText, String spfDomain, String dkim, String dkimDomain) {
         // Combine SPF + DKIM results with From: domain
         // 1. Extract RFC5322.From domain from the From header of the message
-        String shortSpfResut = spfHeaderText.split(" ")[0];
+        String shortSpfResult = spfHeaderText.split(" ")[0];
         String fromHeader = message.getHeader().getField(FROM).getBody();
-        String fromDomain = getFromDomain(fromHeader);
+        String fromDomain = extractDomain(fromHeader);
         if (fromDomain == null || fromDomain.isEmpty()) {
             return _dmarcNoneResponse + "unknown";
-        }
-        try {
-            fromDomain = new InternetAddress(fromHeader).getAddress().split("@")[1];
-        } catch (AddressException e) {
-            throw new ArcException("Internet address error", e);
         }
 
         // 2. Fetch DMARC record from DNS
@@ -196,7 +188,7 @@ public class AuthResultsBuilder {
 //            String adkim = parseTag(dmarcRecord, "adkim"); // optional
 
         // 3. Alignment checks
-        boolean spfAligned = "pass".equals(shortSpfResut) && fromDomain.equalsIgnoreCase(spfDomain);
+        boolean spfAligned = "pass".equals(shortSpfResult) && fromDomain.equalsIgnoreCase(spfDomain);
         boolean dkimAligned = "pass".equals(dkim) && fromDomain.equalsIgnoreCase(dkimDomain);
 
         // 4. DMARC result logic
@@ -211,24 +203,43 @@ public class AuthResultsBuilder {
         return String.format(_dmarcResponse, result, policy, fromDomain);
     }
 
-    private String getFromDomain(String fromHeader) {
-        String fromDomain = null;
-        if (fromHeader.contains("<") && fromHeader.contains(">")) {
-            int start = fromHeader.indexOf('<');
-            int end = fromHeader.indexOf('>');
-            if (start != -1 && end != -1 && end > start) {
-                String email = fromHeader.substring(start + 1, end);
-                fromDomain = email.split("@")[1];
+    // Using own parser to avoid dependency on javax.mail which does not handle all From: formats
+    // e.g. From: "dpw demo Date: Wed, 8 Oct 2025 15:36:51 -0400" <dexxx8193@demo.test.io>"
+    private String extractDomain(String fromHeader) throws ArcException {
+        if (fromHeader == null || fromHeader.isEmpty()) {
+            throw new ArcException("From header is empty");
+        }
+
+        // Extract address inside <...>
+        String address = fromHeader;
+        int lt = fromHeader.indexOf('<');
+        int gt = fromHeader.indexOf('>');
+        if (lt != -1 && gt != -1 && gt > lt) {
+            address = fromHeader.substring(lt + 1, gt).trim();
+        } else {
+            // No brackets — just finding raw address
+            int at = fromHeader.indexOf('@');
+            if (at == -1) {
+                throw new ArcException("Invalid From header: " + fromHeader);
+            }
+
+            // Lookin for something@domain
+            String[] parts = fromHeader.split("\\s+");
+            for (String part : parts) {
+                if (part.contains("@")) {
+                    address = part;
+                    break;
+                }
             }
         }
-        else  {
-            try {
-                fromDomain = new InternetAddress(fromHeader).getAddress().split("@")[1];
-            } catch (AddressException e) {
-                throw new ArcException("Internet address error", e);
-            }
+
+        // And finally extracting the domain
+        int atIndex = address.lastIndexOf('@');
+        if (atIndex == -1 || atIndex == address.length() - 1) {
+            throw new ArcException("Invalid email address: " + fromHeader);
         }
-        return fromDomain;
+
+        return address.substring(atIndex + 1);
     }
 
     private InputStream messageToInputStream(Message message) throws IOException {

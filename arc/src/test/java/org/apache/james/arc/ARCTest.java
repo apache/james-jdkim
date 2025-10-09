@@ -71,9 +71,8 @@ public class ARCTest {
      * - "bh=" and "b=" placeholder are required for now because the same implementation is used for
      * signing and verifying. The fields are mandatory for verifying.
      */
-    //Todo: replace freemarker templates with something less heavy weight
-    private static final String ARC_AMS_TEMPLATE = "i=${instance}; a=rsa-sha256; c=relaxed/relaxed; d=dmarc.example; s=arc; t=${timestamp}; h=Subject:From:To; bh=; b=";
-    private static final String ARC_SEAL_TEMPLATE = "i=${instance}; cv=${cv}; a=rsa-sha256; d=dmarc.example; s=arc; t=${timestamp}; b=";
+    private static final String ARC_AMS_TEMPLATE = "i=; a=rsa-sha256; c=relaxed/relaxed; d=dmarc.example; s=arc; t=; h=Subject:From:To; bh=; b=";
+    private static final String ARC_SEAL_TEMPLATE = "i=; cv=; a=rsa-sha256; d=dmarc.example; s=arc; t=; b=";
 
     private static final String AUTH_SERVICE = "smtp.d1.example";
     private static final String HELO = "d1.example";
@@ -119,7 +118,7 @@ public class ARCTest {
         }
 
         ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
-        String cv = arcChainValidator.validateArcChain(message);
+        String cv = arcChainValidator.validateArcChain(message).name().toLowerCase();
         assertThat(cv).isEqualTo(expectedCv);
 
     }
