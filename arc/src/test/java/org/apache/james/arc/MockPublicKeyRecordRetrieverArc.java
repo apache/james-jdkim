@@ -55,7 +55,7 @@ public class MockPublicKeyRecordRetrieverArc extends MockPublicKeyRecordRetrieve
                 if (recs.isEmpty()) {
                     return null;
                 }
-                return recs.getFirst();
+                return recs.get(0);
         } catch (TempFailException e) {
             throw new ArcException("Temporary failure looking up DMARC record", e);
         } catch (PermFailException e) {

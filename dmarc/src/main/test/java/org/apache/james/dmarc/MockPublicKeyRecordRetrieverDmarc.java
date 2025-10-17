@@ -35,7 +35,7 @@ public class MockPublicKeyRecordRetrieverDmarc extends MockPublicKeyRecordRetrie
             if (recs == null || recs.isEmpty()) {
                 return null;
             }
-            return recs.getFirst();
+            return recs.get(0);
         } catch (TempFailException e) {
             throw new DmarcException("Temporary failure looking up DMARC record", e);
         } catch (PermFailException e) {
