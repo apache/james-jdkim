@@ -16,30 +16,15 @@
  * specific language governing permissions and limitations      *
  * under the License.                                           *
  ****************************************************************/
-package org.apache.james.arc;
+package org.apache.james.dmarc.exceptions;
 
-import org.apache.james.dmarc.DNSPublicKeyRecordRetrieverDmarc;
-import org.apache.james.dmarc.PublicKeyRecordRetrieverDmarc;
-import org.apache.james.jdkim.impl.DNSPublicKeyRecordRetriever;
-import org.apache.james.jspf.impl.DefaultSPF;
-import org.apache.james.jspf.impl.SPF;
+public class DmarcException extends RuntimeException {
 
-public class DNSPublicKeyRecordRetrieverArc extends DNSPublicKeyRecordRetriever implements PublicKeyRetrieverArc {
-    public static final DNSPublicKeyRecordRetrieverDmarc DMARC = new DNSPublicKeyRecordRetrieverDmarc();
-
-    public DNSPublicKeyRecordRetrieverArc() {
-        super();
+    public DmarcException(String message) {
+        super(message);
     }
 
-    @Override
-    public String getSpfRecord(String helo, String from, String ip) {
-        Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
-        SPF spf = new DefaultSPF();
-        return spf.checkSPF(ip, from, helo).getHeaderText();
-    }
-
-    @Override
-    public PublicKeyRecordRetrieverDmarc getDmarcRetriever() {
-        return DMARC;
+    public DmarcException(String message, Throwable cause) {
+        super(message, cause);
     }
 }

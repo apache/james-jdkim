@@ -167,23 +167,6 @@ public class ARCVerifier {
         return n + ":" + v;
     }
 
-    private PublicKey getPublicKeyFromTxtRecord(String keyText) {
-
-        keyText = keyText.replaceAll("\\s+", ""); // remove ALL spaces/newlines
-        byte[] keyBytes = Base64.getDecoder().decode(keyText);
-
-        X509EncodedKeySpec spec = new X509EncodedKeySpec(keyBytes);
-        PublicKey pubKey;
-        try {
-            pubKey = KeyFactory.getInstance(RSA).generatePublic(spec);
-        } catch (InvalidKeySpecException e) {
-            throw new ArcException("Invalid key provided when getting public key", e);
-        } catch (NoSuchAlgorithmException e) {
-            throw new ArcException("Unsupported algorithm provided when getting public key", e);
-        }
-        return pubKey;
-    }
-
     public PublicKey parsePublicKeyFromDns(String dnsRecord) {
         Matcher m = PUBLIC_KEY_PATTERN.matcher(dnsRecord);
 

@@ -19,6 +19,7 @@
 package org.apache.james.arc;
 
 import org.apache.james.arc.exceptions.ArcException;
+import org.apache.james.dmarc.DMARCVerifier;
 import org.apache.james.jdkim.DKIMVerifier;
 import org.apache.james.jdkim.api.SignatureRecord;
 import org.apache.james.jdkim.exceptions.FailException;
@@ -54,7 +55,6 @@ import java.util.Set;
  * </p>
  */
 public class AuthResultsBuilder {
-    public static final String FROM = "From";
     public static final String HEADER_I = "header.i=";
     private final PublicKeyRetrieverArc _keyRecordRetriever;
     private String _dmarcNoneResponse;
@@ -85,7 +85,8 @@ public class AuthResultsBuilder {
         // 3. Run DMARC check (using SPF + DKIM results + From domain)
         String dkimDomain = extractDkimDomain(dkimResultFull);
         String spfDomain = extractSpfDomain(spfResultText);
-        String dmarcResult = runDmarcCheck(message, spfResultText, spfDomain, dkimResultShort, dkimDomain);
+        DMARCVerifier dmarcVerifier = new DMARCVerifier(_dmarcResponse, _dmarcNoneResponse, _keyRecordRetriever.getDmarcRetriever());
+        String dmarcResult = dmarcVerifier.runDmarcCheck(message, spfResultText, spfDomain, dkimResultShort, dkimDomain);
         if (dmarcResult == null || dmarcResult.isEmpty()) {
             dmarcResult = _dmarcNoneResponse + spfDomain;
         }
@@ -162,84 +163,6 @@ public class AuthResultsBuilder {
             }
         }
         return null;
-    }
-
-    private String runDmarcCheck(Message message, String spfHeaderText, String spfDomain, String dkim, String dkimDomain) {
-        // Combine SPF + DKIM results with From: domain
-        // 1. Extract RFC5322.From domain from the From header of the message
-        String shortSpfResult = spfHeaderText.split(" ")[0];
-        String fromHeader = message.getHeader().getField(FROM).getBody();
-        String fromDomain = extractDomain(fromHeader);
-        if (fromDomain == null || fromDomain.isEmpty()) {
-            return _dmarcNoneResponse + "unknown";
-        }
-
-        // 2. Fetch DMARC record from DNS
-        ARCVerifier arcVerifier = new ARCVerifier(_keyRecordRetriever);
-
-        String dmarcRecord = arcVerifier.getPublicKeyRecordRetriever().getDmarcRecord(fromDomain);
-        if (dmarcRecord == null) {
-            return _dmarcNoneResponse + fromDomain;
-        }
-
-        // Parse DMARC policy
-        String policy = arcVerifier.parseTagGeneric(dmarcRecord, "p"); // p=none|quarantine|reject
-//            String aspf = parseTag(dmarcRecord, "aspf"); // optional
-//            String adkim = parseTag(dmarcRecord, "adkim"); // optional
-
-        // 3. Alignment checks
-        boolean spfAligned = "pass".equals(shortSpfResult) && fromDomain.equalsIgnoreCase(spfDomain);
-        boolean dkimAligned = "pass".equals(dkim) && fromDomain.equalsIgnoreCase(dkimDomain);
-
-        // 4. DMARC result logic
-        String result;
-        if (spfAligned || dkimAligned) {
-            result = "pass";
-        } else {
-            result = "fail";
-        }
-
-        // 5. Build Authentication-Results string
-        return String.format(_dmarcResponse, result, policy, fromDomain);
-    }
-
-    // Using own parser to avoid dependency on javax.mail which does not handle all From: formats
-    // e.g. From: "dpw demo Date: Wed, 8 Oct 2025 15:36:51 -0400" <dexxx8193@demo.test.io>"
-    private String extractDomain(String fromHeader) throws ArcException {
-        if (fromHeader == null || fromHeader.isEmpty()) {
-            throw new ArcException("From header is empty");
-        }
-
-        // Extract address inside <...>
-        String address = fromHeader;
-        int lt = fromHeader.indexOf('<');
-        int gt = fromHeader.indexOf('>');
-        if (lt != -1 && gt != -1 && gt > lt) {
-            address = fromHeader.substring(lt + 1, gt).trim();
-        } else {
-            // No brackets — just finding raw address
-            int at = fromHeader.indexOf('@');
-            if (at == -1) {
-                throw new ArcException("Invalid From header: " + fromHeader);
-            }
-
-            // Lookin for something@domain
-            String[] parts = fromHeader.split("\\s+");
-            for (String part : parts) {
-                if (part.contains("@")) {
-                    address = part;
-                    break;
-                }
-            }
-        }
-
-        // And finally extracting the domain
-        int atIndex = address.lastIndexOf('@');
-        if (atIndex == -1 || atIndex == address.length() - 1) {
-            throw new ArcException("Invalid email address: " + fromHeader);
-        }
-
-        return address.substring(atIndex + 1);
     }
 
     private InputStream messageToInputStream(Message message) throws IOException {

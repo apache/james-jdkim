@@ -16,10 +16,9 @@
  * specific language governing permissions and limitations                    *
  * under the License.                                                         *
  ******************************************************************************/
-
 package org.apache.james.arc;
 
-import org.apache.commons.codec.binary.Base64;
+import org.apache.james.dmarc.MockPublicKeyRecordRetrieverDmarc;
 import org.apache.james.jdkim.DKIMCommon;
 import org.apache.james.jdkim.MockPublicKeyRecordRetriever;
 import org.apache.james.mime4j.dom.Message;
@@ -27,6 +26,7 @@ import org.apache.james.mime4j.message.DefaultMessageBuilder;
 import org.apache.james.mime4j.stream.RawField;
 import org.junit.Test;
 
+import java.util.Base64;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -45,20 +45,23 @@ public class ARCTest {
     public static final String ARC_MESSAGE_SIGNATURE = "ARC-Message-Signature";
     public static final String ARC_SEAL = "ARC-Seal";
 
-    private final MockPublicKeyRecordRetrieverArc keyRecordRetriever = new MockPublicKeyRecordRetrieverArc(
+    private final MockPublicKeyRecordRetrieverDmarc dmarcRetriever = new MockPublicKeyRecordRetrieverDmarc(
+            MockPublicKeyRecordRetrieverDmarc.DmarcRecord.dmarcOf(
+                    "d1.example",
+                    "k=rsa; v=DMARC1; p=reject; pct=100; rua=mailto:noc@d1.example"
+            )
+    );
+
+    private final MockPublicKeyRecordRetrieverArc keyRecordRetriever = new MockPublicKeyRecordRetrieverArc( dmarcRetriever,
             MockPublicKeyRecordRetriever.Record.of(
                     "arc",
                     "dmarc.example",
-                    "k=rsa; p=" + Base64.encodeBase64String(ArcTestKeys.publicKeyArc.getEncoded()) + ";"
+                    "k=rsa; p=" + Base64.getEncoder().encodeToString(ArcTestKeys.publicKeyArc.getEncoded()) + ";"
             ),
             MockPublicKeyRecordRetriever.Record.of(
                     "origin2015",
                     "d1.example",
-                    "k=rsa; p=" + Base64.encodeBase64String(ArcTestKeys.publicKeyDkim.getEncoded()) + ";"
-            ),
-            MockPublicKeyRecordRetrieverArc.DmarcRecord.dmarcOf("",
-                    "d1.example",
-                    "k=rsa; v=DMARC1; p=reject; pct=100; rua=mailto:noc@d1.example"
+                    "k=rsa; p=" + Base64.getEncoder().encodeToString(ArcTestKeys.publicKeyDkim.getEncoded()) + ";"
             ),
             MockPublicKeyRecordRetrieverArc.SpfRecord.spfOf("d1.example",
                     "jqd@d1.example",

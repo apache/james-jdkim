@@ -16,11 +16,9 @@
  * specific language governing permissions and limitations                    *
  * under the License.                                                         *
  ******************************************************************************/
-
 package org.apache.james.arc;
 
-import org.apache.commons.codec.binary.Base64;
-
+import java.util.Base64;
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -47,9 +45,9 @@ public class ArcTestKeys {
                     .replace("-----BEGIN PUBLIC KEY-----", "")
                     .replace("-----END PUBLIC KEY-----", "")
                     .replaceAll(System.lineSeparator(), "");
-            byte[] encoded = Base64.decodeBase64(keyText);
+            byte[] decoded = Base64.getDecoder().decode(keyText);
             KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-            X509EncodedKeySpec keySpec = new X509EncodedKeySpec(encoded);
+            X509EncodedKeySpec keySpec = new X509EncodedKeySpec(decoded);
             return keyFactory.generatePublic(keySpec);
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -68,9 +66,9 @@ public class ArcTestKeys {
                     .replace("-----BEGIN PRIVATE KEY-----", "")
                     .replace("-----END PRIVATE KEY-----", "")
                     .replaceAll(System.lineSeparator(), "");
-            byte[] encoded = Base64.decodeBase64(keyText);
+            byte[] decoded =  Base64.getDecoder().decode(keyText);
             KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-            PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(encoded);
+            PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(decoded);
             return keyFactory.generatePrivate(keySpec);
         } catch (Exception e) {
             throw new RuntimeException(e);

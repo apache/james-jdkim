@@ -16,54 +16,50 @@
  * specific language governing permissions and limitations                    *
  * under the License.                                                         *
  ******************************************************************************/
-package org.apache.james.arc;
+package org.apache.james.dmarc;
 
-import org.apache.james.arc.exceptions.ArcException;
-import org.apache.james.dmarc.MockPublicKeyRecordRetrieverDmarc;
+import org.apache.james.dmarc.exceptions.DmarcException;
 import org.apache.james.jdkim.MockPublicKeyRecordRetriever;
 import org.apache.james.jdkim.exceptions.PermFailException;
 import org.apache.james.jdkim.exceptions.TempFailException;
 
 import java.util.List;
 
-public class MockPublicKeyRecordRetrieverArc extends MockPublicKeyRecordRetriever implements PublicKeyRetrieverArc {
+public class MockPublicKeyRecordRetrieverDmarc extends MockPublicKeyRecordRetriever implements PublicKeyRecordRetrieverDmarc {
+    public static final String DMARC = "_dmarc.";
 
-    public static final String SPF = "_spf.";
-    private final MockPublicKeyRecordRetrieverDmarc _dmarcRetriever;
-
-    public static class SpfRecord extends  MockPublicKeyRecordRetriever.Record {
-
-        public SpfRecord(String helo, String from, String ip, String spfRecord) {
-            super(SPF, ip + helo + from, spfRecord);
+    @Override
+    public String getDmarcRecord(String query) {
+        try {
+            List<String> recs = super.getRecords("dns/txt", DMARC, query);
+            if (recs == null || recs.isEmpty()) {
+                return null;
+            }
+            return recs.getFirst();
+        } catch (TempFailException e) {
+            throw new DmarcException("Temporary failure looking up DMARC record", e);
+        } catch (PermFailException e) {
+            throw new DmarcException("Permanent failure looking up DMARC record", e);
         }
-
-        public static SpfRecord spfOf(String helo, String from, String ip, String spfRecord) {
-            return new SpfRecord(helo, from, ip, spfRecord);
-        }
-    }
-
-    public MockPublicKeyRecordRetrieverArc(MockPublicKeyRecordRetrieverDmarc dmarcRetriever, Record... records) {
-        super(records);
-        _dmarcRetriever = dmarcRetriever;
     }
 
     @Override
-    public String getSpfRecord(String helo, String from, String ip) {
-        try {
-           String token = ip + helo + from;
-                List<String> recs = super.getRecords("dns/txt", SPF,token);
-                if (recs.isEmpty()) {
-                    return null;
-                }
-                return recs.getFirst();
-        } catch (TempFailException e) {
-            throw new ArcException("Temporary failure looking up DMARC record", e);
-        } catch (PermFailException e) {
-            throw new ArcException("Permanent failure looking up DMARC record", e);
+    public List<String> getRecords(CharSequence methodAndOption, CharSequence selector, CharSequence token) throws TempFailException, PermFailException {
+        return List.of();
+    }
+
+    public static class DmarcRecord extends  MockPublicKeyRecordRetriever.Record {
+
+        public DmarcRecord(String domain, String dmarcRecord) {
+            super(DMARC, domain, dmarcRecord);
+        }
+
+        public static DmarcRecord dmarcOf(String domain, String dmarcRecord) {
+            return new DmarcRecord(domain, dmarcRecord);
         }
     }
 
-    public MockPublicKeyRecordRetrieverDmarc getDmarcRetriever() {
-        return _dmarcRetriever;
+    public MockPublicKeyRecordRetrieverDmarc(Record... records) {
+        super(records);
     }
 }
