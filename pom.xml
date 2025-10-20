@@ -40,8 +40,8 @@
     <modules>
         <module>assemble</module>
         <module>main</module>
-        <module>arc</module>
         <module>dmarc</module>
+        <module>arc</module>
     </modules>
 
     <scm>
