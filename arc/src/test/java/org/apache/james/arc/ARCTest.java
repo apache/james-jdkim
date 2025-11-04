@@ -83,11 +83,7 @@ public class ARCTest {
     private static final String MAIL_FROM = "jqd@d1.example";
     private static final String IP = "222.222.222.222";
     private static final long TIMESTAMP = 1755918846L; // fixed timestamp for repeatable tests
-
-    private static final String DMARC_RESPONSE_TEMPLATE = "dmarc=%s (p=%s) header.from=%s";
-    private static final String DMARC_NON_RESPONSE_TEMPLATE = "dmarc=none (no policy) header.from=";
-
-    ArcSetBuilder arcSetBuilder = new ArcSetBuilder(ArcTestKeys.privateKeyArc, ARC_AMS_TEMPLATE, ARC_SEAL_TEMPLATE, DMARC_RESPONSE_TEMPLATE, DMARC_NON_RESPONSE_TEMPLATE, AUTH_SERVICE, TIMESTAMP);
+    ArcSetBuilder arcSetBuilder = new ArcSetBuilder(ArcTestKeys.privateKeyArc, ARC_AMS_TEMPLATE, ARC_SEAL_TEMPLATE, AUTH_SERVICE, TIMESTAMP);
 
     @Test
     public void generate_and_verify_arc_set() throws Exception {
@@ -121,9 +117,8 @@ public class ARCTest {
         }
 
         ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
-        String cv = arcChainValidator.validateArcChain(message).name().toLowerCase();
-        assertThat(cv).isEqualTo(expectedCv);
-
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo(expectedCv);
     }
 
     private ByteArrayInputStream readFileToByteArrayInputStream(String fileName) throws URISyntaxException, IOException {

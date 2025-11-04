@@ -18,8 +18,9 @@
  ****************************************************************/
 package org.apache.james.arc;
 
+import org.apache.james.arc.exceptions.ArcException;
 import org.apache.james.jdkim.tagvalue.SignatureRecordImpl;
-
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -49,13 +50,14 @@ public class ArcSignatureRecordImpl extends SignatureRecordImpl {
     }
 
     @Override
-    public void validate() throws IllegalStateException {
+    public void validate() throws ArcException {
         if (getValue("x") != null) {
             long expiration = Long.parseLong(getValue("x").toString());
             long lifetime = (expiration - System.currentTimeMillis() / 1000);
             if (lifetime < 0) {
-                throw new IllegalStateException("Signature is expired since "
-                        + getTimeMeasureText(lifetime) + ".");
+                String expired = getTimeMeasureText(lifetime);
+                throw new ArcException("Signature is expired since "
+                        + expired + " ago.");
             }
         }
     }
@@ -70,30 +72,14 @@ public class ArcSignatureRecordImpl extends SignatureRecordImpl {
     }
 
     private String getTimeMeasureText(long lifetime) {
-        String measure = "s";
-        lifetime = -lifetime;
-        if (lifetime > 600) {
-            lifetime = lifetime / 60;
-            measure = "m";
-            if (lifetime > 600) {
-                lifetime = lifetime / 60;
+       Duration duration = Duration.ofSeconds(lifetime);
+       long days = duration.toDays();
+       long hours = duration.toHours() % 24;
+       long minutes = duration.toMinutes() % 60;
+       long seconds = duration.getSeconds() % 60;
 
-                measure = "h";
-                if (lifetime > 120) {
-                    lifetime = lifetime / 24;
-                    measure = "d";
-                    if (lifetime > 90) {
-                        lifetime = lifetime / 30;
-                        measure = " months";
-                        if (lifetime > 24) {
-                            lifetime = lifetime / 12;
-                            measure = " years";
-                        }
-                    }
-                }
-            }
-        }
-        return lifetime + measure;
+       return String.format("%d days, %d hours, %d minutes, %d seconds",
+               days, hours, minutes, seconds);
     }
 
     @Override
@@ -186,15 +172,5 @@ public class ArcSignatureRecordImpl extends SignatureRecordImpl {
     public CharSequence getIdentityLocalPart() {
         // Not applicable for ARC
         return getIdentity();
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        return super.equals(obj);
-    }
-
-    @Override
-    public int hashCode() {
-        return super.hashCode();
     }
 }

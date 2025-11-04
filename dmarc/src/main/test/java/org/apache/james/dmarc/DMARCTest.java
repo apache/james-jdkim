@@ -24,8 +24,6 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class DMARCTest {
-    private static final String DMARC_RESPONSE_TEMPLATE = "dmarc=%s (p=%s) header.from=%s";
-    private static final String DMARC_NON_RESPONSE_TEMPLATE = "dmarc=none (no policy) header.from=";
 
     private final MockPublicKeyRecordRetrieverDmarc recordRetrieverDmarc = new MockPublicKeyRecordRetrieverDmarc(
             MockPublicKeyRecordRetrieverDmarc.DmarcRecord.dmarcOf(
@@ -41,16 +39,16 @@ public class DMARCTest {
 
     private final List<DmarcRequestMock> passRequests = List.of(
             new DmarcRequestMock("/mail/e1.eml","pass", "d1.example", "softfail (spfCheck: transitioning domain of d1.example does not designate 222.222.222.222 as permitted sender) client-ip=222.222.222.222; envelope-from=jqd@d1.example; helo=d1.example", "d1.example", "dmarc=pass (p=reject) header.from=d1.example"),
-            new DmarcRequestMock("/mail/e2.eml","pass", "replit.app", "pass client-ip=222.222.222.222; envelope-from=jqd@id.firewalledreplit.co; helo=replit.app", "replit.app", "dmarc=pass (p=reject) header.from=mail.replit.app"),
+            new DmarcRequestMock("/mail/e2.eml","pass", "mail.replit.app", "pass client-ip=222.222.222.222; envelope-from=jqd@id.firewalledreplit.co; helo=replit.app", "mail.replit.app", "dmarc=pass (p=reject) header.from=mail.replit.app"),
             new DmarcRequestMock("/mail/e3.eml","pass", "replit.app", "pass client-ip=222.222.222.222; envelope-from=jqd@id.firewalledreplit.co; helo=replit.app", "replit.app", "dmarc=fail (p=reject) header.from=test.replit.app")
             );
 
-    DMARCVerifier dmarcVerifier = new DMARCVerifier(DMARC_RESPONSE_TEMPLATE, DMARC_NON_RESPONSE_TEMPLATE, recordRetrieverDmarc);
+    DMARCVerifier dmarcVerifier = new DMARCVerifier(recordRetrieverDmarc);
 
     @Test
     public void generate_and_verify_dmarc_pass() {
         passRequests.forEach(r -> {
-            assertThat(dmarcVerifier.runDmarcCheck(r.message(), r.spfResult(), r.spfDomain(), r.dkimResult(), r.dkimDomain())).isEqualTo(r.expectedResult());
+            assertThat(dmarcVerifier.runDmarcCheck(r.message(), r.spfResult(), r.spfDomain(), r.dkimResult(), r.dkimDomain()).toString()).hasToString(r.expectedResult());
         });
     }
 }

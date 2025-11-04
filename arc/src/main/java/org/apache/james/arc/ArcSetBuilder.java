@@ -19,12 +19,14 @@
 package org.apache.james.arc;
 
 import org.apache.james.arc.exceptions.ArcException;
+import org.apache.james.dmarc.exceptions.DmarcException;
 import org.apache.james.mime4j.dom.Header;
 import org.apache.james.mime4j.dom.Message;
 import org.apache.james.mime4j.message.DefaultMessageWriter;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.security.PrivateKey;
 import java.time.Instant;
 import java.util.HashMap;
@@ -54,26 +56,20 @@ public class ArcSetBuilder {
     private final PrivateKey _arcPrivateKey;
     private final String _arcAmsTemplate;
     private final String _arcSealTemplate;
-    private final String _dmarcResponse;
-    private final String _dmarcNonResponse;
     private final String _authService;
     private long _debugTimestamp;
 
     public ArcSetBuilder(PrivateKey arcPrivateKey, String arcAmsTemplate, String arcSealTemplate,
-                         String dmarcResponse, String dmarcNonResponse,
                          String authService, long debugTimestamp) {
-        this(arcPrivateKey, arcAmsTemplate, arcSealTemplate, dmarcResponse, dmarcNonResponse, authService);
+        this(arcPrivateKey, arcAmsTemplate, arcSealTemplate, authService);
         _debugTimestamp = debugTimestamp;
     }
 
     public ArcSetBuilder(PrivateKey arcPrivateKey, String arcAmsTemplate, String arcSealTemplate,
-                         String dmarcResponse, String dmarcNonResponse,
                          String authService) {
         _arcAmsTemplate = arcAmsTemplate;
         _arcSealTemplate = arcSealTemplate;
         _arcPrivateKey = arcPrivateKey;
-        _dmarcResponse = dmarcResponse;
-        _dmarcNonResponse = dmarcNonResponse;
         _authService = authService;
     }
 
@@ -93,59 +89,63 @@ public class ArcSetBuilder {
      * @return a map containing the generated ARC headers and their values
      * @throws ArcException if ARC header generation or signing fails
      */
-    public Map<String, String> buildArcSet(Message message, String helo, String mailFrom, String ip, PublicKeyRetrieverArc keyRecordRetriever) {
+    public Map<String, String> buildArcSet(Message message, String helo, String mailFrom, String ip, PublicKeyRetrieverArc keyRecordRetriever) throws DmarcException {
         Map <String, String> arcHeaders = new HashMap<>();
 
+        Header headers = message.getHeader();
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        AuthResultsBuilder authResultsBuilder = new AuthResultsBuilder(_authService, keyRecordRetriever);
+        ArcValidationOutcome cvOutcome = arcChainValidator.validateArcChain(message);
+        String cv = cvOutcome.getResult().toString().toLowerCase();
+        int instance = arcChainValidator.getCurrentInstance(headers);
+
+        //Build ARC-Authentication-Results header
+        String arHeaderValue = authResultsBuilder.getAuthResultsHeader(message, helo, mailFrom,ip);
+        if (arHeaderValue == null){
+            throw new ArcException("Unable to build Authentication-Results header");
+        }
+
+        arcHeaders.put(AUTHENTICATION_RESULTS, arHeaderValue);
+        Map<String, String> headersToSeal = new LinkedHashMap<>();
+        String aarHeaderValue = "i=" + instance + "; " + arHeaderValue.trim();
+
+        arcHeaders.put(ARC_AUTHENTICATION_RESULTS, aarHeaderValue);
+        headersToSeal.put(ARC_AUTHENTICATION_RESULTS, aarHeaderValue);
+        DefaultMessageWriter writer = new DefaultMessageWriter();
+        ByteArrayOutputStream os = new ByteArrayOutputStream();
+
         try {
-            Header headers = message.getHeader();
-            ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
-            AuthResultsBuilder authResultsBuilder = new AuthResultsBuilder(_dmarcResponse, _dmarcNonResponse, _authService, keyRecordRetriever);
-            String cv = arcChainValidator.validateArcChain(message).name().toLowerCase();
-            int instance = arcChainValidator.getCurrentInstance(headers);
-
-            //Build ARC-Authentication-Results header
-            String arHeaderValue = authResultsBuilder.getAuthResultsHeader(message, helo, mailFrom,ip);
-            if (arHeaderValue == null){
-                throw new ArcException("Unable to build Authentication-Results header");
-            }
-
-            arcHeaders.put(AUTHENTICATION_RESULTS, arHeaderValue);
-            Map<String, String> headersToSeal = new LinkedHashMap<>();
-            String aarHeaderValue = "i=" + instance + "; " + arHeaderValue.trim();
-
-            arcHeaders.put(ARC_AUTHENTICATION_RESULTS, aarHeaderValue);
-            headersToSeal.put(ARC_AUTHENTICATION_RESULTS, aarHeaderValue);
-            DefaultMessageWriter writer = new DefaultMessageWriter();
-            ByteArrayOutputStream os = new ByteArrayOutputStream();
             writer.writeMessage(message,os);
-
-            Map<String, Object> fmContext = new HashMap<>();
-            fmContext.put("instance", instance);
-            long timestamp = Instant.now().getEpochSecond();
-            if (_debugTimestamp != 0) {
-                timestamp = _debugTimestamp;
-            }
-            fmContext.put("timestamp", Long.toString(timestamp));
-            fmContext.put("cv", cv);
-
-            //Build and add ARC-AMS header
-            String amsTemplate = fillArcTemplate(_arcAmsTemplate, instance, timestamp);
-            ARCSigner amsSigner = new ARCSigner(amsTemplate, _arcPrivateKey);
-            String amsHeader = amsSigner.generateAms(new ByteArrayInputStream(os.toByteArray()));
-            String amsValue = amsHeader.split(ARC_ELEMENT)[1];
-            arcHeaders.put(ARC_MESSAGE_SIGNATURE, amsValue);
-            headersToSeal.put(ARC_MESSAGE_SIGNATURE, amsValue);
-
-            //Build and add ARC-Seal header
-            String asTemplate = fillArcSealTemplate(_arcSealTemplate, instance, timestamp, cv);
-            ARCSigner asSigner = new ARCSigner(asTemplate, _arcPrivateKey);
-            String asHeader = asSigner.sealHeaders(headersToSeal );
-            String asValue = asHeader.split(ARC_ELEMENT)[1];
-            arcHeaders.put(ARC_SEAL, asValue);
+        } catch (IOException e) {
+            throw new ArcException("Unable to copy email message into the output stream", e);
         }
-        catch (Exception ex){
-            throw new ArcException("Unable to generate ARC Seal", ex);
+
+        Map<String, Object> fmContext = new HashMap<>();
+        fmContext.put("instance", instance);
+        long timestamp = Instant.now().getEpochSecond();
+        if (_debugTimestamp != 0) {
+            timestamp = _debugTimestamp;
         }
+        fmContext.put("timestamp", Long.toString(timestamp));
+        fmContext.put("cv", cv);
+
+        //Build and add ARC-AMS header
+        String amsTemplate = fillArcTemplate(_arcAmsTemplate, instance, timestamp);
+        ARCSigner amsSigner = new ARCSigner(amsTemplate, _arcPrivateKey);
+
+        String amsHeader = null;
+        amsHeader = amsSigner.generateAms(new ByteArrayInputStream(os.toByteArray()));
+
+        String amsValue = amsHeader.split(ARC_ELEMENT)[1];
+        arcHeaders.put(ARC_MESSAGE_SIGNATURE, amsValue);
+        headersToSeal.put(ARC_MESSAGE_SIGNATURE, amsValue);
+
+        //Build and add ARC-Seal header
+        String asTemplate = fillArcSealTemplate(_arcSealTemplate, instance, timestamp, cv);
+        ARCSigner asSigner = new ARCSigner(asTemplate, _arcPrivateKey);
+        String asHeader = asSigner.sealHeaders(headersToSeal );
+        String asValue = asHeader.split(ARC_ELEMENT)[1];
+        arcHeaders.put(ARC_SEAL, asValue);
         return arcHeaders;
     }
 

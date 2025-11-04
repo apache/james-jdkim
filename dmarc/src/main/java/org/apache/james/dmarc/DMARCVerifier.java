@@ -20,40 +20,46 @@ package org.apache.james.dmarc;
 
 import org.apache.james.dmarc.exceptions.DmarcException;
 import org.apache.james.mime4j.dom.Message;
+import org.apache.james.mime4j.dom.address.Mailbox;
+import org.apache.james.mime4j.dom.address.MailboxList;
+import java.util.HashMap;
+import java.util.Map;
 
 public class DMARCVerifier {
     public static final String FROM = "From";
-    private final String _dmarcResponse;
-    private final String _dmarcNonResponse;
     private final PublicKeyRecordRetrieverDmarc _recordRetriever;
 
-    public DMARCVerifier(String dmarcResponse, String dmarcNonResponse, PublicKeyRecordRetrieverDmarc recordRetriever) {
-        _dmarcResponse = dmarcResponse;
-        _dmarcNonResponse = dmarcNonResponse;
+    public DMARCVerifier(PublicKeyRecordRetrieverDmarc recordRetriever) {
         _recordRetriever = recordRetriever;
     }
 
-    public String runDmarcCheck(Message message, String spfHeaderText, String
-            spfDomain, String dkimResult, String dkimDomain){
+    public DmarcValidationResult runDmarcCheck(Message message, String spfHeaderText, String
+            spfDomain, String dkimResult, String dkimDomain) throws DmarcException {
              // Combine SPF + DKIM results with From: domain
         // 1. Extract RFC5322.From domain from the From header of the message
         String shortSpfResult = spfHeaderText.split(" ")[0];
-        String fromHeader = message.getHeader().getField(FROM).getBody();
-        String fromDomain = extractDomain(fromHeader);
+        MailboxList mailboxList = message.getFrom();
+        if (mailboxList == null || mailboxList.size() != 1) {
+            throw new DmarcException("Incorrect From header: must have exactly one mailbox"); // rejecting immediately unless exactly one mailbox
+        }
+
+        Mailbox mailbox = message.getFrom().get(0);
+        String fromDomain = mailbox.getDomain();
         if (fromDomain == null || fromDomain.isEmpty()) {
-            return _dmarcNonResponse + "unknown";
+            throw new DmarcException("From header is missing or has no domain part");
         }
 
         // 2. Fetch DMARC record from DNS
         String dmarcRecord = _recordRetriever.getDmarcRecord(fromDomain);
         if (dmarcRecord == null) {
-            return _dmarcNonResponse + fromDomain;
+            return new DmarcValidationResult(fromDomain, null, null);
         }
 
         // Parse DMARC policy
-        String policy = parseTag(dmarcRecord, "p"); // p=none|quarantine|reject
-        String aspf = parseTag(dmarcRecord, "aspf"); // "s" or "r" for strict or relaxed domain alignment; default is "r"
-        String adkim = parseTag(dmarcRecord, "adkim"); // "s" or "r" for strict or relaxed domain alignment; default is "r"
+        Map<String, String> dmarcTags = getDmarcTags(dmarcRecord);
+        String policy = dmarcTags.getOrDefault("p", "none");
+        String aspf = dmarcTags.getOrDefault("aspf", "r");      // default is "r" when omitted
+        String adkim = dmarcTags.getOrDefault("adkim", "r");    // default is "r" when omitted
 
         // 3. Alignment checks
         boolean spfAligned = getDomainAlignment(aspf, shortSpfResult, fromDomain, spfDomain);
@@ -68,12 +74,25 @@ public class DMARCVerifier {
         }
 
         // 5. Build Authentication-Results string
-        return String.format(_dmarcResponse, result, policy, fromDomain);
+        return new DmarcValidationResult(result, policy, fromDomain);
+    }
+
+    private Map<String, String> getDmarcTags(String dmarcRecord) {
+        Map<String, String> dmarcTags = new HashMap<>();
+        String[] parts = dmarcRecord.split(";");
+        for (String part : parts) {
+            String trimmed = part.trim();
+            String[] tagValue = trimmed.split("=");
+            if (tagValue.length == 2) {
+                dmarcTags.put(tagValue[0].toLowerCase(), tagValue[1]);
+            }
+        }
+        return dmarcTags;
     }
 
     private boolean getDomainAlignment(String flag, String result, String receivedDomain, String expectedDomain) {
-        // we expect flag to be either "s" or "r"; default is "r"
-        if (flag == null || flag.equalsIgnoreCase("r")){ //relaxed
+        // we expect flag to be either "s" or "r"; default is "r" when omitted
+        if (flag.equalsIgnoreCase("r")){ //relaxed
             String fromOrgDomain = PublicSuffixList.getOrgDomain(receivedDomain); //we get the organizational domain using PSL
             String spfOrgDomain = PublicSuffixList.getOrgDomain(expectedDomain);
 
@@ -86,52 +105,5 @@ public class DMARCVerifier {
         else {
             throw new DmarcException(String.format("Unknown alignment flag value: %s", flag));
         }
-    }
-
-    private String extractDomain(String fromHeader) throws DmarcException {
-        if (fromHeader == null || fromHeader.isEmpty()) {
-            throw new DmarcException("From header is empty");
-        }
-
-        // Extract address inside <...>
-        String address = fromHeader;
-        int lt = fromHeader.indexOf('<');
-        int gt = fromHeader.indexOf('>');
-        if (lt != -1 && gt != -1 && gt > lt) {
-            address = fromHeader.substring(lt + 1, gt).trim();
-        } else {
-            // No brackets — just finding raw address
-            int at = fromHeader.indexOf('@');
-            if (at == -1) {
-                throw new DmarcException("Invalid From header: " + fromHeader);
-            }
-
-            // Lookin for something@domain
-            String[] parts = fromHeader.split("\\s+");
-            for (String part : parts) {
-                if (part.contains("@")) {
-                    address = part;
-                    break;
-                }
-            }
-        }
-
-        // And finally extracting the domain
-        int atIndex = address.lastIndexOf('@');
-        if (atIndex == -1 || atIndex == address.length() - 1) {
-            throw new DmarcException("Invalid email address: " + fromHeader);
-        }
-        return address.substring(atIndex + 1);
-    }
-
-    public String parseTag(String dmarcRecord, String tag) {
-        String[] parts = dmarcRecord.split(";");
-        for (String part : parts) {
-            String trimmed = part.trim();
-            if (trimmed.startsWith(tag + "=")) {
-                return trimmed.substring((tag + "=").length());
-            }
-        }
-        return null;
     }
 }

@@ -21,7 +21,6 @@ import org.apache.james.arc.exceptions.ArcException;
 import org.apache.james.jdkim.api.BodyHasher;
 import org.apache.james.jdkim.api.Headers;
 import org.apache.james.jdkim.api.SignatureRecord;
-import org.apache.james.jdkim.exceptions.FailException;
 import org.apache.james.jdkim.exceptions.PermFailException;
 import org.apache.james.jdkim.impl.BodyHasherImpl;
 import org.apache.james.jdkim.impl.Message;
@@ -70,35 +69,44 @@ public class ARCSigner {
         return new BodyHasherImpl(signRecord);
     }
 
-    public String generateAms(InputStream is) throws IOException, FailException {
+    public String generateAms(InputStream is){
         Message message;
-        try {
-            try {
-                message = new Message(is);
-            } catch (RuntimeException | IOException e) {
-                throw e;
-            }  catch (Exception e1) {
-                throw new ArcException("MIME parsing exception: "
-                        + e1.getMessage(), e1);
-            }
-
-            try {
-                SignatureRecord srt = newSignatureRecordTemplate(signatureRecordTemplate);
-                BodyHasher bhj = newBodyHasher(srt);
-
-                ARCCommon.streamCopy(message.getBodyInputStream(), bhj
-                        .getOutputStream());
-
-                return generateAms(message, bhj);
-            } finally {
-                message.dispose();
-            }
-        } finally {
-            is.close();
+        try (is) {
+            message = getMessage(is);
+            return getAmsHeader(message);
+        } catch (IOException e) {
+            throw new ArcException("IOException when working with email input stream", e);
         }
     }
 
-    public String sealHeaders(Map<String, String> headersToSeal) throws FailException {
+    private String getAmsHeader(Message message) {
+        try {
+            SignatureRecord srt = newSignatureRecordTemplate(signatureRecordTemplate);
+            BodyHasher bhj = newBodyHasher(srt);
+
+            ARCCommon.streamCopy(message.getBodyInputStream(), bhj
+                    .getOutputStream());
+
+            return generateAms(message, bhj);
+        } catch (PermFailException | IOException e) {
+            throw new ArcException("Invalid signature record template", e);
+        } finally {
+            message.dispose();
+        }
+    }
+
+    private static Message getMessage(InputStream is) {
+        Message message;
+        try {
+            message = new Message(is);
+        } catch (Exception e1) {
+            throw new ArcException("MIME parsing exception: "
+                    + e1.getMessage(), e1);
+        }
+        return message;
+    }
+
+    public String sealHeaders(Map<String, String> headersToSeal) {
         SignatureRecord srt = newSignatureRecordTemplate(signatureRecordTemplate);
         return seal(srt, headersToSeal);
     }
@@ -130,7 +138,7 @@ public class ARCSigner {
         }
     }
 
-    public String seal(SignatureRecord signatureRecord, Map<String, String> headersToSeal) throws PermFailException {
+    public String seal(SignatureRecord signatureRecord, Map<String, String> headersToSeal) {
 
         try {
             byte[] signatureHash = signatureSeal(signatureRecord, privateKey, headersToSeal);
@@ -143,6 +151,8 @@ public class ARCSigner {
             throw new ArcException("Unknown algorithm: " + e.getMessage(), e);
         } catch (SignatureException e) {
             throw new ArcException("Signing exception: " + e.getMessage(), e);
+        } catch (PermFailException e) {
+            throw new ArcException("PermFail exception received " + e.getMessage(), e);
         }
     }
 

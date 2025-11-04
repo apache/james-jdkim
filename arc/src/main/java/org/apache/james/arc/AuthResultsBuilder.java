@@ -20,6 +20,7 @@ package org.apache.james.arc;
 
 import org.apache.james.arc.exceptions.ArcException;
 import org.apache.james.dmarc.DMARCVerifier;
+import org.apache.james.dmarc.DmarcValidationResult;
 import org.apache.james.jdkim.DKIMVerifier;
 import org.apache.james.jdkim.api.SignatureRecord;
 import org.apache.james.jdkim.exceptions.FailException;
@@ -57,13 +58,9 @@ import java.util.Set;
 public class AuthResultsBuilder {
     public static final String HEADER_I = "header.i=";
     private final PublicKeyRetrieverArc _keyRecordRetriever;
-    private String _dmarcNoneResponse;
-    private String _dmarcResponse;
     private String _authService;
 
-    public AuthResultsBuilder(String dmarcResponse, String dmarcNoneResponse, String authService, PublicKeyRetrieverArc keyRecordRetriever) {
-        this._dmarcResponse = dmarcResponse;
-        this._dmarcNoneResponse = dmarcNoneResponse;
+    public AuthResultsBuilder(String authService, PublicKeyRetrieverArc keyRecordRetriever) {
         this._authService = authService;
         this._keyRecordRetriever = keyRecordRetriever;
     }
@@ -85,17 +82,13 @@ public class AuthResultsBuilder {
         // 3. Run DMARC check (using SPF + DKIM results + From domain)
         String dkimDomain = extractDkimDomain(dkimResultFull);
         String spfDomain = extractSpfDomain(spfResultText);
-        DMARCVerifier dmarcVerifier = new DMARCVerifier(_dmarcResponse, _dmarcNoneResponse, _keyRecordRetriever.getDmarcRetriever());
-        String dmarcResult = dmarcVerifier.runDmarcCheck(message, spfResultText, spfDomain, dkimResultShort, dkimDomain);
-        if (dmarcResult == null || dmarcResult.isEmpty()) {
-            dmarcResult = _dmarcNoneResponse + spfDomain;
-        }
+        DMARCVerifier dmarcVerifier = new DMARCVerifier(_keyRecordRetriever.getDmarcRetriever());
+        DmarcValidationResult dmarcResult = dmarcVerifier.runDmarcCheck(message, spfResultText, spfDomain, dkimResultShort, dkimDomain);
 
         return _authService + "; " +
                 "spf=" + spfResultText.replace(";", "") + "; " +
                 "dkim=" + dkimResultFull + "; " +
-                dmarcResult;
-
+                dmarcResult.toString();
     }
 
     private String runDkimCheck(Message message) throws IOException {
@@ -108,19 +101,10 @@ public class AuthResultsBuilder {
             results = verifier.verify(is);
             if (!results.isEmpty() && results.stream().allMatch(Objects::nonNull) && results.get(0) != null) {
                 SignatureRecord signatureRecord = results.get(0);
-                String iTag = (String) signatureRecord.getIdentity();
-                if (iTag == null || iTag.isEmpty()) {
-                    iTag = (String) signatureRecord.getDToken();
-                }
-                iTag = iTag.replace("@", ""); //most implementations drop the leading @
+                String iTag = computeITag(signatureRecord);
                 CharSequence sTag = signatureRecord.getSelector();
                 Set<String> tags = ((SignatureRecordImpl) signatureRecord).getTags();
-                String bTag = "";
-                if (!tags.isEmpty() && tags.contains("b")) {
-                    byte[] signature = signatureRecord.getSignature();
-                    bTag = Base64.getEncoder().encodeToString(signature);
-                    bTag=bTag.substring(0,8);
-                }
+                String bTag = computeBTag(tags, signatureRecord);
                 String outcome = "pass";
                 return outcome + " header.i=" + iTag + " header.s=" + sTag+ " header.b=" + bTag;
             }
@@ -135,6 +119,25 @@ public class AuthResultsBuilder {
             throw new ArcException("DKIM Error", e);
         }
         return "fail (no valid signature records)";
+    }
+
+    private static String computeITag(SignatureRecord signatureRecord) {
+        String iTag = (String) signatureRecord.getIdentity();
+        if (iTag == null || iTag.isEmpty()) {
+            iTag = (String) signatureRecord.getDToken();
+        }
+        iTag = iTag.replace("@", ""); //most implementations drop the leading @
+        return iTag;
+    }
+
+    private static String computeBTag(Set<String> tags, SignatureRecord signatureRecord) {
+        String bTag = "";
+        if (!tags.isEmpty() && tags.contains("b")) {
+            byte[] signature = signatureRecord.getSignature();
+            bTag = Base64.getEncoder().encodeToString(signature);
+            bTag=bTag.substring(0,8);
+        }
+        return bTag;
     }
 
     private String extractSpfDomain(String spfHeaderText) {

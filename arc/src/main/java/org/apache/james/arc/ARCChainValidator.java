@@ -56,29 +56,29 @@ public class ARCChainValidator {
         this._keyRecordRetriever = keyRecordRetriever;
     }
 
-    public ArcValidationResult validateArcChain(Message message) {
+    public ArcValidationOutcome validateArcChain(Message message) {
 
         Header messageHeaders = message.getHeader();
         int curInstance = getCurrentInstance(messageHeaders);  // Incremented by 1
 
         if (curInstance == 1) { //we are the first ARC Hop and there is no previous ARC hops in the chain to validate
-            return ArcValidationResult.NONE;
+            return new ArcValidationOutcome(ArcValidationResult.NONE, "No previous ARC hops to validate");
         }
         else if (curInstance > 51) { // Not allowed to be > 50
-            return ArcValidationResult.FAIL;
+            return new ArcValidationOutcome(ArcValidationResult.FAIL, "ARC instance number exceeds maximum allowed value of 50");
         }
         else { // there are previous ARC hops that need to be validated
             return validatePreviousArcHops(message, messageHeaders, curInstance);
         }
     }
 
-    private ArcValidationResult validatePreviousArcHops(Message message, Header messageHeaders, int myInstance) {
+    private ArcValidationOutcome validatePreviousArcHops(Message message, Header messageHeaders, int myInstance) {
         ARCVerifier arcVerifier = new ARCVerifier(_keyRecordRetriever);
         Map<Integer, List<Field>> arcHeadersByI = arcVerifier.getArcHeadersByI(messageHeaders.getFields());
         int numArcInstances = myInstance - 1;
         boolean isArcSetStructureOK = arcVerifier.validateArcSetStructure(arcHeadersByI);
         if (!isArcSetStructureOK) {
-            return ArcValidationResult.FAIL;
+            return new ArcValidationOutcome(ArcValidationResult.FAIL, "ARC set structure is invalid");
         }
 
         Set<Field> prevArcSet;
@@ -87,10 +87,10 @@ public class ARCChainValidator {
             boolean amsOk = checkArcAms(prevArcSet, message, arcVerifier);
             boolean asOk = checkArcSeal(messageHeaders.getFields(), numArcInstances, arcVerifier);
             if (amsOk && asOk) {
-                return ArcValidationResult.PASS;
+                return new ArcValidationOutcome(ArcValidationResult.PASS, "All previous ARC hops validated successfully");
             }
         }
-        return  ArcValidationResult.FAIL;
+        return new ArcValidationOutcome(ArcValidationResult.FAIL, "Previous ARC hops validation failed");
     }
 
     private boolean checkArcAms(Set<Field> prevArcSet, Message message, ARCVerifier arcVerifier){
