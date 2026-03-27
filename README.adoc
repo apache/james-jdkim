@@ -11,8 +11,6 @@ https://github.com/apache/james-jdkim
 The mailet has been moved to the James project:
 https://github.com/apache/james-project/tree/master/server/mailet/dkim
 
-Then add this after == Usage:
-
 == Fork-specific additions
 
 This fork extends the original Apache James jDKIM codebase with ARC-related functionality.
