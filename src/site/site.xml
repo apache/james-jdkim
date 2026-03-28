@@ -33,11 +33,6 @@
   </bannerLeft>
 
   <body>
-    <head>
-      <link rel="meta" title="DOAP" href="${project.url}/doap_maven-doap-plugin.rdf" type="application/rdf+xml"/>
-    </head>
-
-
       <links>
           <item
                   name="Home"

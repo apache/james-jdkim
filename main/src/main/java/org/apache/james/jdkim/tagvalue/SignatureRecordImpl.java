@@ -274,12 +274,12 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
     }
 
     public void setSignature(byte[] newSignature) {
-        String signature = new String(Base64.getMimeDecoder().decode(newSignature));
+        String signature = new String(Base64.getEncoder().encode(newSignature));
         setValue("b", signature);
     }
 
     public void setBodyHash(byte[] newBodyHash) {
-        String bodyHash = new String(Base64.getMimeDecoder().decode(newBodyHash));
+        String bodyHash = new String(Base64.getEncoder().encode(newBodyHash));
         setValue("bh", bodyHash);
         // If a t=; parameter is present in the signature, make sure to 
         // fill it with the current timestamp

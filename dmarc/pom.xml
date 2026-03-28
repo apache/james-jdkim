@@ -63,6 +63,12 @@
     </dependencies>
 
     <build>
+        <testSourceDirectory>src/main/test/java</testSourceDirectory>
+        <testResources>
+            <testResource>
+                <directory>src/main/test/resources</directory>
+            </testResource>
+        </testResources>
         <plugins>
             <plugin>
                 <artifactId>maven-jar-plugin</artifactId>
