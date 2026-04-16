@@ -85,6 +85,8 @@ public class ARCTest {
     private static final long TIMESTAMP = 1755918846L; // fixed timestamp for repeatable tests
     ArcSetBuilder arcSetBuilder = new ArcSetBuilder(ArcTestKeys.privateKeyArc, ARC_AMS_TEMPLATE, ARC_SEAL_TEMPLATE, AUTH_SERVICE, TIMESTAMP);
 
+    // Happy path: signs a fresh message (no prior ARC chain), pins the exact header values produced,
+    // then validates the resulting i=1 chain and asserts cv=pass.
     @Test
     public void generate_and_verify_arc_set() throws Exception {
         String expectedCv = "pass";
@@ -119,6 +121,30 @@ public class ARCTest {
         ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
         ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
         assertThat(cv.getResult().toString().toLowerCase()).isEqualTo(expectedCv);
+    }
+
+    // cv_fail_i1_ams_invalid: builds a valid i=1 ARC set, then replaces the AMS b= signature with
+    // wrong bytes before adding headers to the message, expecting chain validation to return cv=fail.
+    @Test
+    public void validate_arc_chain_fails_when_ams_signature_is_invalid() throws Exception {
+        ByteArrayInputStream emailStream = readFileToByteArrayInputStream("/mail/rfc8617_no_arc.eml");
+        Message message = new DefaultMessageBuilder().parseMessage(emailStream);
+
+        Map<String, String> arcSet = arcSetBuilder.buildArcSet(message, HELO, MAIL_FROM, IP, keyRecordRetriever);
+
+        // Replace b= with 128 zero bytes (correct RSA key length but wrong value) so sig.verify() returns false
+        String fakeB64 = Base64.getEncoder().encodeToString(new byte[128]);
+        String corruptedAms = arcSet.get(ARC_MESSAGE_SIGNATURE)
+                .replaceAll("; b=.*$", "; b=" + fakeB64);
+        arcSet.put(ARC_MESSAGE_SIGNATURE, corruptedAms);
+
+        for (Map.Entry<String, String> entry : arcSet.entrySet()) {
+            message.getHeader().addField(new RawField(entry.getKey(), entry.getValue()));
+        }
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
     }
 
     private ByteArrayInputStream readFileToByteArrayInputStream(String fileName) throws URISyntaxException, IOException {
