@@ -76,7 +76,12 @@ public class ARCChainValidator {
         ARCVerifier arcVerifier = new ARCVerifier(_keyRecordRetriever);
         Map<Integer, List<Field>> arcHeadersByI = arcVerifier.getArcHeadersByI(messageHeaders.getFields());
         int numArcInstances = myInstance - 1;
-        boolean isArcSetStructureOK = arcVerifier.validateArcSetStructure(arcHeadersByI);
+        boolean isArcSetStructureOK;
+        try {
+            isArcSetStructureOK = arcVerifier.validateArcSetStructure(arcHeadersByI);
+        } catch (ArcException | IllegalStateException e) {
+            return new ArcValidationOutcome(ArcValidationResult.FAIL, e.getMessage());
+        }
         if (!isArcSetStructureOK) {
             return new ArcValidationOutcome(ArcValidationResult.FAIL, "ARC set structure is invalid");
         }

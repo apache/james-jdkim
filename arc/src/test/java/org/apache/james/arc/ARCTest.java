@@ -171,6 +171,48 @@ public class ARCTest {
         assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
     }
 
+    // cv_fail_i1_as_pass: the ARC-Seal at i=1 must always carry cv=none (there is no prior chain to
+    // have passed). If it says cv=pass, the structure is invalid and the chain must be rejected.
+    @Test
+    public void validate_arc_chain_fails_when_arc_seal_cv_is_pass_on_first_hop() throws Exception {
+        ByteArrayInputStream emailStream = readFileToByteArrayInputStream("/mail/rfc8617_no_arc.eml");
+        Message message = new DefaultMessageBuilder().parseMessage(emailStream);
+
+        Map<String, String> arcSet = arcSetBuilder.buildArcSet(message, HELO, MAIL_FROM, IP, keyRecordRetriever);
+
+        String tamperedSeal = arcSet.get(ARC_SEAL).replace("cv=none", "cv=pass");
+        arcSet.put(ARC_SEAL, tamperedSeal);
+
+        for (Map.Entry<String, String> entry : arcSet.entrySet()) {
+            message.getHeader().addField(new RawField(entry.getKey(), entry.getValue()));
+        }
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    // cv_fail_i1_as_cv_fail: the ARC-Seal at i=1 carrying cv=fail means the chain was declared
+    // broken from the very first hop, so validation must return cv=fail.
+    @Test
+    public void validate_arc_chain_fails_when_arc_seal_cv_is_fail_on_first_hop() throws Exception {
+        ByteArrayInputStream emailStream = readFileToByteArrayInputStream("/mail/rfc8617_no_arc.eml");
+        Message message = new DefaultMessageBuilder().parseMessage(emailStream);
+
+        Map<String, String> arcSet = arcSetBuilder.buildArcSet(message, HELO, MAIL_FROM, IP, keyRecordRetriever);
+
+        String tamperedSeal = arcSet.get(ARC_SEAL).replace("cv=none", "cv=fail");
+        arcSet.put(ARC_SEAL, tamperedSeal);
+
+        for (Map.Entry<String, String> entry : arcSet.entrySet()) {
+            message.getHeader().addField(new RawField(entry.getKey(), entry.getValue()));
+        }
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
     private ByteArrayInputStream readFileToByteArrayInputStream(String fileName) throws URISyntaxException, IOException {
         URL resource = this.getClass().getResource(fileName);
         FileInputStream file = new FileInputStream(new File(resource.toURI()));
