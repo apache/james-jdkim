@@ -365,7 +365,7 @@ public class ARCVerifier {
 
         try {
             List<String> results = getPublicKeyRecordRetriever().getRecords("dns/txt", amsSelector, amsDomain);
-            if (!results.isEmpty()) {
+            if (results != null && !results.isEmpty()) {
                 return results.get(0);  //Todo: handle multiple records?
             }
         } catch (TempFailException e) {

@@ -557,6 +557,133 @@ public class ARCTest {
     // ams_struct_missing: an ARC-Seal at i=1 with no corresponding ARC-Message-Signature means the
     // set is incomplete and must be rejected — covered by validate_arc_chain_fails_when_ams_header_is_missing.
 
+    // ams_format_tags_unknown: an unrecognised tag in the ARC-Message-Signature must be silently ignored,
+    // so a chain signed with an extra z= tag must still validate as cv=pass.
+    @Test
+    public void validate_arc_chain_passes_when_ams_has_unknown_tag() throws Exception {
+        String templateWithUnknownTag = "i=; a=rsa-sha256; c=relaxed/relaxed; d=dmarc.example; s=arc; z=test; t=; h=Subject:From:To; bh=; b=";
+        ArcSetBuilder builderWithUnknownTag = new ArcSetBuilder(ArcTestKeys.privateKeyArc, templateWithUnknownTag, ARC_SEAL_TEMPLATE, AUTH_SERVICE, TIMESTAMP);
+
+        ByteArrayInputStream emailStream = readFileToByteArrayInputStream("/mail/rfc8617_no_arc.eml");
+        Message message = new DefaultMessageBuilder().parseMessage(emailStream);
+        Map<String, String> arcSet = builderWithUnknownTag.buildArcSet(message, HELO, MAIL_FROM, IP, keyRecordRetriever);
+        for (Map.Entry<String, String> entry : arcSet.entrySet()) {
+            message.getHeader().addField(new RawField(entry.getKey(), entry.getValue()));
+        }
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("pass");
+    }
+
+    // ams_format_inv_tag_key: a tag key starting with a digit (e.g. 1s=arc) is not a valid tag name
+    // and the selector cannot be resolved, so the chain must be rejected.
+    @Test
+    public void validate_arc_chain_fails_when_ams_has_invalid_tag_key_character() throws Exception {
+        ByteArrayInputStream emailStream = readFileToByteArrayInputStream("/mail/rfc8617_no_arc.eml");
+        Message message = new DefaultMessageBuilder().parseMessage(emailStream);
+        Map<String, String> arcSet = arcSetBuilder.buildArcSet(message, HELO, MAIL_FROM, IP, keyRecordRetriever);
+
+        message.getHeader().addField(new RawField(ARC_AUTHENTICATION_RESULTS, arcSet.get(ARC_AUTHENTICATION_RESULTS)));
+        message.getHeader().addField(new RawField(ARC_SEAL, arcSet.get(ARC_SEAL)));
+        String malformedAms = arcSet.get(ARC_MESSAGE_SIGNATURE).replace("s=arc", "1s=arc");
+        message.getHeader().addField(new RawField(ARC_MESSAGE_SIGNATURE, malformedAms));
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    // ams_format_tags_dup: if the same tag key appears twice in an ARC-Message-Signature, the second
+    // value overrides the first, resolving to a different selector that is not in DNS, causing failure.
+    @Test
+    public void validate_arc_chain_fails_when_ams_has_duplicate_tag() throws Exception {
+        ByteArrayInputStream emailStream = readFileToByteArrayInputStream("/mail/rfc8617_no_arc.eml");
+        Message message = new DefaultMessageBuilder().parseMessage(emailStream);
+        Map<String, String> arcSet = arcSetBuilder.buildArcSet(message, HELO, MAIL_FROM, IP, keyRecordRetriever);
+
+        message.getHeader().addField(new RawField(ARC_AUTHENTICATION_RESULTS, arcSet.get(ARC_AUTHENTICATION_RESULTS)));
+        message.getHeader().addField(new RawField(ARC_SEAL, arcSet.get(ARC_SEAL)));
+        String malformedAms = arcSet.get(ARC_MESSAGE_SIGNATURE) + "; s=invalid";
+        message.getHeader().addField(new RawField(ARC_MESSAGE_SIGNATURE, malformedAms));
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    // ams_format_tags_key_case: tag keys are case-sensitive — S=arc does not provide the s= tag,
+    // so the selector cannot be found and the chain must be rejected.
+    @Test
+    public void validate_arc_chain_fails_when_ams_uses_uppercase_tag_key() throws Exception {
+        ByteArrayInputStream emailStream = readFileToByteArrayInputStream("/mail/rfc8617_no_arc.eml");
+        Message message = new DefaultMessageBuilder().parseMessage(emailStream);
+        Map<String, String> arcSet = arcSetBuilder.buildArcSet(message, HELO, MAIL_FROM, IP, keyRecordRetriever);
+
+        message.getHeader().addField(new RawField(ARC_AUTHENTICATION_RESULTS, arcSet.get(ARC_AUTHENTICATION_RESULTS)));
+        message.getHeader().addField(new RawField(ARC_SEAL, arcSet.get(ARC_SEAL)));
+        String malformedAms = arcSet.get(ARC_MESSAGE_SIGNATURE).replace("s=arc", "S=arc");
+        message.getHeader().addField(new RawField(ARC_MESSAGE_SIGNATURE, malformedAms));
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    // ams_format_tags_val_case: modifying a tag value's case (e.g. a=RSA-SHA256) changes the
+    // signed bytes so the signature no longer verifies, and the chain must be rejected.
+    @Test
+    public void validate_arc_chain_fails_when_ams_tag_value_has_wrong_case() throws Exception {
+        ByteArrayInputStream emailStream = readFileToByteArrayInputStream("/mail/rfc8617_no_arc.eml");
+        Message message = new DefaultMessageBuilder().parseMessage(emailStream);
+        Map<String, String> arcSet = arcSetBuilder.buildArcSet(message, HELO, MAIL_FROM, IP, keyRecordRetriever);
+
+        message.getHeader().addField(new RawField(ARC_AUTHENTICATION_RESULTS, arcSet.get(ARC_AUTHENTICATION_RESULTS)));
+        message.getHeader().addField(new RawField(ARC_SEAL, arcSet.get(ARC_SEAL)));
+        String malformedAms = arcSet.get(ARC_MESSAGE_SIGNATURE).replace("a=rsa-sha256", "a=RSA-SHA256");
+        message.getHeader().addField(new RawField(ARC_MESSAGE_SIGNATURE, malformedAms));
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    // ams_format_tags_wsp: whitespace inside a tag value (s=ar c) changes the DNS selector name to
+    // one that does not exist, so the public key cannot be retrieved and the chain must be rejected.
+    @Test
+    public void validate_arc_chain_fails_when_ams_tag_value_contains_whitespace() throws Exception {
+        ByteArrayInputStream emailStream = readFileToByteArrayInputStream("/mail/rfc8617_no_arc.eml");
+        Message message = new DefaultMessageBuilder().parseMessage(emailStream);
+        Map<String, String> arcSet = arcSetBuilder.buildArcSet(message, HELO, MAIL_FROM, IP, keyRecordRetriever);
+
+        message.getHeader().addField(new RawField(ARC_AUTHENTICATION_RESULTS, arcSet.get(ARC_AUTHENTICATION_RESULTS)));
+        message.getHeader().addField(new RawField(ARC_SEAL, arcSet.get(ARC_SEAL)));
+        String malformedAms = arcSet.get(ARC_MESSAGE_SIGNATURE).replace("s=arc", "s=ar c");
+        message.getHeader().addField(new RawField(ARC_MESSAGE_SIGNATURE, malformedAms));
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    // ams_format_tags_sc: an extra semicolon inside a tag value splits the value, making the s= tag
+    // resolve to a truncated selector that is not in DNS, so the chain must be rejected.
+    @Test
+    public void validate_arc_chain_fails_when_ams_tag_value_contains_semicolon() throws Exception {
+        ByteArrayInputStream emailStream = readFileToByteArrayInputStream("/mail/rfc8617_no_arc.eml");
+        Message message = new DefaultMessageBuilder().parseMessage(emailStream);
+        Map<String, String> arcSet = arcSetBuilder.buildArcSet(message, HELO, MAIL_FROM, IP, keyRecordRetriever);
+
+        message.getHeader().addField(new RawField(ARC_AUTHENTICATION_RESULTS, arcSet.get(ARC_AUTHENTICATION_RESULTS)));
+        message.getHeader().addField(new RawField(ARC_SEAL, arcSet.get(ARC_SEAL)));
+        String malformedAms = arcSet.get(ARC_MESSAGE_SIGNATURE).replace("s=arc", "s=ar;c");
+        message.getHeader().addField(new RawField(ARC_MESSAGE_SIGNATURE, malformedAms));
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
     // Builds a valid two-hop ARC chain: applies i=1 to the base message, then applies i=2 on top.
     private Message buildTwoHopChain() throws Exception {
         return buildNHopChain(2);
