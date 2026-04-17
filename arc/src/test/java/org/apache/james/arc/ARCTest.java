@@ -467,6 +467,96 @@ public class ARCTest {
         assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("pass");
     }
 
+    // ams_struct_i_na: an ARC-Message-Signature with no i= tag at all must be rejected.
+    @Test
+    public void validate_arc_chain_fails_when_ams_has_no_instance_tag() throws Exception {
+        ByteArrayInputStream emailStream = readFileToByteArrayInputStream("/mail/rfc8617_no_arc.eml");
+        Message message = new DefaultMessageBuilder().parseMessage(emailStream);
+        Map<String, String> arcSet = arcSetBuilder.buildArcSet(message, HELO, MAIL_FROM, IP, keyRecordRetriever);
+
+        message.getHeader().addField(new RawField(ARC_AUTHENTICATION_RESULTS, arcSet.get(ARC_AUTHENTICATION_RESULTS)));
+        message.getHeader().addField(new RawField(ARC_SEAL, arcSet.get(ARC_SEAL)));
+        String malformedAms = arcSet.get(ARC_MESSAGE_SIGNATURE).replaceFirst("i=1;\\s*", "");
+        message.getHeader().addField(new RawField(ARC_MESSAGE_SIGNATURE, malformedAms));
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    // ams_struct_i_empty: an ARC-Message-Signature with i= but no value (i=;) must be rejected.
+    @Test
+    public void validate_arc_chain_fails_when_ams_has_empty_instance_tag() throws Exception {
+        ByteArrayInputStream emailStream = readFileToByteArrayInputStream("/mail/rfc8617_no_arc.eml");
+        Message message = new DefaultMessageBuilder().parseMessage(emailStream);
+        Map<String, String> arcSet = arcSetBuilder.buildArcSet(message, HELO, MAIL_FROM, IP, keyRecordRetriever);
+
+        message.getHeader().addField(new RawField(ARC_AUTHENTICATION_RESULTS, arcSet.get(ARC_AUTHENTICATION_RESULTS)));
+        message.getHeader().addField(new RawField(ARC_SEAL, arcSet.get(ARC_SEAL)));
+        String malformedAms = arcSet.get(ARC_MESSAGE_SIGNATURE).replaceFirst("i=1;", "i=;");
+        message.getHeader().addField(new RawField(ARC_MESSAGE_SIGNATURE, malformedAms));
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    // ams_struct_i_zero: an ARC-Message-Signature with i=0 must be rejected — instance numbers start at 1.
+    @Test
+    public void validate_arc_chain_fails_when_ams_has_zero_instance_tag() throws Exception {
+        ByteArrayInputStream emailStream = readFileToByteArrayInputStream("/mail/rfc8617_no_arc.eml");
+        Message message = new DefaultMessageBuilder().parseMessage(emailStream);
+        Map<String, String> arcSet = arcSetBuilder.buildArcSet(message, HELO, MAIL_FROM, IP, keyRecordRetriever);
+
+        message.getHeader().addField(new RawField(ARC_AUTHENTICATION_RESULTS, arcSet.get(ARC_AUTHENTICATION_RESULTS)));
+        message.getHeader().addField(new RawField(ARC_SEAL, arcSet.get(ARC_SEAL)));
+        String malformedAms = arcSet.get(ARC_MESSAGE_SIGNATURE).replaceFirst("i=1;", "i=0;");
+        message.getHeader().addField(new RawField(ARC_MESSAGE_SIGNATURE, malformedAms));
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    // ams_struct_i_invalid: an ARC-Message-Signature with a non-numeric i= value must be rejected.
+    @Test
+    public void validate_arc_chain_fails_when_ams_has_non_numeric_instance_tag() throws Exception {
+        ByteArrayInputStream emailStream = readFileToByteArrayInputStream("/mail/rfc8617_no_arc.eml");
+        Message message = new DefaultMessageBuilder().parseMessage(emailStream);
+        Map<String, String> arcSet = arcSetBuilder.buildArcSet(message, HELO, MAIL_FROM, IP, keyRecordRetriever);
+
+        message.getHeader().addField(new RawField(ARC_AUTHENTICATION_RESULTS, arcSet.get(ARC_AUTHENTICATION_RESULTS)));
+        message.getHeader().addField(new RawField(ARC_SEAL, arcSet.get(ARC_SEAL)));
+        String malformedAms = arcSet.get(ARC_MESSAGE_SIGNATURE).replaceFirst("i=1;", "i=abc;");
+        message.getHeader().addField(new RawField(ARC_MESSAGE_SIGNATURE, malformedAms));
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    // ams_struct_dup: two ARC-Message-Signature headers both claiming i=1 make the set ambiguous and
+    // must be rejected — each instance number must appear exactly once.
+    @Test
+    public void validate_arc_chain_fails_when_ams_is_duplicated_at_same_instance() throws Exception {
+        ByteArrayInputStream emailStream = readFileToByteArrayInputStream("/mail/rfc8617_no_arc.eml");
+        Message message = new DefaultMessageBuilder().parseMessage(emailStream);
+        Map<String, String> arcSet = arcSetBuilder.buildArcSet(message, HELO, MAIL_FROM, IP, keyRecordRetriever);
+
+        for (Map.Entry<String, String> entry : arcSet.entrySet()) {
+            message.getHeader().addField(new RawField(entry.getKey(), entry.getValue()));
+        }
+        // Add a second AMS header at i=1 — duplicates the instance number
+        message.getHeader().addField(new RawField(ARC_MESSAGE_SIGNATURE, arcSet.get(ARC_MESSAGE_SIGNATURE)));
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    // ams_struct_missing: an ARC-Seal at i=1 with no corresponding ARC-Message-Signature means the
+    // set is incomplete and must be rejected — covered by validate_arc_chain_fails_when_ams_header_is_missing.
+
     // Builds a valid two-hop ARC chain: applies i=1 to the base message, then applies i=2 on top.
     private Message buildTwoHopChain() throws Exception {
         return buildNHopChain(2);

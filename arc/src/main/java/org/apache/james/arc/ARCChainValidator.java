@@ -74,7 +74,12 @@ public class ARCChainValidator {
 
     private ArcValidationOutcome validatePreviousArcHops(Message message, Header messageHeaders, int myInstance) {
         ARCVerifier arcVerifier = new ARCVerifier(_keyRecordRetriever);
-        Map<Integer, List<Field>> arcHeadersByI = arcVerifier.getArcHeadersByI(messageHeaders.getFields());
+        Map<Integer, List<Field>> arcHeadersByI;
+        try {
+            arcHeadersByI = arcVerifier.getArcHeadersByI(messageHeaders.getFields());
+        } catch (IllegalStateException | NumberFormatException e) {
+            return new ArcValidationOutcome(ArcValidationResult.FAIL, e.getMessage());
+        }
         int numArcInstances = myInstance - 1;
         boolean isArcSetStructureOK;
         try {
