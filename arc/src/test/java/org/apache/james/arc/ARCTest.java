@@ -71,6 +71,16 @@ public class ARCTest {
                     "softfail (spfCheck: transitioning domain of d1.example does not designate 222.222.222.222 as permitted sender) client-ip=222.222.222.222; envelope-from=jqd@d1.example; helo=d1.example")
     );
 
+    private static final String VALIMAIL_DUMMY_PUBLIC_KEY =
+            "v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDkHlOQoBTzWRiGs5V6NpP3id"
+            + "Y6Wk08a5qhdR6wy5bdOKb2jLQiY/J16JYi0Qvx/byYzCNb3W91y3FutACDfzwQ/BC/e/8uBsCR+yz1Lx"
+            + "j+PL6lHvqMKrM3rG4hstT5QjvHO9PzoxZyVYLzBfO2EeC3Ip3G+2kryOTIKT+l/K4w3QIDAQAB";
+
+    private final MockPublicKeyRecordRetrieverArc valimailKeyRecordRetriever = new MockPublicKeyRecordRetrieverArc(
+            dmarcRetriever,
+            MockPublicKeyRecordRetriever.Record.of("dummy", "example.org", VALIMAIL_DUMMY_PUBLIC_KEY)
+    );
+
     /**
      * - "a" field will be added by the signer based on signer setup
      * - "bh=" and "b=" placeholder are required for now because the same implementation is used for
@@ -554,6 +564,24 @@ public class ARCTest {
         assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
     }
 
+    // ams_fields_i_dup1: duplicate ARC-Message-Signature instance numbers must be rejected even
+    // when the duplicate appears before the rest of the ARC set in header order.
+    @Test
+    public void validate_arc_chain_fails_when_duplicate_ams_instance_appears_before_arc_set() throws Exception {
+        ByteArrayInputStream emailStream = readFileToByteArrayInputStream("/mail/rfc8617_no_arc.eml");
+        Message message = new DefaultMessageBuilder().parseMessage(emailStream);
+        Map<String, String> arcSet = arcSetBuilder.buildArcSet(message, HELO, MAIL_FROM, IP, keyRecordRetriever);
+
+        message.getHeader().addField(new RawField(ARC_MESSAGE_SIGNATURE, arcSet.get(ARC_MESSAGE_SIGNATURE)));
+        for (Map.Entry<String, String> entry : arcSet.entrySet()) {
+            message.getHeader().addField(new RawField(entry.getKey(), entry.getValue()));
+        }
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
     // ams_struct_missing: an ARC-Seal at i=1 with no corresponding ARC-Message-Signature means the
     // set is incomplete and must be rejected — covered by validate_arc_chain_fails_when_ams_header_is_missing.
 
@@ -880,6 +908,70 @@ public class ARCTest {
         assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
     }
 
+    // ams_format_sc_wsp: whitespace before the semicolon separator in an AMS tag list is valid.
+    // This mirrors the ValiMail arc_test_suite fixture and must validate as cv=pass.
+    @Test
+    public void validate_arc_chain_passes_when_ams_has_whitespace_around_semicolon_separator() throws Exception {
+        assertValimailFixturePasses(
+                "MIME-Version: 1.0\n"
+                + "Return-Path: <jqd@d1.example.org>\n"
+                + "ARC-Seal: a=rsa-sha256;\n"
+                + "    b=OeNJ7p2NdW3mKv4hyenx+QbRuqqq8iwGAyY1WVX/EJiPHS2vNB5lEI/YmVB3diTkKPHWe8\n"
+                + "    ZOq18DTVtOVuahLqM7s/4K/gvx3zal0vcedPL/mtRW4A1Ct0/wyLuFADX2HZ815cELx81SuX\n"
+                + "    3fEbbym1br+0JArsz6n8798lidnWY=; cv=none; d=example.org; i=1; s=dummy;\n"
+                + "    t=12345\n"
+                + "ARC-Message-Signature: a=rsa-sha256;\n"
+                + "    b=NOLE9bNh30qiTx35h5yKbHlDPahxvhXUWjv8Yiy5L7Ks3NNznK54dmUPZ4D/80tkRYiil0\n"
+                + "    8sCqFTh7OH5ZTXXEfArxBMQQl3DAqTjOJQ1c3jPYwaDliWqCLLueSsH+ovaFGRGNPm2O41o0\n"
+                + "    J8xUmyji1bXXLKMinB+Adv9ALXsw8=;\n"
+                + "    bh=KWSe46TZKCcDbH4klJPo+tjk5LWJnVRlP5pvjXFZYLQ= ; c=relaxed/relaxed;\n"
+                + "    d=example.org; h=from:to:date:subject:mime-version:arc-authentication-results;\n"
+                + "    i=1; s=dummy; t=12345\n"
+                + valimailCommonMessageTail());
+    }
+
+    // ams_format_eq_wsp: whitespace around "=" in an AMS tag is valid and should not break parsing.
+    @Test
+    public void validate_arc_chain_passes_when_ams_has_whitespace_around_equals_separator() throws Exception {
+        assertValimailFixturePasses(
+                "MIME-Version: 1.0\n"
+                + "Return-Path: <jqd@d1.example.org>\n"
+                + "ARC-Seal: a=rsa-sha256;\n"
+                + "    b=CcoQW04QZ7n7OTPACcP26R0vJtjEwVmcFpj4+PJnvT1kVeOMfcqwt7FEGlCjeJ0QIYMeNW\n"
+                + "    TY6kND0fe0WJDVnWvhCyeOb5JjwllbJJ/ThP74I5UPgQ0Cwp1h/O9HIrUJkrje6HQ3nD6Dok\n"
+                + "    la2keL/t4R7YtMyAmn9sPWuAOwSrE=; cv=none; d=example.org; i=1; s=dummy;\n"
+                + "    t=12345\n"
+                + "ARC-Message-Signature: a=rsa-sha256;\n"
+                + "    b=KLZ8Io9rZzsWt0Q/Mrx8sYO7HPLptFwGoCdabHuyrQsek+1c5yo5tOQidcTc8ksw5PoAZH\n"
+                + "    PNOIoyGVte9jMk0LdA1IYjjvvUmEANMZCJf0wm66exDWJ30xMrgbosLN2XvsRk3BDkoCg2AY\n"
+                + "    HkR11isMdIhrefd7AHw9YEDTnohQw=;\n"
+                + "    bh=KWSe46TZKCcDbH4klJPo+tjk5LWJnVRlP5pvjXFZYLQ=; c = relaxed/relaxed;\n"
+                + "    d=example.org; h=from:to:date:subject:mime-version:arc-authentication-results;\n"
+                + "    i=1; s=dummy; t=12345\n"
+                + valimailCommonMessageTail());
+    }
+
+    // ams_format_tags_trail_sc: a trailing semicolon at the end of the AMS tag list is valid.
+    @Test
+    public void validate_arc_chain_passes_when_ams_tag_list_has_trailing_semicolon() throws Exception {
+        assertValimailFixturePasses(
+                "MIME-Version: 1.0\n"
+                + "Return-Path: <jqd@d1.example.org>\n"
+                + "ARC-Seal: a=rsa-sha256;\n"
+                + "    b=Q3iCsG7zmlydzz8zFIm4X+Nyr2636znsyGh+lRhCFtcWbw3m3v8fFrtK3uNvqSM+WW3Cmf\n"
+                + "    TbteHFaG9YL34KUMi/ThuPoG8sOwJ18BPjXrdBS5EiXYBBFalkVRV0ktqyiNi57LBVS+VGWV\n"
+                + "    FwOD85C/V/Fju2wETdy0ly1VjfLBg=; cv=none; d=example.org; i=1; s=dummy;\n"
+                + "    t=12345\n"
+                + "ARC-Message-Signature: a=rsa-sha256;\n"
+                + "    b=H+XsRP2HBJwygQonE/YquKr2y1KqjjlhBQ/hEkIGFjjNhOIvMfuuO054H4+kxMmvHFdwk8\n"
+                + "    a8Uwy1MxQBC3a4b0jAQ77rOn5VFhO1tAmCkfZP1bJSxewRfC2Eo7j/07+r8ZLuyuAzlQIW+n\n"
+                + "    DPJtOhnIIEOGhLgPNlcTwc9R/XKiE=;\n"
+                + "    bh=KWSe46TZKCcDbH4klJPo+tjk5LWJnVRlP5pvjXFZYLQ=; c=relaxed/relaxed;\n"
+                + "    d=example.org; h=from:to:date:subject:mime-version:arc-authentication-results;\n"
+                + "    i=1; s=dummy; t=12345;\n"
+                + valimailCommonMessageTail());
+    }
+
     // Builds a valid two-hop ARC chain: applies i=1 to the base message, then applies i=2 on top.
     private Message buildTwoHopChain() throws Exception {
         return buildNHopChain(2);
@@ -939,6 +1031,39 @@ public class ARCTest {
                 }
             }
         }
+    }
+
+    private void assertValimailFixturePasses(String rawMessage) throws Exception {
+        Message message = new DefaultMessageBuilder().parseMessage(
+                new ByteArrayInputStream(rawMessage.replace("\n", "\r\n").getBytes(StandardCharsets.UTF_8)));
+        ARCChainValidator arcChainValidator = new ARCChainValidator(valimailKeyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("pass");
+    }
+
+    private String valimailCommonMessageTail() {
+        return "ARC-Authentication-Results: i=1; lists.example.org;\n"
+                + "    spf=pass smtp.mfrom=jqd@d1.example;\n"
+                + "    dkim=pass (1024-bit key) header.i=@d1.example;\n"
+                + "    dmarc=pass\n"
+                + "Received: from segv.d1.example (segv.d1.example [72.52.75.15])\n"
+                + "    by lists.example.org (8.14.5/8.14.5) with ESMTP id t0EKaNU9010123\n"
+                + "    for <arc@example.org>; Thu, 14 Jan 2015 15:01:30 -0800 (PST)\n"
+                + "    (envelope-from jqd@d1.example)\n"
+                + "Authentication-Results: lists.example.org;\n"
+                + "    spf=pass smtp.mfrom=jqd@d1.example;\n"
+                + "    dkim=pass (1024-bit key) header.i=@d1.example;\n"
+                + "    dmarc=pass\n"
+                + "Received: by 10.157.14.6 with HTTP; Tue, 3 Jan 2017 12:22:54 -0800 (PST)\n"
+                + "Message-ID: <54B84785.1060301@d1.example.org>\n"
+                + "Date: Thu, 14 Jan 2015 15:00:01 -0800\n"
+                + "From: John Q Doe <jqd@d1.example.org>\n"
+                + "To: arc@dmarc.org\n"
+                + "Subject: Example 1\n"
+                + "\n"
+                + "Hey gang,\n"
+                + "This is a test message.\n"
+                + "--J.";
     }
 
     private ByteArrayInputStream readFileToByteArrayInputStream(String fileName) throws URISyntaxException, IOException {
