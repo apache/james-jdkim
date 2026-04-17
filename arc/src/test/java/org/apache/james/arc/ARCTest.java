@@ -147,6 +147,30 @@ public class ARCTest {
         assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
     }
 
+    // cv_fail_i1_as_invalid: builds a valid i=1 ARC set, then replaces the ARC-Seal b= signature with
+    // wrong bytes before adding headers to the message, expecting chain validation to return cv=fail.
+    @Test
+    public void validate_arc_chain_fails_when_arc_seal_signature_is_invalid() throws Exception {
+        ByteArrayInputStream emailStream = readFileToByteArrayInputStream("/mail/rfc8617_no_arc.eml");
+        Message message = new DefaultMessageBuilder().parseMessage(emailStream);
+
+        Map<String, String> arcSet = arcSetBuilder.buildArcSet(message, HELO, MAIL_FROM, IP, keyRecordRetriever);
+
+        // Replace b= with 128 zero bytes (correct RSA key length but wrong value) so sig.verify() returns false
+        String fakeB64 = Base64.getEncoder().encodeToString(new byte[128]);
+        String corruptedSeal = arcSet.get(ARC_SEAL)
+                .replaceAll("; b=.*$", "; b=" + fakeB64);
+        arcSet.put(ARC_SEAL, corruptedSeal);
+
+        for (Map.Entry<String, String> entry : arcSet.entrySet()) {
+            message.getHeader().addField(new RawField(entry.getKey(), entry.getValue()));
+        }
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
     private ByteArrayInputStream readFileToByteArrayInputStream(String fileName) throws URISyntaxException, IOException {
         URL resource = this.getClass().getResource(fileName);
         FileInputStream file = new FileInputStream(new File(resource.toURI()));
