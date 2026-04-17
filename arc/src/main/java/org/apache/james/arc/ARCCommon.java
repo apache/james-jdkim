@@ -90,12 +90,12 @@ public class ARCCommon {
     }
 
     static void arcSeal(SignatureRecord sign,
-                        Map<String, String> headersToSeal, Signature signature)
+                        List<Map.Entry<String, String>> headersToSeal, Signature signature)
             throws SignatureException, PermFailException {
 
         boolean relaxedHeaders = isRelaxedHeaders(sign, false);
 
-        for (Map.Entry<String, String> headerEntry : headersToSeal.entrySet()) {
+        for (Map.Entry<String, String> headerEntry : headersToSeal) {
             String headerName = headerEntry.getKey();
             String headerValue = headerName+": " +headerEntry.getValue();
             updateSignature(signature, relaxedHeaders, headerName, headerValue);

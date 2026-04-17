@@ -29,8 +29,13 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.security.PrivateKey;
 import java.time.Instant;
+import org.apache.james.mime4j.stream.Field;
+
+import java.util.AbstractMap;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -106,11 +111,24 @@ public class ArcSetBuilder {
         }
 
         arcHeaders.put(AUTHENTICATION_RESULTS, arHeaderValue);
-        Map<String, String> headersToSeal = new LinkedHashMap<>();
-        String aarHeaderValue = "i=" + instance + "; " + arHeaderValue.trim();
 
+        // Collect all prior ARC headers (i=1..instance-1) in spec-required order: AAR, AMS, AS per hop
+        List<Map.Entry<String, String>> headersToSeal = new ArrayList<>();
+        ARCVerifier arcVerifier = new ARCVerifier(keyRecordRetriever);
+        Map<Integer, List<Field>> priorArcHeaders = arcVerifier.getArcHeadersByI(headers.getFields());
+        for (Map.Entry<Integer, List<Field>> hopEntry : priorArcHeaders.entrySet()) {
+            List<Field> hopFields = hopEntry.getValue();
+            for (String arcHdrName : Arrays.asList(ARC_AUTHENTICATION_RESULTS, ARC_MESSAGE_SIGNATURE, ARC_SEAL)) {
+                hopFields.stream()
+                        .filter(f -> f.getName().equalsIgnoreCase(arcHdrName))
+                        .findFirst()
+                        .ifPresent(f -> headersToSeal.add(new AbstractMap.SimpleEntry<>(f.getName(), f.getBody())));
+            }
+        }
+
+        String aarHeaderValue = "i=" + instance + "; " + arHeaderValue.trim();
         arcHeaders.put(ARC_AUTHENTICATION_RESULTS, aarHeaderValue);
-        headersToSeal.put(ARC_AUTHENTICATION_RESULTS, aarHeaderValue);
+        headersToSeal.add(new AbstractMap.SimpleEntry<>(ARC_AUTHENTICATION_RESULTS, aarHeaderValue));
         DefaultMessageWriter writer = new DefaultMessageWriter();
         ByteArrayOutputStream os = new ByteArrayOutputStream();
 
@@ -138,7 +156,7 @@ public class ArcSetBuilder {
 
         String amsValue = amsHeader.split(ARC_ELEMENT)[1];
         arcHeaders.put(ARC_MESSAGE_SIGNATURE, amsValue);
-        headersToSeal.put(ARC_MESSAGE_SIGNATURE, amsValue);
+        headersToSeal.add(new AbstractMap.SimpleEntry<>(ARC_MESSAGE_SIGNATURE, amsValue));
 
         //Build and add ARC-Seal header
         String asTemplate = fillArcSealTemplate(_arcSealTemplate, instance, timestamp, cv);

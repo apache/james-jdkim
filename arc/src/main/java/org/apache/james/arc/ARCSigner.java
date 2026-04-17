@@ -106,7 +106,7 @@ public class ARCSigner {
         return message;
     }
 
-    public String sealHeaders(Map<String, String> headersToSeal) {
+    public String sealHeaders(List<Map.Entry<String, String>> headersToSeal) {
         SignatureRecord srt = newSignatureRecordTemplate(signatureRecordTemplate);
         return seal(srt, headersToSeal);
     }
@@ -138,7 +138,7 @@ public class ARCSigner {
         }
     }
 
-    public String seal(SignatureRecord signatureRecord, Map<String, String> headersToSeal) {
+    public String seal(SignatureRecord signatureRecord, List<Map.Entry<String, String>> headersToSeal) {
 
         try {
             byte[] signatureHash = signatureSeal(signatureRecord, privateKey, headersToSeal);
@@ -156,7 +156,7 @@ public class ARCSigner {
         }
     }
 
-    private byte[] signatureSeal(SignatureRecord sign, PrivateKey key, Map<String, String> headersToSeal)
+    private byte[] signatureSeal(SignatureRecord sign, PrivateKey key, List<Map.Entry<String, String>> headersToSeal)
             throws NoSuchAlgorithmException, InvalidKeyException,
             SignatureException, PermFailException {
         Signature signature = Signature.getInstance(sign.getHashMethod()

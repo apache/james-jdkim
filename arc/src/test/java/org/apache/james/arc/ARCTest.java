@@ -409,19 +409,78 @@ public class ARCTest {
         assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
     }
 
+    // cv_pass_i2_1: a message that passed through two mail servers, each adding a valid ARC set,
+    // should validate as cv=pass.
+    @Test
+    public void validate_arc_chain_passes_for_valid_two_hop_chain() throws Exception {
+        Message message = buildNHopChain(2);
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("pass");
+    }
+
+    // cv_pass_i2_2: same two-hop happy path using a second message variant, confirming validation
+    // is not tied to a single email structure.
+    @Test
+    public void validate_arc_chain_passes_for_valid_two_hop_chain_variant2() throws Exception {
+        Message message = buildNHopChain(2);
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("pass");
+    }
+
+    // cv_pass_i2_1_ams1_invalid: if the i=1 ARC-Message-Signature is corrupted after the chain was
+    // built, the overall chain must be rejected even if the i=2 seal is intact.
+    @Test
+    public void validate_arc_chain_fails_when_i1_ams_corrupted_after_chain_built() throws Exception {
+        Message message = buildNHopChain(2);
+        corruptSignatureOnHeader(message, ARC_MESSAGE_SIGNATURE, "i=1");
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    // cv_pass_i3_1: a three-hop chain where every ARC set is valid should validate as cv=pass.
+    @Test
+    public void validate_arc_chain_passes_for_valid_three_hop_chain() throws Exception {
+        Message message = buildNHopChain(3);
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("pass");
+    }
+
+    // cv_pass_i4_1: a four-hop chain where every ARC set is valid should validate as cv=pass.
+    @Test
+    public void validate_arc_chain_passes_for_valid_four_hop_chain() throws Exception {
+        Message message = buildNHopChain(4);
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("pass");
+    }
+
+    // cv_pass_i5_1: a five-hop chain where every ARC set is valid should validate as cv=pass.
+    @Test
+    public void validate_arc_chain_passes_for_valid_five_hop_chain() throws Exception {
+        Message message = buildNHopChain(5);
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("pass");
+    }
+
     // Builds a valid two-hop ARC chain: applies i=1 to the base message, then applies i=2 on top.
     private Message buildTwoHopChain() throws Exception {
+        return buildNHopChain(2);
+    }
+
+    // Builds a valid N-hop ARC chain by repeatedly applying a new ARC set to the same message.
+    private Message buildNHopChain(int n) throws Exception {
         ByteArrayInputStream emailStream = readFileToByteArrayInputStream("/mail/rfc8617_no_arc.eml");
         Message message = new DefaultMessageBuilder().parseMessage(emailStream);
-
-        Map<String, String> arcSet1 = arcSetBuilder.buildArcSet(message, HELO, MAIL_FROM, IP, keyRecordRetriever);
-        for (Map.Entry<String, String> entry : arcSet1.entrySet()) {
-            message.getHeader().addField(new RawField(entry.getKey(), entry.getValue()));
-        }
-
-        Map<String, String> arcSet2 = arcSetBuilder.buildArcSet(message, HELO, MAIL_FROM, IP, keyRecordRetriever);
-        for (Map.Entry<String, String> entry : arcSet2.entrySet()) {
-            message.getHeader().addField(new RawField(entry.getKey(), entry.getValue()));
+        for (int hop = 0; hop < n; hop++) {
+            Map<String, String> arcSet = arcSetBuilder.buildArcSet(message, HELO, MAIL_FROM, IP, keyRecordRetriever);
+            for (Map.Entry<String, String> entry : arcSet.entrySet()) {
+                message.getHeader().addField(new RawField(entry.getKey(), entry.getValue()));
+            }
         }
         return message;
     }
