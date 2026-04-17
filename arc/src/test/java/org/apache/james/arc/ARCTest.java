@@ -557,6 +557,202 @@ public class ARCTest {
     // ams_struct_missing: an ARC-Seal at i=1 with no corresponding ARC-Message-Signature means the
     // set is incomplete and must be rejected — covered by validate_arc_chain_fails_when_ams_header_is_missing.
 
+    // Pre-filled template used for direct ARCSigner canonicalization tests.
+    private static final String CANON_TEST_TEMPLATE =
+            "i=1; a=rsa-sha256; c=relaxed/relaxed; d=dmarc.example; s=arc; t=" + TIMESTAMP
+            + "; h=Subject:From:To; bh=; b=";
+
+    // Minimal base email used for canonicalization tests.
+    private static final String BASE_EMAIL =
+            "From: jqd@d1.example\r\n"
+            + "To: arc@example.com\r\n"
+            + "Subject: test\r\n"
+            + "\r\n"
+            + "Hello world\r\n";
+
+    // Signs a raw email byte string directly with ARCSigner and returns "ARC-element:<ams body>".
+    private String signRawEmail(String rawEmail) {
+        ARCSigner signer = new ARCSigner(CANON_TEST_TEMPLATE, ArcTestKeys.privateKeyArc);
+        return signer.generateAms(new ByteArrayInputStream(rawEmail.getBytes(StandardCharsets.UTF_8)));
+    }
+
+    // Extracts a tag value from an AMS record (with or without the "ARC-element:" prefix).
+    private String extractAmsTag(String ams, String tagName) {
+        String body = ams.replaceFirst("^ARC-element:", "");
+        for (String part : body.split(";")) {
+            String t = part.trim();
+            if (t.startsWith(tagName + "=")) {
+                return t.substring((tagName + "=").length()).trim();
+            }
+        }
+        return null;
+    }
+
+    // message_body_eol_wsp: trailing whitespace on a body line must be stripped before body hashing,
+    // so two messages that differ only in trailing spaces produce the same bh=.
+    @Test
+    public void body_hash_is_invariant_under_body_line_trailing_whitespace() {
+        String variant = BASE_EMAIL.replace("Hello world\r\n", "Hello world   \r\n");
+        assertThat(extractAmsTag(signRawEmail(BASE_EMAIL), "bh"))
+                .isEqualTo(extractAmsTag(signRawEmail(variant), "bh"));
+    }
+
+    // message_body_inl_wsp: runs of whitespace inside a body line must be collapsed to one space
+    // before body hashing, so double spaces produce the same bh= as single spaces.
+    @Test
+    public void body_hash_is_invariant_under_body_inline_whitespace() {
+        String variant = BASE_EMAIL.replace("Hello world\r\n", "Hello  world\r\n");
+        assertThat(extractAmsTag(signRawEmail(BASE_EMAIL), "bh"))
+                .isEqualTo(extractAmsTag(signRawEmail(variant), "bh"));
+    }
+
+    // message_body_end_lines: trailing blank lines at the end of the body must be ignored when
+    // computing the body hash, so extra blank lines produce the same bh=.
+    @Test
+    public void body_hash_is_invariant_under_trailing_blank_lines() {
+        String variant = BASE_EMAIL.replace("Hello world\r\n", "Hello world\r\n\r\n\r\n");
+        assertThat(extractAmsTag(signRawEmail(BASE_EMAIL), "bh"))
+                .isEqualTo(extractAmsTag(signRawEmail(variant), "bh"));
+    }
+
+    // message_body_trail_crlf: a body that does not end with CRLF must have one appended before
+    // hashing, so it produces the same bh= as the same body that does end with CRLF.
+    @Test
+    public void body_hash_is_invariant_when_body_lacks_trailing_crlf() {
+        String variant = BASE_EMAIL.replace("Hello world\r\n", "Hello world");
+        assertThat(extractAmsTag(signRawEmail(BASE_EMAIL), "bh"))
+                .isEqualTo(extractAmsTag(signRawEmail(variant), "bh"));
+    }
+
+    // headers_field_name_case: header names must be lowercased before signing, so Subject and SUBJECT
+    // produce the same AMS (same bh= and same b=).
+    @Test
+    public void ams_is_invariant_under_header_name_case() {
+        String variant = BASE_EMAIL.replace("Subject: test\r\n", "SUBJECT: test\r\n");
+        assertThat(signRawEmail(BASE_EMAIL)).isEqualTo(signRawEmail(variant));
+    }
+
+    // headers_field_unfold: folded headers (split with CRLF + whitespace continuation) must be
+    // joined back into one line before signing, so the folded and unfolded forms produce the same AMS.
+    @Test
+    public void ams_is_invariant_under_header_folding() {
+        String cleanEmail =
+                "From: jqd@d1.example\r\nTo: arc@example.com\r\nSubject: Hello world\r\n\r\nHello world\r\n";
+        String foldedEmail =
+                "From: jqd@d1.example\r\nTo: arc@example.com\r\nSubject: Hello\r\n world\r\n\r\nHello world\r\n";
+        assertThat(signRawEmail(cleanEmail)).isEqualTo(signRawEmail(foldedEmail));
+    }
+
+    // headers_eol_wsp: trailing whitespace at the end of a header value must be stripped before
+    // signing, so trailing spaces produce the same AMS as no trailing spaces.
+    @Test
+    public void ams_is_invariant_under_header_trailing_whitespace() {
+        String variant = BASE_EMAIL.replace("Subject: test\r\n", "Subject: test   \r\n");
+        assertThat(signRawEmail(BASE_EMAIL)).isEqualTo(signRawEmail(variant));
+    }
+
+    // headers_inl_wsp: runs of whitespace inside a header value must be collapsed to one space before
+    // signing, so double spaces inside a value produce the same AMS as a single space.
+    @Test
+    public void ams_is_invariant_under_header_inline_whitespace() {
+        String cleanEmail =
+                "From: jqd@d1.example\r\nTo: arc@example.com\r\nSubject: Hello world\r\n\r\nHello world\r\n";
+        String variantEmail =
+                "From: jqd@d1.example\r\nTo: arc@example.com\r\nSubject: Hello  world\r\n\r\nHello world\r\n";
+        assertThat(signRawEmail(cleanEmail)).isEqualTo(signRawEmail(variantEmail));
+    }
+
+    // headers_col_wsp: whitespace around the colon separator in a header must be normalised before
+    // signing, so "Subject: test" and "Subject:test" (no space) produce the same AMS.
+    @Test
+    public void ams_is_invariant_under_header_colon_whitespace() {
+        String variant = BASE_EMAIL.replace("Subject: test\r\n", "Subject:test\r\n");
+        assertThat(signRawEmail(BASE_EMAIL)).isEqualTo(signRawEmail(variant));
+    }
+
+    // i1_base: when a message already carries a valid i=1 ARC set, buildArcSet must produce an i=2 set
+    // whose seal carries cv=pass — the new server correctly extends the chain.
+    @Test
+    public void build_arc_set_generates_i2_cv_pass_when_signing_on_top_of_valid_i1_chain() throws Exception {
+        Message message = buildNHopChain(1);
+        Map<String, String> arcSet = arcSetBuilder.buildArcSet(message, HELO, MAIL_FROM, IP, keyRecordRetriever);
+        assertThat(arcSet.get(ARC_SEAL)).contains("cv=pass");
+        assertThat(arcSet.get(ARC_SEAL)).contains("i=2");
+        assertThat(arcSet.get(ARC_MESSAGE_SIGNATURE)).contains("i=2");
+        assertThat(arcSet.get(ARC_AUTHENTICATION_RESULTS)).contains("i=2");
+    }
+
+    // i2_base: when a message already carries valid i=1 and i=2 ARC sets, buildArcSet must produce an i=3
+    // set whose seal carries cv=pass — the new server correctly extends the chain.
+    @Test
+    public void build_arc_set_generates_i3_cv_pass_when_signing_on_top_of_valid_i2_chain() throws Exception {
+        Message message = buildNHopChain(2);
+        Map<String, String> arcSet = arcSetBuilder.buildArcSet(message, HELO, MAIL_FROM, IP, keyRecordRetriever);
+        assertThat(arcSet.get(ARC_SEAL)).contains("cv=pass");
+        assertThat(arcSet.get(ARC_SEAL)).contains("i=3");
+        assertThat(arcSet.get(ARC_MESSAGE_SIGNATURE)).contains("i=3");
+        assertThat(arcSet.get(ARC_AUTHENTICATION_RESULTS)).contains("i=3");
+    }
+
+    // i1_base_fail: when the incoming i=1 chain is already broken (corrupt AMS), buildArcSet must still
+    // produce an i=2 set, but the new seal must carry cv=fail to faithfully record the broken chain.
+    @Test
+    public void build_arc_set_generates_cv_fail_seal_when_signing_on_top_of_broken_i1_chain() throws Exception {
+        ByteArrayInputStream emailStream = readFileToByteArrayInputStream("/mail/rfc8617_no_arc.eml");
+        Message message = new DefaultMessageBuilder().parseMessage(emailStream);
+        Map<String, String> arcSet = arcSetBuilder.buildArcSet(message, HELO, MAIL_FROM, IP, keyRecordRetriever);
+
+        String fakeB64 = Base64.getEncoder().encodeToString(new byte[128]);
+        for (Map.Entry<String, String> entry : arcSet.entrySet()) {
+            String value = entry.getKey().equals(ARC_MESSAGE_SIGNATURE)
+                    ? entry.getValue().replaceAll("; b=.*$", "; b=" + fakeB64)
+                    : entry.getValue();
+            message.getHeader().addField(new RawField(entry.getKey(), value));
+        }
+
+        Map<String, String> newArcSet = arcSetBuilder.buildArcSet(message, HELO, MAIL_FROM, IP, keyRecordRetriever);
+        assertThat(newArcSet.get(ARC_SEAL)).contains("cv=fail");
+        assertThat(newArcSet.get(ARC_SEAL)).contains("i=2");
+    }
+
+    // i2_base_fail: when the incoming two-hop chain is already broken, buildArcSet must produce an i=3
+    // set whose seal carries cv=fail — the broken state is faithfully recorded.
+    @Test
+    public void build_arc_set_generates_cv_fail_seal_when_signing_on_top_of_broken_i2_chain() throws Exception {
+        Message message = buildNHopChain(2);
+        corruptSignatureOnHeader(message, ARC_MESSAGE_SIGNATURE, "i=1");
+
+        Map<String, String> newArcSet = arcSetBuilder.buildArcSet(message, HELO, MAIL_FROM, IP, keyRecordRetriever);
+        assertThat(newArcSet.get(ARC_SEAL)).contains("cv=fail");
+        assertThat(newArcSet.get(ARC_SEAL)).contains("i=3");
+    }
+
+    // no_additional_sig: after signing on top of a broken chain and adding the new i=2 set to the message,
+    // the full chain validation must still return cv=fail — a valid new signature must not heal a broken chain.
+    @Test
+    public void validate_arc_chain_remains_fail_after_signing_on_top_of_broken_chain() throws Exception {
+        ByteArrayInputStream emailStream = readFileToByteArrayInputStream("/mail/rfc8617_no_arc.eml");
+        Message message = new DefaultMessageBuilder().parseMessage(emailStream);
+        Map<String, String> arcSet = arcSetBuilder.buildArcSet(message, HELO, MAIL_FROM, IP, keyRecordRetriever);
+
+        String fakeB64 = Base64.getEncoder().encodeToString(new byte[128]);
+        for (Map.Entry<String, String> entry : arcSet.entrySet()) {
+            String value = entry.getKey().equals(ARC_MESSAGE_SIGNATURE)
+                    ? entry.getValue().replaceAll("; b=.*$", "; b=" + fakeB64)
+                    : entry.getValue();
+            message.getHeader().addField(new RawField(entry.getKey(), value));
+        }
+
+        Map<String, String> newArcSet = arcSetBuilder.buildArcSet(message, HELO, MAIL_FROM, IP, keyRecordRetriever);
+        for (Map.Entry<String, String> entry : newArcSet.entrySet()) {
+            message.getHeader().addField(new RawField(entry.getKey(), entry.getValue()));
+        }
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
     // ams_format_tags_unknown: an unrecognised tag in the ARC-Message-Signature must be silently ignored,
     // so a chain signed with an extra z= tag must still validate as cv=pass.
     @Test
