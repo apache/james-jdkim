@@ -32,6 +32,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.security.Signature;
 import java.security.SignatureException;
+import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
@@ -72,6 +73,7 @@ public class ARCVerifier {
     public static final String ARC_MESSAGE_SIGNATURE = "ARC-Message-Signature";
     public static final String ARC_SEAL = "ARC-Seal";
     public static final String SHA256RSA = "SHA256withRSA";
+    private static final int MIN_RSA_KEY_BITS = 1024;
     private static final String DNS_RECORD_TYPE = "_domainkey";
     private PublicKeyRetrieverArc _keyRecordRetriever;
 
@@ -209,6 +211,10 @@ public class ARCVerifier {
             throw new ArcException("Invalid key provided when getting public key", e);
         } catch (NoSuchAlgorithmException e) {
             throw new ArcException("Unsupported algorithm provided when getting public key", e);
+        }
+        if (pubKey instanceof RSAPublicKey
+                && ((RSAPublicKey) pubKey).getModulus().bitLength() < MIN_RSA_KEY_BITS) {
+            throw new ArcException("RSA public key must be at least " + MIN_RSA_KEY_BITS + " bits");
         }
         return pubKey;
     }

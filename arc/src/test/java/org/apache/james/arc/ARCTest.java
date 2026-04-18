@@ -75,10 +75,32 @@ public class ARCTest {
             "v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDkHlOQoBTzWRiGs5V6NpP3id"
             + "Y6Wk08a5qhdR6wy5bdOKb2jLQiY/J16JYi0Qvx/byYzCNb3W91y3FutACDfzwQ/BC/e/8uBsCR+yz1Lx"
             + "j+PL6lHvqMKrM3rG4hstT5QjvHO9PzoxZyVYLzBfO2EeC3Ip3G+2kryOTIKT+l/K4w3QIDAQAB";
+    private static final String VALIMAIL_512_PUBLIC_KEY =
+            "v=DKIM1; k=rsa; p=MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAIWmlgix/84GJ+dfgjm7LTc9EPdfk"
+            + "ftlgiPpCq4/kbDAZmU0VvYKDljjleJ1dfvS+CGy9U/kk1tG3EeEvb82xAcCAwEAAQ==";
+    private static final String VALIMAIL_1024_PUBLIC_KEY =
+            "v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCyBwu6PiaDN87t3DVZ84zIrE"
+            + "hCoxtFuv7g52oCwAUXTDnXZ+0XHM/rhkm8XSGr1yLsDc1zLGX8IfITY1dL2CzptdgyiX7vgYjzZqG368"
+            + "C8BtGB5m6nj26NyhSKEdlV7MS9KbASd359ggCeGTT5QjRKEMSauVyVSeapq6ZcpZ9JwQIDAQAB";
+    private static final String VALIMAIL_2048_PUBLIC_KEY =
+            "v=DKIM1; k=rsa; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAv+7VkwpTtICeJFM4Hf"
+            + "UZsvv2OaA+QMrW9Af1PpTOzVP0uvUFK20lcaxMvt81ia/sGYW4gHp/WUIk0BIQMPVhUeCIuM1mcOQNFS"
+            + "OflR8pLo916rjEZXpRP/XGo4HwWzdqD2qQeb3+fv1IrzfHiDb9THbamoz05EX7JX+wVSAhdSW/igwhA/"
+            + "+beuzWR0RDDyGMT1b1Sb/lrGfwSXm7QoZQtj5PRiTX+fsL7WlzL+fBThySwS8ZBZcHcd8iWOSGKZ0gYK"
+            + "zxyuOf8VCX71C4xDhahN+HXWZFn9TZb+uZX9m+WXM3t+P8CdfxsaOdnVg6imgNDlUWX4ClLTZhco0Kmi"
+            + "BU+QIDAQAB";
 
     private final MockPublicKeyRecordRetrieverArc valimailKeyRecordRetriever = new MockPublicKeyRecordRetrieverArc(
             dmarcRetriever,
             MockPublicKeyRecordRetriever.Record.of("dummy", "example.org", VALIMAIL_DUMMY_PUBLIC_KEY)
+    );
+
+    private final MockPublicKeyRecordRetrieverArc valimailKeySizeRecordRetriever = new MockPublicKeyRecordRetrieverArc(
+            dmarcRetriever,
+            MockPublicKeyRecordRetriever.Record.of("dummy", "example.org", VALIMAIL_DUMMY_PUBLIC_KEY),
+            MockPublicKeyRecordRetriever.Record.of("512", "example.org", VALIMAIL_512_PUBLIC_KEY),
+            MockPublicKeyRecordRetriever.Record.of("1024", "example.org", VALIMAIL_1024_PUBLIC_KEY),
+            MockPublicKeyRecordRetriever.Record.of("2048", "example.org", VALIMAIL_2048_PUBLIC_KEY)
     );
 
     /**
@@ -1363,6 +1385,122 @@ public class ARCTest {
         assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("pass");
     }
 
+    // as_fields_b_1024: ARC-Seal signed with a 1024-bit RSA key must validate.
+    @Test
+    public void validate_arc_chain_passes_when_arc_seal_uses_1024_bit_key() throws Exception {
+        assertValimailFixturePasses(
+                valimailArcSealKeySizeMessage(
+                        "1024",
+                        "JZIhBQD/1SCIn7IUrIoqCDFZ4k2tDd5joLebC7dCEbEXy6HURnayDygFjEiVwoVjF8XZPo\n"
+                        + "    tDSWEVj18YLFQ08HZigNNDmhAdtIAeHs5bTfhz3ZDKGISGSrVbUqvS5QaL2dwaY5V3FhH1QC\n"
+                        + "    VEohhbx3rJKMBiFCbQoCRo555WNL0=",
+                        "jCTMZoXkSSVEusJyP9cbvAoKEDLphi95R/yaX9+gWw2t/RduqINzxPSVJZUq8uVCbKdB5F\n"
+                        + "    BlBb2m7zbwaq6/oemTqI1tcnRaAt66Z0cyOKfPjRINTm9C8E3hUoI9DzplkwEoqmhR0wOjcJ\n"
+                        + "    H6ASJr96Kl5qLu092VFaQYYxkwh2I="),
+                valimailKeySizeRecordRetriever);
+    }
+
+    // as_fields_b_2048: ARC-Seal signed with a 2048-bit RSA key must validate.
+    @Test
+    public void validate_arc_chain_passes_when_arc_seal_uses_2048_bit_key() throws Exception {
+        assertValimailFixturePasses(
+                valimailArcSealKeySizeMessage(
+                        "2048",
+                        "R6I8tV4Y0pBQWId+r4W9L3TDi82iVPot9d+ux5u69ET/VUTQUPFAiRfTBqMKAm0dY1HCdU\n"
+                        + "    JZggmlvj9BwZMOO9pFi8O1EXqkJ1CpNtFyNn76Get96owYXh7LlcP/C/a5AmxZMmvKblloh5\n"
+                        + "    1rL2cNWicsp8/y3NS8jO0KWpSis2jK2yMn+r9gJ5gM2sUiBsKDwiYAhFBhjD8SFQOaG6DzLa\n"
+                        + "    mJzCw9FkuGdpLfQoNDq2lLQq6APq8GihFJai7o/s8M4FItAMoteuqxIfyYuH60oX4qNOsaIT\n"
+                        + "    B/6DnRCFshABODpSHRRIH4EvCu2fYYo6YDIU3VvDH2wOO5fQMcgvUoNw==",
+                        "M0YyrXMDoG5zJ0ZjFzUqFNoDFatu/QxWTjyAH5wPvPRiSqw2Vvd4A1Al8VjYfmgbP4Jd8f\n"
+                        + "    TFDZg1kWwLYk2IO/th/P6iYPfyDg5qp6mgao/V8NBW9P/Mqlb+xhkn4R8c44vmen9atIUV3Z\n"
+                        + "    04QzziVeuBxj+NFqxprbxf42Faxv5XymGmW3ZWVhOLEpwfcjy933drLsfZQezhyYlx4klptI\n"
+                        + "    v3hKM76++GaIUc1nWXvmkeKKjEQLiUzqxd9Om7SRNArNe/q5xnVIaufxSfZNUtTT/o7Ic1Br\n"
+                        + "    t7ZV8qwmj37sYpdZUo6H7QN+dp8E/J0jnbI0ZQU2mv8Gj3FqGOGzKwGQ=="),
+                valimailKeySizeRecordRetriever);
+    }
+
+    // as_fields_b_512: ARC-Seal signed with a 512-bit RSA key must be rejected.
+    @Test
+    public void validate_arc_chain_fails_when_arc_seal_uses_512_bit_key() throws Exception {
+        assertValimailFixtureFails(
+                valimailArcSealKeySizeMessage(
+                        "512",
+                        "DCbMvnfI7UzqahO9GFjYXa7DAcon0abOMQ7mWykqtdkEe+rqeQmsy1/pV9oAeSrT9giBqP\n"
+                        + "    +cBNepG4Nycj93KQ==",
+                        "BFnboE5xz5OBBIZeB04CaX0QVCRysZesZNKLQLDbq3ohfHL0eIkMWyt/ZkP3+bg7wVEtyb\n"
+                        + "    QfqbbfDRTQYC3GBA=="),
+                valimailKeySizeRecordRetriever);
+    }
+
+    // as_fields_b_head_case: ARC-Seal relaxed canonicalization lowercases header names.
+    @Test
+    public void validate_arc_chain_passes_when_arc_seal_header_name_case_changes() throws Exception {
+        assertValimailFixturePasses(
+                "MIME-Version: 1.0\n"
+                + "Return-Path: <jqd@d1.example.org>\n"
+                + "ARC-SEAL: a=rsa-sha256;\n"
+                + "    b=RkKDOauVsqcsTEFv6NVE6J0sxj8LUE4kfwRzs0CvMg/+KOqRDQoFxxJsJkI77EHZqcSgwr\n"
+                + "    QKpt6aKsl2zyUovVhAppT65S0+vo+h3utd3f8jph++1uiAUhVf57PihDC/GcdhyRGa6YNQGh\n"
+                + "    GoArSHaJKb06/qF5OBif8o9lmRC8E=; cv=none; d=example.org; i=1; s=dummy;\n"
+                + "    t=12345\n"
+                + valimailArcSealFormatCommonTail());
+    }
+
+    // as_fields_b_head_unfold: folded ARC-Seal header lines must verify under relaxed canonicalization.
+    @Test
+    public void validate_arc_chain_passes_when_arc_seal_signature_header_is_unfolded() throws Exception {
+        assertValimailFixturePasses(
+                "MIME-Version: 1.0\n"
+                + "Return-Path: <jqd@d1.example.org>\n"
+                + "ARC-Seal: a=rsa-sha256;\n"
+                + "    b=RkKDOauVsqcsTEFv6NVE6J0sxj8LUE4kfwRzs0CvMg/+KOqRDQoFxxJsJkI77EHZqcSgwr QKpt6aKsl2zyUovVhAppT65S0+vo+h3utd3f8jph++1uiAUhVf57PihDC/GcdhyRGa6YNQGh\n"
+                + "    GoArSHaJKb06/qF5OBif8o9lmRC8E=; cv=none; d=example.org; i=1; s=dummy;\n"
+                + "    t=12345\n"
+                + valimailArcSealFormatCommonTail());
+    }
+
+    // as_fields_b_eol_wsp: trailing line whitespace must be stripped during AS verification.
+    @Test
+    public void validate_arc_chain_passes_when_arc_seal_signature_has_end_of_line_whitespace() throws Exception {
+        assertValimailFixturePasses(
+                "MIME-Version: 1.0\n"
+                + "Return-Path: <jqd@d1.example.org>\n"
+                + "ARC-Seal: a=rsa-sha256;\n"
+                + "    b=RkKDOauVsqcsTEFv6NVE6J0sxj8LUE4kfwRzs0CvMg/+KOqRDQoFxxJsJkI77EHZqcSgwr    \n"
+                + "    QKpt6aKsl2zyUovVhAppT65S0+vo+h3utd3f8jph++1uiAUhVf57PihDC/GcdhyRGa6YNQGh\n"
+                + "    GoArSHaJKb06/qF5OBif8o9lmRC8E=; cv=none; d=example.org; i=1; s=dummy;\n"
+                + "    t=12345\n"
+                + valimailArcSealFormatCommonTail());
+    }
+
+    // as_fields_b_inl_wsp: repeated inline whitespace must be reduced during AS verification.
+    @Test
+    public void validate_arc_chain_passes_when_arc_seal_header_has_extra_inline_whitespace() throws Exception {
+        assertValimailFixturePasses(
+                "MIME-Version: 1.0\n"
+                + "Return-Path: <jqd@d1.example.org>\n"
+                + "ARC-Seal: a=rsa-sha256;\n"
+                + "    b=RkKDOauVsqcsTEFv6NVE6J0sxj8LUE4kfwRzs0CvMg/+KOqRDQoFxxJsJkI77EHZqcSgwr\n"
+                + "    QKpt6aKsl2zyUovVhAppT65S0+vo+h3utd3f8jph++1uiAUhVf57PihDC/GcdhyRGa6YNQGh\n"
+                + "    GoArSHaJKb06/qF5OBif8o9lmRC8E=;    cv=none; d=example.org; i=1; s=dummy;\n"
+                + "    t=12345\n"
+                + valimailArcSealFormatCommonTail());
+    }
+
+    // as_fields_b_col_wsp: whitespace around the ARC-Seal field-name colon must be ignored.
+    @Test
+    public void validate_arc_chain_passes_when_arc_seal_header_has_whitespace_after_colon() throws Exception {
+        assertValimailFixturePasses(
+                "MIME-Version: 1.0\n"
+                + "Return-Path: <jqd@d1.example.org>\n"
+                + "ARC-Seal:   a=rsa-sha256;\n"
+                + "    b=RkKDOauVsqcsTEFv6NVE6J0sxj8LUE4kfwRzs0CvMg/+KOqRDQoFxxJsJkI77EHZqcSgwr\n"
+                + "    QKpt6aKsl2zyUovVhAppT65S0+vo+h3utd3f8jph++1uiAUhVf57PihDC/GcdhyRGa6YNQGh\n"
+                + "    GoArSHaJKb06/qF5OBif8o9lmRC8E=; cv=none; d=example.org; i=1; s=dummy;\n"
+                + "    t=12345\n"
+                + valimailArcSealFormatCommonTail());
+    }
+
     // as_fields_b_na: missing ARC-Seal b= leaves no signature to verify and must be rejected.
     @Test
     public void validate_arc_chain_fails_when_arc_seal_signature_tag_is_missing() throws Exception {
@@ -1684,11 +1822,23 @@ public class ARCTest {
     }
 
     private void assertValimailFixturePasses(String rawMessage) throws Exception {
+        assertValimailFixturePasses(rawMessage, valimailKeyRecordRetriever);
+    }
+
+    private void assertValimailFixturePasses(String rawMessage, MockPublicKeyRecordRetrieverArc publicKeyRetriever) throws Exception {
         Message message = new DefaultMessageBuilder().parseMessage(
                 new ByteArrayInputStream(rawMessage.replace("\n", "\r\n").getBytes(StandardCharsets.UTF_8)));
-        ARCChainValidator arcChainValidator = new ARCChainValidator(valimailKeyRecordRetriever);
+        ARCChainValidator arcChainValidator = new ARCChainValidator(publicKeyRetriever);
         ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
         assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("pass");
+    }
+
+    private void assertValimailFixtureFails(String rawMessage, MockPublicKeyRecordRetrieverArc publicKeyRetriever) throws Exception {
+        Message message = new DefaultMessageBuilder().parseMessage(
+                new ByteArrayInputStream(rawMessage.replace("\n", "\r\n").getBytes(StandardCharsets.UTF_8)));
+        ARCChainValidator arcChainValidator = new ARCChainValidator(publicKeyRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
     }
 
     private Map<String, String> buildArcSetWithAuthService(Message message, String authService) throws Exception {
@@ -1754,6 +1904,55 @@ public class ARCTest {
                 + "    bh=dHN66dCNljBC18wb03I1K6hlBvV0qqsKoDsetl+jxb8=; c=relaxed/relaxed;\n"
                 + "    d=example.org; h=from:to:date:subject:mime-version:arc-authentication-results;\n"
                 + "    i=1; s=dummy; t=12345\n"
+                + "ARC-Authentication-Results: i=1; lists.example.org;\n"
+                + "    spf=pass smtp.mfrom=jqd@d1.example;\n"
+                + "    dkim=pass (1024-bit key) header.i=@d1.example;\n"
+                + "    dmarc=pass\n"
+                + "Received: from segv.d1.example (segv.d1.example [72.52.75.15])\n"
+                + "    by lists.example.org (8.14.5/8.14.5) with ESMTP id t0EKaNU9010123\n"
+                + "    for <arc@example.org>; Thu, 14 Jan 2015 15:01:30 -0800 (PST)\n"
+                + "    (envelope-from jqd@d1.example)\n"
+                + "Authentication-Results: lists.example.org;\n"
+                + "    spf=pass smtp.mfrom=jqd@d1.example;\n"
+                + "    dkim=pass (1024-bit key) header.i=@d1.example;\n"
+                + "    dmarc=pass\n"
+                + "MIME-Version: 1.0\n"
+                + "Return-Path: <jqd@d1.example.org>\n"
+                + "Received: by 10.157.52.162 with SMTP id g31csp5274520otc;\n"
+                + "        Tue, 3 Jan 2017 12:32:02 -0800 (PST)\n"
+                + "X-Received: by 10.36.31.84 with SMTP id d81mr49584685itd.26.1483475522271;\n"
+                + "        Tue, 03 Jan 2017 12:32:02 -0800 (PST)\n"
+                + "Message-ID: <C3A9E208-6B5D-4D9F-B4DE-9323946993AC@d1.example.org>\n"
+                + "Date: Thu, 5 Jan 2017 14:39:01 -0800\n"
+                + "From: Gene Q Doe <gqd@d1.example.org>\n"
+                + "To: arc@dmarc.org\n"
+                + "Subject: Example 2\n"
+                + "Content-Type: multipart/alternative; boundary=001a113e15fcdd0f9e0545366e8f\n"
+                + "\n"
+                + "--001a113e15fcdd0f9e0545366e8f\n"
+                + "Content-Type: text/plain; charset=UTF-8\n"
+                + "\n"
+                + "This is a test message\n"
+                + "\n"
+                + "--001a113e15fcdd0f9e0545366e8f\n"
+                + "Content-Type: text/html; charset=UTF-8\n"
+                + "\n"
+                + "<div dir=\"ltr\">This is a test message</div>\n"
+                + "\n"
+                + "--001a113e15fcdd0f9e0545366e8f--";
+    }
+
+    private String valimailArcSealKeySizeMessage(String selector, String arcSealSignature, String arcMessageSignature) {
+        return "MIME-Version: 1.0\n"
+                + "Return-Path: <jqd@d1.example.org>\n"
+                + "ARC-Seal: a=rsa-sha256;\n"
+                + "    b=" + arcSealSignature + "; cv=none; d=example.org; i=1; s=" + selector + ";\n"
+                + "    t=12345\n"
+                + "ARC-Message-Signature: a=rsa-sha256;\n"
+                + "    b=" + arcMessageSignature + ";\n"
+                + "    bh=dHN66dCNljBC18wb03I1K6hlBvV0qqsKoDsetl+jxb8=; c=relaxed/relaxed;\n"
+                + "    d=example.org; h=from:to:date:subject:mime-version:arc-authentication-results;\n"
+                + "    i=1; s=" + selector + "; t=12345\n"
                 + "ARC-Authentication-Results: i=1; lists.example.org;\n"
                 + "    spf=pass smtp.mfrom=jqd@d1.example;\n"
                 + "    dkim=pass (1024-bit key) header.i=@d1.example;\n"

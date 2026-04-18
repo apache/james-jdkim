@@ -114,7 +114,11 @@ public class ARCChainValidator {
         String txtDnsRecord = arcVerifier.getTxtDnsRecordByField(amsHeader);
         if (txtDnsRecord == null) return retVal;
 
-        retVal = arcVerifier.verifyAms(amsHeader, message, txtDnsRecord);
+        try {
+            retVal = arcVerifier.verifyAms(amsHeader, message, txtDnsRecord);
+        } catch (ArcException | IllegalArgumentException e) {
+            return false;
+        }
 
         return retVal;
     }
@@ -131,7 +135,12 @@ public class ARCChainValidator {
         String txtDnsRecord = arcVerifier.getTxtDnsRecordByField(arcSealHeader);
         if (txtDnsRecord == null) return retVal;
 
-        PublicKey publicKey = arcVerifier.parsePublicKeyFromDns(txtDnsRecord);
+        PublicKey publicKey;
+        try {
+            publicKey = arcVerifier.parsePublicKeyFromDns(txtDnsRecord);
+        } catch (ArcException | IllegalArgumentException e) {
+            return false;
+        }
         if (publicKey == null) {
             throw new ArcException(String.format("Unable to parse public key from dns record %s", txtDnsRecord));
         }
