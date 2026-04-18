@@ -604,6 +604,289 @@ public class ARCTest {
         assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
     }
 
+    // ams_fields_i_dup2: duplicate ARC-Message-Signature instance numbers must be rejected when
+    // the duplicate appears after the existing AMS header.
+    @Test
+    public void validate_arc_chain_fails_when_duplicate_ams_instance_appears_after_arc_set() throws Exception {
+        Message message = buildOneHopChainWithAms(ams -> ams, true);
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    // ams_fields_a_na: AMS without a= does not declare a supported signature algorithm.
+    @Test
+    public void validate_arc_chain_fails_when_ams_algorithm_tag_is_missing() throws Exception {
+        Message message = buildOneHopChainWithAms(ams -> ams.replaceFirst("a=rsa-sha256;\\s*", ""), false);
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    // ams_fields_a_empty: AMS with an empty a= does not declare a supported signature algorithm.
+    @Test
+    public void validate_arc_chain_fails_when_ams_algorithm_tag_is_empty() throws Exception {
+        Message message = buildOneHopChainWithAms(ams -> ams.replace("a=rsa-sha256", "a="), false);
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    // ams_fields_a_sha1: rsa-sha1 is not supported for AMS verification.
+    @Test
+    public void validate_arc_chain_fails_when_ams_algorithm_is_sha1() throws Exception {
+        Message message = buildOneHopChainWithAms(ams -> ams.replace("a=rsa-sha256", "a=rsa-sha1"), false);
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    // ams_fields_a_unknown: unknown AMS signature algorithms must be rejected.
+    @Test
+    public void validate_arc_chain_fails_when_ams_algorithm_is_unknown() throws Exception {
+        Message message = buildOneHopChainWithAms(ams -> ams.replace("a=rsa-sha256", "a=ed25519-sha256"), false);
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    // ams_fields_b_ignores_wsp: whitespace inside AMS b= must be ignored during base64 decode.
+    @Test
+    public void validate_arc_chain_passes_when_ams_signature_contains_whitespace() throws Exception {
+        assertValimailFixturePasses(
+                "MIME-Version: 1.0\n"
+                + "Return-Path: <jqd@d1.example.org>\n"
+                + "ARC-Seal: a=rsa-sha256;\n"
+                + "    b=L8GsQ6v/7miEWKMGu16QVCPF6IT8j9+DV/ZHzgm86gi5m2JYAq+BlkmiIDofRPW+QzAq85\n"
+                + "    2UlxwI2NZrhyAKgtM4FKO7+84P1eYwJKh57DZfCyUpqRx1Je2+vzT8ZggXQWYjFEu36MTDFX\n"
+                + "    fRKVqPV3omyP+CFBzjJFFDLehJaPk=; cv=none; d=example.org; i=1; s=dummy;\n"
+                + "    t=12345\n"
+                + "ARC-Message-Signature: a=rsa-sha256;\n"
+                + "    b=QsRzR /UqwRfVLBc1TnoQomlVw5qi6jp08q8lHpBSl4RehWyHQtY3uOIAGdghDk/mO+/Xpm\n"
+                + "    9JA5UVrPyDV0f+2q/YAHuwvP11iCkBQkocmFvgTSxN8H+DwFFPrVVUudQYZV7UDDycXoM6UE\n"
+                + "    cdfzLLzVNPOAHEDIi/uzoV4sUqZ18=;\n"
+                + "    bh=KWSe46TZKCcDbH4klJPo+tjk5LWJnVRlP5pvjXFZYLQ=; c=relaxed/relaxed;\n"
+                + "    d=example.org; h=from:to:date:subject:mime-version:arc-authentication-results;\n"
+                + "    i=1; s=dummy; t=12345\n"
+                + valimailCommonMessageTail());
+    }
+
+    // ams_fields_b_na: missing AMS b= leaves no message signature to verify and must be rejected.
+    @Test
+    public void validate_arc_chain_fails_when_ams_signature_tag_is_missing() throws Exception {
+        Message message = buildOneHopChainWithAms(ams -> ams.replaceAll("; b=.*$", ""), false);
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    // ams_fields_b_empty: empty AMS b= leaves no message signature to verify and must be rejected.
+    @Test
+    public void validate_arc_chain_fails_when_ams_signature_tag_is_empty() throws Exception {
+        Message message = buildOneHopChainWithAms(ams -> ams.replaceAll("; b=.*$", "; b="), false);
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    // ams_fields_b_base64: AMS b= must be base64.
+    @Test
+    public void validate_arc_chain_fails_when_ams_signature_is_not_base64() throws Exception {
+        Message message = buildOneHopChainWithAms(ams -> ams.replaceAll("; b=.*$", "; b=not-base64!"), false);
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    // ams_fields_b_mod_sig: a modified AMS signature must be rejected.
+    @Test
+    public void validate_arc_chain_fails_when_ams_signature_is_modified() throws Exception {
+        Message message = buildOneHopChainWithAms(
+                ams -> ams.replaceAll("; b=.*$", "; b=" + Base64.getEncoder().encodeToString(new byte[128])),
+                false);
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    // ams_fields_b_head_case: AMS relaxed canonicalization lowercases signed header names.
+    @Test
+    public void validate_arc_chain_passes_when_signed_header_name_case_changes() throws Exception {
+        assertValimailFixturePasses(valimailAmsCanonicalizationMessage(
+                "Received: from segv.d1.example (segv.d1.example [72.52.75.15])\n"
+                + "    by lists.example.org (8.14.5/8.14.5) with ESMTP id t0EKaNU9010123\n"
+                + "    for <arc@example.org>; Thu, 14 Jan 2015 15:01:30 -0800 (PST)\n"
+                + "    (envelope-from jqd@d1.example)\n"
+                + "Authentication-Results: lists.example.org;\n"
+                + "    spf=pass smtp.mfrom=jqd@d1.example;\n"
+                + "    dkim=pass (1024-bit key) header.i=@d1.example;\n"
+                + "    dmarc=pass\n"
+                + "Received: by 10.157.14.6 with HTTP; Tue, 3 Jan 2017 12:22:54 -0800 (PST)\n"
+                + "Message-ID: <54B84785.1060301@d1.example.org>\n"
+                + "Date: Thu, 14 Jan 2015 15:00:01 -0800\n"
+                + "FROM: John Q Doe <jqd@d1.example.org>\n"
+                + "To: arc@dmarc.org\n"
+                + "Subject: Example 1\n"
+                + "\n"
+                + "Hey gang,\n"
+                + "This is a test message.\n"
+                + "--J."));
+    }
+
+    // ams_fields_b_head_unfold: folded signed headers must verify under relaxed canonicalization.
+    @Test
+    public void validate_arc_chain_passes_when_signed_header_is_folded() throws Exception {
+        assertValimailFixturePasses(valimailAmsCanonicalizationMessage(
+                "Received: from segv.d1.example (segv.d1.example [72.52.75.15])\n"
+                + "    by lists.example.org (8.14.5/8.14.5) with ESMTP id t0EKaNU9010123\n"
+                + "    for <arc@example.org>; Thu, 14 Jan 2015 15:01:30 -0800 (PST)\n"
+                + "    (envelope-from jqd@d1.example)\n"
+                + "Authentication-Results: lists.example.org;\n"
+                + "    spf=pass smtp.mfrom=jqd@d1.example;\n"
+                + "    dkim=pass (1024-bit key) header.i=@d1.example;\n"
+                + "    dmarc=pass\n"
+                + "Received: by 10.157.14.6 with HTTP; Tue, 3 Jan 2017 12:22:54 -0800 (PST)\n"
+                + "Message-ID: <54B84785.1060301@d1.example.org>\n"
+                + "Date: Thu, 14 Jan 2015 15:00:01 -0800\n"
+                + "From: John Q Doe\n"
+                + "  <jqd@d1.example.org>\n"
+                + "To: arc@dmarc.org\n"
+                + "Subject: Example 1\n"
+                + "\n"
+                + "Hey gang,\n"
+                + "This is a test message.\n"
+                + "--J."));
+    }
+
+    // ams_fields_b_eol_wsp: signed-header line-end whitespace must be stripped.
+    @Test
+    public void validate_arc_chain_passes_when_signed_header_has_end_of_line_whitespace() throws Exception {
+        assertValimailFixturePasses(valimailAmsCanonicalizationMessage(
+                "Received: from segv.d1.example (segv.d1.example [72.52.75.15])\n"
+                + "    by lists.example.org (8.14.5/8.14.5) with ESMTP id t0EKaNU9010123\n"
+                + "    for <arc@example.org>; Thu, 14 Jan 2015 15:01:30 -0800 (PST)\n"
+                + "    (envelope-from jqd@d1.example)\n"
+                + "Authentication-Results: lists.example.org;\n"
+                + "    spf=pass smtp.mfrom=jqd@d1.example;\n"
+                + "    dkim=pass (1024-bit key) header.i=@d1.example;\n"
+                + "    dmarc=pass\n"
+                + "Received: by 10.157.14.6 with HTTP; Tue, 3 Jan 2017 12:22:54 -0800 (PST)\n"
+                + "Message-ID: <54B84785.1060301@d1.example.org>\n"
+                + "Date: Thu, 14 Jan 2015 15:00:01 -0800\n"
+                + "From: John Q Doe <jqd@d1.example.org>    \n"
+                + "To: arc@dmarc.org\n"
+                + "Subject: Example 1\n"
+                + "\n"
+                + "Hey gang,\n"
+                + "This is a test message.\n"
+                + "--J."));
+    }
+
+    // ams_fields_b_inl_wsp: repeated inline whitespace in signed headers must be reduced.
+    @Test
+    public void validate_arc_chain_passes_when_signed_header_has_extra_inline_whitespace() throws Exception {
+        assertValimailFixturePasses(valimailAmsCanonicalizationMessage(
+                "Received: from segv.d1.example (segv.d1.example [72.52.75.15])\n"
+                + "    by lists.example.org (8.14.5/8.14.5) with ESMTP id t0EKaNU9010123\n"
+                + "    for <arc@example.org>; Thu, 14 Jan 2015 15:01:30 -0800 (PST)\n"
+                + "    (envelope-from jqd@d1.example)\n"
+                + "Authentication-Results: lists.example.org;\n"
+                + "    spf=pass smtp.mfrom=jqd@d1.example;\n"
+                + "    dkim=pass (1024-bit key) header.i=@d1.example;\n"
+                + "    dmarc=pass\n"
+                + "Received: by 10.157.14.6 with HTTP; Tue, 3 Jan 2017 12:22:54 -0800 (PST)\n"
+                + "Message-ID: <54B84785.1060301@d1.example.org>\n"
+                + "Date: Thu, 14 Jan 2015 15:00:01 -0800\n"
+                + "From: John   Q    Doe     <jqd@d1.example.org>\n"
+                + "To: arc@dmarc.org\n"
+                + "Subject: Example 1\n"
+                + "\n"
+                + "Hey gang,\n"
+                + "This is a test message.\n"
+                + "--J."));
+    }
+
+    // ams_fields_b_col_wsp: whitespace after signed-header colons must be stripped.
+    @Test
+    public void validate_arc_chain_passes_when_signed_headers_have_colon_whitespace() throws Exception {
+        assertValimailFixturePasses(valimailAmsCanonicalizationMessage(
+                "Received: from segv.d1.example (segv.d1.example [72.52.75.15])\n"
+                + "    by lists.example.org (8.14.5/8.14.5) with ESMTP id t0EKaNU9010123\n"
+                + "    for <arc@example.org>; Thu, 14 Jan 2015 15:01:30 -0800 (PST)\n"
+                + "    (envelope-from jqd@d1.example)\n"
+                + "Authentication-Results: lists.example.org;\n"
+                + "    spf=pass smtp.mfrom=jqd@d1.example;\n"
+                + "    dkim=pass (1024-bit key) header.i=@d1.example;\n"
+                + "    dmarc=pass\n"
+                + "Received: by 10.157.14.6 with HTTP; Tue, 3 Jan 2017 12:22:54 -0800 (PST)\n"
+                + "Message-ID: <54B84785.1060301@d1.example.org>\n"
+                + "Date:  Thu, 14 Jan 2015 15:00:01 -0800\n"
+                + "From:  John Q Doe <jqd@d1.example.org>\n"
+                + "To:   arc@dmarc.org\n"
+                + "Subject: Example 1\n"
+                + "\n"
+                + "Hey gang,\n"
+                + "This is a test message.\n"
+                + "--J."));
+    }
+
+    // ams_fields_b_mod_headers1: modifying a signed From header must invalidate AMS.
+    @Test
+    public void validate_arc_chain_fails_when_signed_from_header_is_modified() throws Exception {
+        assertValimailFixtureFails(valimailAmsCanonicalizationMessage(
+                "Received: from segv.d1.example (segv.d1.example [72.52.75.15])\n"
+                + "    by lists.example.org (8.14.5/8.14.5) with ESMTP id t0EKaNU9010123\n"
+                + "    for <arc@example.org>; Thu, 14 Jan 2015 15:01:30 -0800 (PST)\n"
+                + "    (envelope-from jqd@d1.example)\n"
+                + "Authentication-Results: lists.example.org;\n"
+                + "    spf=pass smtp.mfrom=jqd@d1.example;\n"
+                + "    dkim=pass (1024-bit key) header.i=@d1.example;\n"
+                + "    dmarc=pass\n"
+                + "Received: by 10.157.14.6 with HTTP; Tue, 3 Jan 2017 12:22:54 -0800 (PST)\n"
+                + "Message-ID: <54B84785.1060301@d1.example.org>\n"
+                + "Date: Thu, 14 Jan 2015 15:00:01 -0800\n"
+                + "From: Q Doe <jqd@d1.example.org>\n"
+                + "To: arc@dmarc.org\n"
+                + "Subject: Example 1\n"
+                + "\n"
+                + "Hey gang,\n"
+                + "This is a test message.\n"
+                + "--J."));
+    }
+
+    // ams_fields_b_mod_headers2: modifying a signed Subject header must invalidate AMS.
+    @Test
+    public void validate_arc_chain_fails_when_signed_subject_header_is_modified() throws Exception {
+        assertValimailFixtureFails(valimailAmsCanonicalizationMessage(
+                "Received: from segv.d1.example (segv.d1.example [72.52.75.15])\n"
+                + "    by lists.example.org (8.14.5/8.14.5) with ESMTP id t0EKaNU9010123\n"
+                + "    for <arc@example.org>; Thu, 14 Jan 2015 15:01:30 -0800 (PST)\n"
+                + "    (envelope-from jqd@d1.example)\n"
+                + "Authentication-Results: lists.example.org;\n"
+                + "    spf=pass smtp.mfrom=jqd@d1.example;\n"
+                + "    dkim=pass (1024-bit key) header.i=@d1.example;\n"
+                + "    dmarc=pass\n"
+                + "Received: by 10.157.14.6 with HTTP; Tue, 3 Jan 2017 12:22:54 -0800 (PST)\n"
+                + "Message-ID: <54B84785.1060301@d1.example.org>\n"
+                + "Date: Thu, 14 Jan 2015 15:00:01 -0800\n"
+                + "From: John Q Doe <jqd@d1.example.org>\n"
+                + "To: arc@dmarc.org\n"
+                + "Subject: Example 1 (Mod)\n"
+                + "\n"
+                + "Hey gang,\n"
+                + "This is a test message.\n"
+                + "--J."));
+    }
+
     // aar_struct_i_na / aar_i_missing: an ARC-Authentication-Results header without i= is invalid.
     @Test
     public void validate_arc_chain_fails_when_aar_has_no_instance_tag() throws Exception {
@@ -1737,6 +2020,22 @@ public class ARCTest {
         return message;
     }
 
+    private Message buildOneHopChainWithAms(java.util.function.Function<String, String> amsMutation,
+                                            boolean duplicateAms) throws Exception {
+        ByteArrayInputStream emailStream = readFileToByteArrayInputStream("/mail/rfc8617_no_arc.eml");
+        Message message = new DefaultMessageBuilder().parseMessage(emailStream);
+        Map<String, String> arcSet = arcSetBuilder.buildArcSet(message, HELO, MAIL_FROM, IP, keyRecordRetriever);
+
+        message.getHeader().addField(new RawField(ARC_AUTHENTICATION_RESULTS, arcSet.get(ARC_AUTHENTICATION_RESULTS)));
+        String ams = amsMutation.apply(arcSet.get(ARC_MESSAGE_SIGNATURE));
+        message.getHeader().addField(new RawField(ARC_MESSAGE_SIGNATURE, ams));
+        if (duplicateAms) {
+            message.getHeader().addField(new RawField(ARC_MESSAGE_SIGNATURE, ams));
+        }
+        message.getHeader().addField(new RawField(ARC_SEAL, arcSet.get(ARC_SEAL)));
+        return message;
+    }
+
     private String insertWhitespaceIntoSealSignature(String seal) {
         java.util.regex.Matcher matcher = java.util.regex.Pattern.compile("; b=([^;]+)$").matcher(seal);
         if (!matcher.find()) {
@@ -1841,6 +2140,10 @@ public class ARCTest {
         assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
     }
 
+    private void assertValimailFixtureFails(String rawMessage) throws Exception {
+        assertValimailFixtureFails(rawMessage, valimailKeyRecordRetriever);
+    }
+
     private Map<String, String> buildArcSetWithAuthService(Message message, String authService) throws Exception {
         ArcSetBuilder builder = new ArcSetBuilder(
                 ArcTestKeys.privateKeyArc,
@@ -1894,6 +2197,28 @@ public class ARCTest {
                 + "Hey gang,\n"
                 + "This is a test message.\n"
                 + "--J.";
+    }
+
+    private String valimailAmsCanonicalizationMessage(String signedMessageTail) {
+        return "MIME-Version: 1.0\n"
+                + "Return-Path: <jqd@d1.example.org>\n"
+                + "ARC-Seal: a=rsa-sha256;\n"
+                + "    b=dOdFEyhrk/tw5wl3vMIogoxhaVsKJkrkEhnAcq2XqOLSQhPpGzhGBJzR7k1sWGokon3TmQ\n"
+                + "    7TX9zQLO6ikRpwd/pUswiRW5DBupy58fefuclXJAhErsrebfvfiueGyhHXV7C1LyJTztywzn\n"
+                + "    QGG4SCciU/FTlsJ0QANrnLRoadfps=; cv=none; d=example.org; i=1; s=dummy;\n"
+                + "    t=12345\n"
+                + "ARC-Message-Signature: a=rsa-sha256;\n"
+                + "    b=QsRzR/UqwRfVLBc1TnoQomlVw5qi6jp08q8lHpBSl4RehWyHQtY3uOIAGdghDk/mO+/Xpm\n"
+                + "    9JA5UVrPyDV0f+2q/YAHuwvP11iCkBQkocmFvgTSxN8H+DwFFPrVVUudQYZV7UDDycXoM6UE\n"
+                + "    cdfzLLzVNPOAHEDIi/uzoV4sUqZ18=;\n"
+                + "    bh=KWSe46TZKCcDbH4klJPo+tjk5LWJnVRlP5pvjXFZYLQ=; c=relaxed/relaxed;\n"
+                + "    d=example.org; h=from:to:date:subject:mime-version:arc-authentication-results;\n"
+                + "    i=1; s=dummy; t=12345\n"
+                + "ARC-Authentication-Results: i=1; lists.example.org;\n"
+                + "    spf=pass smtp.mfrom=jqd@d1.example;\n"
+                + "    dkim=pass (1024-bit key) header.i=@d1.example;\n"
+                + "    dmarc=pass\n"
+                + signedMessageTail;
     }
 
     private String valimailArcSealFormatCommonTail() {

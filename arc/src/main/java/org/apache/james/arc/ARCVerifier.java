@@ -86,9 +86,13 @@ public class ARCVerifier {
         String amsValue = amsField.getBody();
         Map<String, String> tags = parseTagList(amsValue);
 
+        String algorithm = tags.get("a");
         String signedHeaders = tags.get("h");
         String bodyHash = tags.get("bh");
         String signatureB64 = tags.get("b");
+        if (!"rsa-sha256".equals(algorithm) || signatureB64 == null || signatureB64.isEmpty()) {
+            return false;
+        }
         String b64 = signatureB64
                 .replaceAll("\\s+", "")   // remove spaces, tabs, newlines
                 .replace(";", "");        // defensive: strip trailing semicolon if present
