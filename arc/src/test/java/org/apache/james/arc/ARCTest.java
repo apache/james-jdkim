@@ -1353,6 +1353,91 @@ public class ARCTest {
         assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
     }
 
+    // as_fields_b_ignores_wsp: whitespace inside ARC-Seal b= must be ignored during base64 decode.
+    @Test
+    public void validate_arc_chain_passes_when_arc_seal_signature_contains_whitespace() throws Exception {
+        Message message = buildOneHopChainWithSeal(this::insertWhitespaceIntoSealSignature, true, false);
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("pass");
+    }
+
+    // as_fields_b_na: missing ARC-Seal b= leaves no signature to verify and must be rejected.
+    @Test
+    public void validate_arc_chain_fails_when_arc_seal_signature_tag_is_missing() throws Exception {
+        Message message = buildOneHopChainWithSeal(seal -> seal.replaceAll("; b=.*$", ""), true, false);
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    // as_fields_b_empty: empty ARC-Seal b= leaves no signature to verify and must be rejected.
+    @Test
+    public void validate_arc_chain_fails_when_arc_seal_signature_tag_is_empty() throws Exception {
+        Message message = buildOneHopChainWithSeal(seal -> seal.replaceAll("; b=.*$", "; b="), true, false);
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    // as_fields_b_base64: ARC-Seal b= must be base64.
+    @Test
+    public void validate_arc_chain_fails_when_arc_seal_signature_is_not_base64() throws Exception {
+        Message message = buildOneHopChainWithSeal(seal -> seal.replaceAll("; b=.*$", "; b=not-base64!"), true, false);
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    // as_fields_b_mod_sig: a modified ARC-Seal signature must be rejected.
+    @Test
+    public void validate_arc_chain_fails_when_arc_seal_signature_is_modified() throws Exception {
+        Message message = buildOneHopChainWithSeal(
+                seal -> seal.replaceAll("; b=.*$", "; b=" + Base64.getEncoder().encodeToString(new byte[128])),
+                true,
+                false);
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    // as_fields_b_aar1: modifying sealed AAR data must invalidate the ARC-Seal.
+    @Test
+    public void validate_arc_chain_fails_when_sealed_aar_data_is_modified() throws Exception {
+        Message message = buildNHopChain(1);
+        replaceTagOnHeader(message, ARC_AUTHENTICATION_RESULTS, "i=1", "dmarc=pass", "dmarc=fail");
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    // as_fields_b_ams1: modifying sealed AMS data must invalidate the ARC-Seal.
+    @Test
+    public void validate_arc_chain_fails_when_sealed_ams_data_is_modified() throws Exception {
+        Message message = buildNHopChain(1);
+        replaceTagOnHeader(message, ARC_MESSAGE_SIGNATURE, "i=1", "h=subject : from : to", "h=from : to : subject");
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    // as_fields_b_asb1: modifying sealed ARC-Seal data outside b= must invalidate the seal.
+    @Test
+    public void validate_arc_chain_fails_when_sealed_arc_seal_data_is_modified() throws Exception {
+        Message message = buildOneHopChainWithSeal(seal -> seal.replace("t=1755918846", "t=1755918847"), true, false);
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
     // as_fields_cv_na: missing ARC-Seal cv= must be rejected.
     @Test
     public void validate_arc_chain_fails_when_arc_seal_cv_tag_is_missing() throws Exception {
@@ -1407,6 +1492,16 @@ public class ARCTest {
     @Test
     public void validate_arc_chain_fails_when_arc_seal_domain_tag_is_invalid() throws Exception {
         Message message = buildOneHopChainWithSeal(seal -> seal.replace("d=dmarc.example", "d=invalid_domain"), true, false);
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    // as_fields_h_present: ARC-Seal must not contain h=; it signs ARC set headers, not h=-listed headers.
+    @Test
+    public void validate_arc_chain_fails_when_arc_seal_has_header_list_tag() throws Exception {
+        Message message = buildOneHopChainWithSeal(seal -> seal.replace("t=1755918846", "h=subject; t=1755918846"), true, false);
 
         ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
         ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
@@ -1502,6 +1597,17 @@ public class ARCTest {
             }
         }
         return message;
+    }
+
+    private String insertWhitespaceIntoSealSignature(String seal) {
+        java.util.regex.Matcher matcher = java.util.regex.Pattern.compile("; b=([^;]+)$").matcher(seal);
+        if (!matcher.find()) {
+            throw new AssertionError("ARC-Seal b= not found");
+        }
+        String signature = matcher.group(1);
+        String spacedSignature = signature.substring(0, 24) + " \r\n\t" + signature.substring(24, 64)
+                + "  " + signature.substring(64);
+        return matcher.replaceFirst("; b=" + spacedSignature);
     }
 
     private Message buildOneHopChainWithAar(String aarOverride, boolean includeAar, boolean duplicateAar) throws Exception {

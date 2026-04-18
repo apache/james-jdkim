@@ -355,7 +355,7 @@ public class ARCVerifier {
                 Field asField = as.get();
                 Map<String, String> tags = parseTagList(asField.getBody());
                 String signatureB64 = tags.get("b");
-                String b64 = signatureB64.replaceAll("\\s+", "").replace(";", "");
+                String b64 = signatureB64 == null ? null : signatureB64.replaceAll("\\s+", "").replace(";", "");
                 String arcSealBodyClearedB = asField.getBody().replaceAll("\\bb=([^;]*)", "b=");
                 signingData.append(asField.getName().toLowerCase(Locale.ROOT))
                         .append(":").append(canonicalizeBody(arcSealBodyClearedB));

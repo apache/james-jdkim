@@ -143,6 +143,9 @@ public class ARCChainValidator {
             Signature sig = Signature.getInstance(SHA256_RSA);
             sig.initVerify(publicKey);
             sig.update(data.getBytes(StandardCharsets.UTF_8));
+            if (b64 == null || b64.isEmpty()) {
+                return false;
+            }
             byte[] signatureBytes = Base64.getDecoder().decode(b64);
             retVal = sig.verify(signatureBytes);
         } catch (NoSuchAlgorithmException e) {
@@ -150,8 +153,10 @@ public class ARCChainValidator {
         }
         catch (InvalidKeyException e) {
             throw new ArcException(String.format("Invalid public key used for %s record", txtDnsRecord), e);
+        } catch (IllegalArgumentException e) {
+            return false;
         } catch (SignatureException e) {
-            throw new ArcException(String.format("Invalid signature for %s record", txtDnsRecord), e);
+            return false;
         }
         return retVal;
     }
