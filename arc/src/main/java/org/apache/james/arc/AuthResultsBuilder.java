@@ -29,11 +29,13 @@ import org.apache.james.jdkim.exceptions.TempFailException;
 import org.apache.james.jdkim.tagvalue.SignatureRecordImpl;
 import org.apache.james.mime4j.dom.Message;
 import org.apache.james.mime4j.message.DefaultMessageWriter;
+import org.apache.james.mime4j.stream.Field;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.Objects;
@@ -57,6 +59,7 @@ import java.util.Set;
  */
 public class AuthResultsBuilder {
     public static final String HEADER_I = "header.i=";
+    public static final String AUTHENTICATION_RESULTS = "Authentication-Results";
     private final PublicKeyRetrieverArc _keyRecordRetriever;
     private String _authService;
 
@@ -66,6 +69,10 @@ public class AuthResultsBuilder {
     }
 
     public String getAuthResultsHeader(Message message, String helo, String from, String ip) {
+        String consolidatedAuthResults = consolidateExistingAuthResults(message);
+        if (consolidatedAuthResults != null) {
+            return consolidatedAuthResults;
+        }
 
         // 1. Run SPF check
         String spfResultText  = _keyRecordRetriever.getSpfRecord(helo, from, ip);
@@ -89,6 +96,46 @@ public class AuthResultsBuilder {
                 "spf=" + spfResultText.replace(";", "") + "; " +
                 "dkim=" + dkimResultFull + "; " +
                 dmarcResult.toString();
+    }
+
+    private String consolidateExistingAuthResults(Message message) {
+        List<String> results = new ArrayList<>();
+        for (Field field : message.getHeader().getFields(AUTHENTICATION_RESULTS)) {
+            String body = normalizeAuthResultsBody(field.getBody());
+            int separator = body.indexOf(';');
+            if (separator == -1) {
+                continue;
+            }
+            String authservId = body.substring(0, separator).trim();
+            if (!_authService.equalsIgnoreCase(authservId)) {
+                continue;
+            }
+            String result = body.substring(separator + 1).trim();
+            if (!result.isEmpty()) {
+                results.add(result);
+            }
+        }
+
+        if (results.isEmpty()) {
+            return null;
+        }
+
+        StringBuilder consolidated = new StringBuilder(_authService);
+        for (int i = 0; i < results.size(); i++) {
+            String result = results.get(i);
+            consolidated.append(i == 0 ? "; " : " ");
+            consolidated.append(result);
+            if (!result.endsWith(";") && i < results.size() - 1) {
+                consolidated.append(";");
+            }
+        }
+        return consolidated.toString();
+    }
+
+    private String normalizeAuthResultsBody(String body) {
+        return body.replaceAll("[\\r\\n]+[\\t ]*", " ")
+                .replaceAll("[\\t ]+", " ")
+                .trim();
     }
 
     private String runDkimCheck(Message message) throws IOException {

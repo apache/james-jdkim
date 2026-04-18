@@ -98,10 +98,22 @@ public class ARCVerifier {
         String amsForSigning = amsValue.replaceFirst(B_TAG_REGEX, "b=");
         // Canonicalize headers listed in h=
         StringBuilder signingData = new StringBuilder();
+        Map<String, Integer> processedHeaders = new HashMap<>();
         for (String hName : signedHeaders.split(":")) {
             hName = hName.trim();
-            for (Field f : message.getHeader().getFields(hName)) {
+            List<Field> fields = message.getHeader().getFields(hName);
+            if (fields != null && !fields.isEmpty()) {
+                Integer done = processedHeaders.get(hName);
+                if (done == null) {
+                    done = 0;
+                }
+                int doneHeaders = done + 1;
+                if (doneHeaders > fields.size()) {
+                    continue;
+                }
+                Field f = fields.get(fields.size() - doneHeaders);
                 signingData.append(canonicalizeRegularHeader(f));
+                processedHeaders.put(hName, doneHeaders);
             }
         }
 
@@ -146,9 +158,21 @@ public class ARCVerifier {
 
     public Map<String, String> parseTagList(String value) {
         Map<String, String> map = new HashMap<>();
-        Matcher m = TAG_PATTERN.matcher(value);
-        while (m.find()) {
-            map.put(m.group(1).trim(), m.group(2).trim());
+        String[] parts = value.split(";");
+        for (String part : parts) {
+            String trimmed = part.trim();
+            if (trimmed.isEmpty()) {
+                continue;
+            }
+            int equal = trimmed.indexOf('=');
+            if (equal == -1) {
+                continue;
+            }
+            String tag = trimmed.substring(0, equal).trim();
+            String tagValue = trimmed.substring(equal + 1).trim();
+            if (tag.matches("[a-z]+")) {
+                map.put(tag, tagValue);
+            }
         }
         return map;
     }
@@ -283,8 +307,13 @@ public class ARCVerifier {
         String[] parts = record.split(";");
         for (String part : parts) {
             String trimmed = part.trim();
-            if (trimmed.startsWith(tag + "=")) {
-                return trimmed.substring((tag + "=").length());
+            int equal = trimmed.indexOf('=');
+            if (equal == -1) {
+                continue;
+            }
+            String tagName = trimmed.substring(0, equal).trim();
+            if (tagName.equals(tag)) {
+                return trimmed.substring(equal + 1).trim();
             }
         }
         return null;

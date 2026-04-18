@@ -582,6 +582,107 @@ public class ARCTest {
         assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
     }
 
+    // aar_struct_i_na / aar_i_missing: an ARC-Authentication-Results header without i= is invalid.
+    @Test
+    public void validate_arc_chain_fails_when_aar_has_no_instance_tag() throws Exception {
+        Message message = buildOneHopChainWithAar("smtp.d1.example; arc=none", true, false);
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    // aar_struct_i_empty: an ARC-Authentication-Results header with empty i= is invalid.
+    @Test
+    public void validate_arc_chain_fails_when_aar_has_empty_instance_tag() throws Exception {
+        Message message = buildOneHopChainWithAar("i=; smtp.d1.example; arc=none", true, false);
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    // aar_struct_i_zero: ARC instance numbers start at 1, so AAR i=0 is invalid.
+    @Test
+    public void validate_arc_chain_fails_when_aar_has_zero_instance_tag() throws Exception {
+        Message message = buildOneHopChainWithAar("i=0; smtp.d1.example; arc=none", true, false);
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    // aar_struct_invalid: AAR instance numbers must be numeric.
+    @Test
+    public void validate_arc_chain_fails_when_aar_has_non_numeric_instance_tag() throws Exception {
+        Message message = buildOneHopChainWithAar("i=abc; smtp.d1.example; arc=none", true, false);
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    // aar_struct_dup: duplicate ARC-Authentication-Results headers for the same instance are invalid.
+    @Test
+    public void validate_arc_chain_fails_when_aar_is_duplicated_at_same_instance() throws Exception {
+        Message message = buildOneHopChainWithAar(null, true, true);
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    // aar_struct_missing / aar_missing: an ARC set with AMS and AS but no AAR is incomplete.
+    @Test
+    public void validate_arc_chain_fails_when_aar_header_is_missing() throws Exception {
+        Message message = buildOneHopChainWithAar(null, false, false);
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    // aar_i_wrong: an AAR whose i= does not match the rest of its ARC set is invalid.
+    @Test
+    public void validate_arc_chain_fails_when_aar_instance_does_not_match_arc_set() throws Exception {
+        Message message = buildOneHopChainWithAar("i=2; smtp.d1.example; arc=none", true, false);
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    // aar_i_not_prefixed: the AAR i= tag must be the leading ARC instance component.
+    @Test
+    public void validate_arc_chain_fails_when_aar_instance_tag_is_not_prefixed() throws Exception {
+        Message message = buildOneHopChainWithAar("smtp.d1.example; i=1; arc=none", true, false);
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    // aar_i_no_semi: the AAR i= value must be followed by a semicolon separator.
+    @Test
+    public void validate_arc_chain_fails_when_aar_instance_tag_has_no_semicolon() throws Exception {
+        Message message = buildOneHopChainWithAar("i=1 smtp.d1.example; arc=none", true, false);
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    // aar2_missing: in a two-hop chain, the latest ARC set is incomplete if its i=2 AAR is missing.
+    @Test
+    public void validate_arc_chain_fails_when_i2_aar_header_is_missing() throws Exception {
+        Message message = buildNHopChain(2);
+        removeHeaderByInstanceAndType(message, ARC_AUTHENTICATION_RESULTS, "i=2");
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
     // ams_struct_missing: an ARC-Seal at i=1 with no corresponding ARC-Message-Signature means the
     // set is incomplete and must be rejected — covered by validate_arc_chain_fails_when_ams_header_is_missing.
 
@@ -781,6 +882,43 @@ public class ARCTest {
         assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
     }
 
+    // ar_merged1: multiple Authentication-Results headers for the signing authserv-id must be
+    // consolidated into one ARC-Authentication-Results header, while other authserv-ids are ignored.
+    @Test
+    public void build_arc_set_merges_multiple_authentication_results_for_authserv_id() throws Exception {
+        Message message = parseRawEmail(
+                "Authentication-Results: lists.example.org; arc=none\n"
+                + "Authentication-Results: lists.example.org; spf=pass smtp.mfrom=jqd@d1.example\n"
+                + "Authentication-Results: lists.example.org; dkim=pass (1024-bit key) header.i=@d1.example\n"
+                + "Authentication-Results: lists.example.org; dmarc=pass\n"
+                + "Authentication-Results: nobody.example.org; something=ignored\n"
+                + basicMessageWithoutAuthenticationResults());
+
+        Map<String, String> arcSet = buildArcSetWithAuthService(message, "lists.example.org");
+
+        assertThat(arcSet.get(ARC_AUTHENTICATION_RESULTS)).isEqualTo(
+                "i=1; lists.example.org; arc=none; spf=pass smtp.mfrom=jqd@d1.example; "
+                + "dkim=pass (1024-bit key) header.i=@d1.example; dmarc=pass");
+    }
+
+    // ar_merged2: folded Authentication-Results payloads must be unfolded and merged in order.
+    @Test
+    public void build_arc_set_merges_folded_authentication_results_for_authserv_id() throws Exception {
+        Message message = parseRawEmail(
+                "Authentication-Results: lists.example.org; arc=none;\n"
+                + "  spf=pass smtp.mfrom=jqd@d1.example\n"
+                + "Authentication-Results: lists.example.org; dkim=pass (1024-bit key) header.i=@d1.example\n"
+                + "Authentication-Results: lists.example.org; dmarc=pass\n"
+                + "Authentication-Results: nobody.example.org; something=ignored\n"
+                + basicMessageWithoutAuthenticationResults());
+
+        Map<String, String> arcSet = buildArcSetWithAuthService(message, "lists.example.org");
+
+        assertThat(arcSet.get(ARC_AUTHENTICATION_RESULTS)).isEqualTo(
+                "i=1; lists.example.org; arc=none; spf=pass smtp.mfrom=jqd@d1.example; "
+                + "dkim=pass (1024-bit key) header.i=@d1.example; dmarc=pass");
+    }
+
     // ams_format_tags_unknown: an unrecognised tag in the ARC-Message-Signature must be silently ignored,
     // so a chain signed with an extra z= tag must still validate as cv=pass.
     @Test
@@ -972,9 +1110,224 @@ public class ARCTest {
                 + valimailCommonMessageTail());
     }
 
+    // as_struct_i_na / as_fields_i_missing: an ARC-Seal without i= is invalid.
+    @Test
+    public void validate_arc_chain_fails_when_arc_seal_has_no_instance_tag() throws Exception {
+        Message message = buildOneHopChainWithSeal(
+                seal -> seal.replaceFirst("i=1;\\s*", ""),
+                true,
+                false);
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    // as_struct_i_empty: an ARC-Seal with empty i= is invalid.
+    @Test
+    public void validate_arc_chain_fails_when_arc_seal_has_empty_instance_tag() throws Exception {
+        Message message = buildOneHopChainWithSeal(seal -> seal.replaceFirst("i=1;", "i=;"), true, false);
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    // as_struct_i_zero: ARC instance numbers start at 1, so AS i=0 is invalid.
+    @Test
+    public void validate_arc_chain_fails_when_arc_seal_has_zero_instance_tag() throws Exception {
+        Message message = buildOneHopChainWithSeal(seal -> seal.replaceFirst("i=1;", "i=0;"), true, false);
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    // as_struct_i_invalid: ARC-Seal instance numbers must be numeric.
+    @Test
+    public void validate_arc_chain_fails_when_arc_seal_has_non_numeric_instance_tag() throws Exception {
+        Message message = buildOneHopChainWithSeal(seal -> seal.replaceFirst("i=1;", "i=abc;"), true, false);
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    // as_struct_dup: duplicate ARC-Seal headers for the same instance are invalid.
+    @Test
+    public void validate_arc_chain_fails_when_arc_seal_is_duplicated_at_same_instance() throws Exception {
+        Message message = buildOneHopChainWithSeal(seal -> seal, true, true);
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    // as_struct_missing: an ARC set with AAR and AMS but no AS is incomplete.
+    @Test
+    public void validate_arc_chain_fails_when_arc_seal_header_is_missing_from_arc_set() throws Exception {
+        Message message = buildOneHopChainWithSeal(seal -> seal, false, false);
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    // as_format_sc_wsp: whitespace before an AS semicolon separator is valid.
+    @Test
+    public void validate_arc_chain_passes_when_arc_seal_has_whitespace_around_semicolon_separator() throws Exception {
+        assertValimailFixturePasses(
+                "MIME-Version: 1.0\n"
+                + "Return-Path: <jqd@d1.example.org>\n"
+                + "ARC-Seal: a=rsa-sha256;\n"
+                + "    b=sQHCWC9A8lAbvcPG+3jfih4lRJY/A0OI/GBGE4AYHf8u9cgsxOvyCqDWF3mr91HE5PhNh4\n"
+                + "    RZW95NC6qhxEhnXLaXswqco2JXMVR6/rM5Q49bDE2RtlNen7wubw56NoJD2A7IGUSOzHaAiJ\n"
+                + "    QhRTSoyG5OwNBC8+GlugUJi5mmZNU=; cv=none; d=example.org; i=1 ; s=dummy;\n"
+                + "    t=12345\n"
+                + valimailArcSealFormatCommonTail());
+    }
+
+    // as_format_eq_wsp: whitespace around "=" in the AS i= tag is valid.
+    @Test
+    public void validate_arc_chain_passes_when_arc_seal_has_whitespace_around_equals_separator() throws Exception {
+        assertValimailFixturePasses(
+                "MIME-Version: 1.0\n"
+                + "Return-Path: <jqd@d1.example.org>\n"
+                + "ARC-Seal: a=rsa-sha256;\n"
+                + "    b=u4XUza5aJKdMCwCMffAieua1x4N9tZpKlx7UwMcdgV+BuIZc48C3rF8xu6BnoRQCaulZmW\n"
+                + "    4EYspmshC6cGg+kmYaWR/sbW712Ag8W33enEcoh35XLTg9QHg7zWvftk746RrVFb5Ch8iRsU\n"
+                + "    PJ0gkAieomzXwlqCIBZQD5Yz2LB38=; cv=none; d=example.org; i = 1; s=dummy;\n"
+                + "    t=12345\n"
+                + valimailArcSealFormatCommonTail());
+    }
+
+    // as_format_tags_trail_sc: a trailing semicolon at the end of the AS tag list is valid.
+    @Test
+    public void validate_arc_chain_passes_when_arc_seal_tag_list_has_trailing_semicolon() throws Exception {
+        assertValimailFixturePasses(
+                "MIME-Version: 1.0\n"
+                + "Return-Path: <jqd@d1.example.org>\n"
+                + "ARC-Seal: a=rsa-sha256;\n"
+                + "    b=AcBD4PAxYztV5R8jYyYXKuMBWBRja89F6yBTQVtQ1FFUxQVYGOrFlnh3/r8/YtFt13NELg\n"
+                + "    FpYeY3gnzudk30PoZZvM2MG9h07ByTgl0lSEsRLhN+ZtqoHRq1QGdW8oqOXntI51FbKwBdoe\n"
+                + "    cHtLh18GzKAvazRWzv8//vQInYp/Y=; cv=none; d=example.org; i=1; s=dummy;\n"
+                + "    t=12345;\n"
+                + valimailArcSealFormatCommonTail());
+    }
+
+    // as_format_tags_unknown: an unknown AS tag is valid when it was present at signing time.
+    @Test
+    public void validate_arc_chain_passes_when_arc_seal_has_unknown_tag() throws Exception {
+        assertValimailFixturePasses(
+                "MIME-Version: 1.0\n"
+                + "Return-Path: <jqd@d1.example.org>\n"
+                + "ARC-Seal: a=rsa-sha256;\n"
+                + "    b=FriX6cOxgBHhZwNYHn0KXSWVqwHPNV6sRAKUy9iN1OqwvAK9USwMsg/P08yXrUH8LRaijm\n"
+                + "    msJjp0KUFYiffoQrhsxHwv1hJIGceJZB7lOFeZn7Z5aym4eBp7q7idwNyIaGKL7E0WzVkeAT\n"
+                + "    RQ5LhtOInN23gugfmW6z8MUUvow5Y=; cv=none; d=example.org; i=1; s=dummy;\n"
+                + "    t=12345; w=catparty\n"
+                + valimailArcSealFormatCommonTail());
+    }
+
+    // as_format_inv_tag_key: invalid AS tag keys are rejected.
+    @Test
+    public void validate_arc_chain_fails_when_arc_seal_has_invalid_tag_key_character() throws Exception {
+        Message message = buildOneHopChainWithSeal(seal -> seal.replace("t=1755918846", "_=; t=1755918846"), true, false);
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    // as_format_tags_dup: duplicate AS tags are rejected.
+    @Test
+    public void validate_arc_chain_fails_when_arc_seal_has_duplicate_tag() throws Exception {
+        Message message = buildOneHopChainWithSeal(seal -> seal + "; s=invalid", true, false);
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    // as_format_tags_key_case: AS tag keys are case-sensitive.
+    @Test
+    public void validate_arc_chain_fails_when_arc_seal_uses_uppercase_tag_key() throws Exception {
+        Message message = buildOneHopChainWithSeal(seal -> seal.replace("s=arc", "S=arc"), true, false);
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    // as_format_tags_val_case: AS domain value changes are signature-sensitive and must fail.
+    @Test
+    public void validate_arc_chain_fails_when_arc_seal_tag_value_has_wrong_case() throws Exception {
+        Message message = buildOneHopChainWithSeal(seal -> seal.replace("d=dmarc.example", "d=Dmarc.example"), true, false);
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    // as_format_tags_wsp: invalid whitespace inside an AS tag value must fail.
+    @Test
+    public void validate_arc_chain_fails_when_arc_seal_tag_value_contains_whitespace() throws Exception {
+        Message message = buildOneHopChainWithSeal(seal -> seal.replace("t=1755918846", "t=1755 918846"), true, false);
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    // as_format_tags_sc: an extra semicolon inside the AS tag list must fail.
+    @Test
+    public void validate_arc_chain_fails_when_arc_seal_tag_value_contains_semicolon() throws Exception {
+        Message message = buildOneHopChainWithSeal(seal -> seal.replace("s=arc", "s=arc;"), true, false);
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
     // Builds a valid two-hop ARC chain: applies i=1 to the base message, then applies i=2 on top.
     private Message buildTwoHopChain() throws Exception {
         return buildNHopChain(2);
+    }
+
+    private Message buildOneHopChainWithSeal(java.util.function.Function<String, String> sealMutation,
+                                             boolean includeSeal,
+                                             boolean duplicateSeal) throws Exception {
+        ByteArrayInputStream emailStream = readFileToByteArrayInputStream("/mail/rfc8617_no_arc.eml");
+        Message message = new DefaultMessageBuilder().parseMessage(emailStream);
+        Map<String, String> arcSet = arcSetBuilder.buildArcSet(message, HELO, MAIL_FROM, IP, keyRecordRetriever);
+
+        message.getHeader().addField(new RawField(ARC_AUTHENTICATION_RESULTS, arcSet.get(ARC_AUTHENTICATION_RESULTS)));
+        message.getHeader().addField(new RawField(ARC_MESSAGE_SIGNATURE, arcSet.get(ARC_MESSAGE_SIGNATURE)));
+        if (includeSeal) {
+            String seal = sealMutation.apply(arcSet.get(ARC_SEAL));
+            message.getHeader().addField(new RawField(ARC_SEAL, seal));
+            if (duplicateSeal) {
+                message.getHeader().addField(new RawField(ARC_SEAL, seal));
+            }
+        }
+        return message;
+    }
+
+    private Message buildOneHopChainWithAar(String aarOverride, boolean includeAar, boolean duplicateAar) throws Exception {
+        ByteArrayInputStream emailStream = readFileToByteArrayInputStream("/mail/rfc8617_no_arc.eml");
+        Message message = new DefaultMessageBuilder().parseMessage(emailStream);
+        Map<String, String> arcSet = arcSetBuilder.buildArcSet(message, HELO, MAIL_FROM, IP, keyRecordRetriever);
+
+        if (includeAar) {
+            String aar = aarOverride == null ? arcSet.get(ARC_AUTHENTICATION_RESULTS) : aarOverride;
+            message.getHeader().addField(new RawField(ARC_AUTHENTICATION_RESULTS, aar));
+            if (duplicateAar) {
+                message.getHeader().addField(new RawField(ARC_AUTHENTICATION_RESULTS, aar));
+            }
+        }
+        message.getHeader().addField(new RawField(ARC_MESSAGE_SIGNATURE, arcSet.get(ARC_MESSAGE_SIGNATURE)));
+        message.getHeader().addField(new RawField(ARC_SEAL, arcSet.get(ARC_SEAL)));
+        return message;
     }
 
     // Builds a valid N-hop ARC chain by repeatedly applying a new ARC set to the same message.
@@ -1041,6 +1394,36 @@ public class ARCTest {
         assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("pass");
     }
 
+    private Map<String, String> buildArcSetWithAuthService(Message message, String authService) throws Exception {
+        ArcSetBuilder builder = new ArcSetBuilder(
+                ArcTestKeys.privateKeyArc,
+                ARC_AMS_TEMPLATE,
+                ARC_SEAL_TEMPLATE,
+                authService,
+                TIMESTAMP);
+        return builder.buildArcSet(message, HELO, MAIL_FROM, IP, keyRecordRetriever);
+    }
+
+    private Message parseRawEmail(String rawMessage) throws Exception {
+        return new DefaultMessageBuilder().parseMessage(
+                new ByteArrayInputStream(rawMessage.replace("\n", "\r\n").getBytes(StandardCharsets.UTF_8)));
+    }
+
+    private String basicMessageWithoutAuthenticationResults() {
+        return "MIME-Version: 1.0\n"
+                + "Return-Path: <jqd@d1.example.org>\n"
+                + "Received: by 10.157.14.6 with HTTP; Tue, 3 Jan 2017 12:22:54 -0800 (PST)\n"
+                + "Message-ID: <54B84785.1060301@d1.example.org>\n"
+                + "Date: Thu, 14 Jan 2015 15:00:01 -0800\n"
+                + "From: John Q Doe <jqd@d1.example.org>\n"
+                + "To: arc@dmarc.org\n"
+                + "Subject: Example 1\n"
+                + "\n"
+                + "Hey gang,\n"
+                + "This is a test message.\n"
+                + "--J.";
+    }
+
     private String valimailCommonMessageTail() {
         return "ARC-Authentication-Results: i=1; lists.example.org;\n"
                 + "    spf=pass smtp.mfrom=jqd@d1.example;\n"
@@ -1064,6 +1447,52 @@ public class ARCTest {
                 + "Hey gang,\n"
                 + "This is a test message.\n"
                 + "--J.";
+    }
+
+    private String valimailArcSealFormatCommonTail() {
+        return "ARC-Message-Signature: a=rsa-sha256;\n"
+                + "    b=SMBCg/tHQkIAIzx7OFir0bMhCxk/zaMOx1nyOSAviXW88ERohOFOXIkBVGe74xfJDSh9ou\n"
+                + "    ryKgNA4XhUt4EybBXOn1dlrMA07dDIUFOUE7n+8QsvX1Drii8aBIpiu+O894oBEDSYcd1R+z\n"
+                + "    sZIdXhOjB/Lt4sTE1h5IT2p3UctgY=;\n"
+                + "    bh=dHN66dCNljBC18wb03I1K6hlBvV0qqsKoDsetl+jxb8=; c=relaxed/relaxed;\n"
+                + "    d=example.org; h=from:to:date:subject:mime-version:arc-authentication-results;\n"
+                + "    i=1; s=dummy; t=12345\n"
+                + "ARC-Authentication-Results: i=1; lists.example.org;\n"
+                + "    spf=pass smtp.mfrom=jqd@d1.example;\n"
+                + "    dkim=pass (1024-bit key) header.i=@d1.example;\n"
+                + "    dmarc=pass\n"
+                + "Received: from segv.d1.example (segv.d1.example [72.52.75.15])\n"
+                + "    by lists.example.org (8.14.5/8.14.5) with ESMTP id t0EKaNU9010123\n"
+                + "    for <arc@example.org>; Thu, 14 Jan 2015 15:01:30 -0800 (PST)\n"
+                + "    (envelope-from jqd@d1.example)\n"
+                + "Authentication-Results: lists.example.org;\n"
+                + "    spf=pass smtp.mfrom=jqd@d1.example;\n"
+                + "    dkim=pass (1024-bit key) header.i=@d1.example;\n"
+                + "    dmarc=pass\n"
+                + "MIME-Version: 1.0\n"
+                + "Return-Path: <jqd@d1.example.org>\n"
+                + "Received: by 10.157.52.162 with SMTP id g31csp5274520otc;\n"
+                + "        Tue, 3 Jan 2017 12:32:02 -0800 (PST)\n"
+                + "X-Received: by 10.36.31.84 with SMTP id d81mr49584685itd.26.1483475522271;\n"
+                + "        Tue, 03 Jan 2017 12:32:02 -0800 (PST)\n"
+                + "Message-ID: <C3A9E208-6B5D-4D9F-B4DE-9323946993AC@d1.example.org>\n"
+                + "Date: Thu, 5 Jan 2017 14:39:01 -0800\n"
+                + "From: Gene Q Doe <gqd@d1.example.org>\n"
+                + "To: arc@dmarc.org\n"
+                + "Subject: Example 2\n"
+                + "Content-Type: multipart/alternative; boundary=001a113e15fcdd0f9e0545366e8f\n"
+                + "\n"
+                + "--001a113e15fcdd0f9e0545366e8f\n"
+                + "Content-Type: text/plain; charset=UTF-8\n"
+                + "\n"
+                + "This is a test message\n"
+                + "\n"
+                + "--001a113e15fcdd0f9e0545366e8f\n"
+                + "Content-Type: text/html; charset=UTF-8\n"
+                + "\n"
+                + "<div dir=\"ltr\">This is a test message</div>\n"
+                + "\n"
+                + "--001a113e15fcdd0f9e0545366e8f--";
     }
 
     private ByteArrayInputStream readFileToByteArrayInputStream(String fileName) throws URISyntaxException, IOException {
