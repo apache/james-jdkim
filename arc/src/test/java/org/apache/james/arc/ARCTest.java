@@ -1160,6 +1160,126 @@ public class ARCTest {
                 baseMessageOneSignedTail()));
     }
 
+    // ams_fields_d_na: missing AMS d= prevents public-key lookup and must be rejected.
+    @Test
+    public void validate_arc_chain_fails_when_ams_domain_tag_is_missing() throws Exception {
+        assertValimailFixtureFails(valimailAmsTagFieldsMessage(
+                "xPtYeQQruf8zzJ9kUrMESmH9ooORAIArDB3MhPcaL+0fgmuc99fprb+aMaSqY6OdZvAEoO\n"
+                + "    EBczyfdtlGKcqLqa5qpXYlukRfG3q8mlOd+8UU1u1bikCzfT/JI8PNerzaoxlksJfmt8zJT0\n"
+                + "    f40IWBJnoRpPNqJSBFb8acvLVZFcQ=",
+                "iDLI16Dzhtt9CmHLpkUXy7d5legcVvxkPMStdfrYQfNfpwVia165ca2lGI7Sx79pCoMmy3\n"
+                + "    sSWBrLHsTQkKylsGswc0br0ycquKhxHgQh0WChxQd6ITVGQvFO/wZJd2jtE5E/KDbPKDjEio\n"
+                + "    qLfCWpVe2KT1UZ89V+E9tg0T5TgwY=",
+                null,
+                "dummy",
+                "12345"));
+    }
+
+    // ams_fields_d_empty: empty AMS d= must be rejected.
+    @Test
+    public void validate_arc_chain_fails_when_ams_domain_tag_is_empty() throws Exception {
+        assertValimailFixtureFails(valimailAmsTagFieldsMessage(
+                "Nn38++8Vf80guievTz8fSFN9VjbPdeRVR5LmvzRt0IMRzZ75FThtzO1VM0grGeUj+D39ri\n"
+                + "    0ZwIgNyVtZXfG17FEO5BGQq4ZddLQoWHLKTeOWXL59FPhGRJkxiKNefS2c5YqZQ0NI8VkKY0\n"
+                + "    HQlX6AeD/CHHE/bpcg7fFB5/WWnLE=",
+                "yKCB5xEcyzGr2+mbXWsVDHDZB1PYe9MqqTWySS7Y32uFObEA/MNJmt5yPnZLScwQUhzeTc\n"
+                + "    WL701aDMyPmlYlGnqxl2/QkvEw5hZNfOmD5gltxTlIabWyRrC1Qq/1RS2zDqvF2Qf8SJL1U7\n"
+                + "    gL6jf82iBTT61ckhPraYGIdgI9hlo=",
+                "",
+                "dummy",
+                "12345"));
+    }
+
+    // ams_fields_d_invalid: invalid AMS d= domain syntax must be rejected.
+    @Test
+    public void validate_arc_chain_fails_when_ams_domain_tag_is_invalid() throws Exception {
+        assertValimailFixtureFails(valimailAmsTagFieldsMessage(
+                "G8wYXXsNzfrmW5ob/HLkPkg0hz37d0O01HmLr8E8IQUPAa4lywxmOekn0bmKfOvK5p77Dz\n"
+                + "    JEue+awK3gHG7/obHdRLamg8cYxmj4qfR6Ay0baikigUF4Wyt77JsVUqCC1qedRNcRN3IGPx\n"
+                + "    7rrNSyzVlIWYPal3pQZc3E1ClpG2I=",
+                "rllEQ7rbed0w+ixVEkL/jiUZrjyDdTQ1d+qnNGEvpzzjh2xFla14BKDcXo7q/aX25lxl0e\n"
+                + "    yzw6yf5PFJC6JWqj5h3sFtLO6hS+E0DXyPZx0ok9tNiv7QV4YqY9fWeA64OZD183DKISDZnD\n"
+                + "    mx/r0Svb5thGZvzvyfuAQapHke/Rk=",
+                "example...",
+                "dummy",
+                "12345"));
+    }
+
+    // ams_fields_s_na: missing AMS s= prevents public-key lookup and must be rejected.
+    @Test
+    public void validate_arc_chain_fails_when_ams_selector_tag_is_missing() throws Exception {
+        assertValimailFixtureFails(valimailAmsTagFieldsMessage(
+                "zlVnN6R6lixbru5oAlqBAalgQAcbqVJi0fZe8u57TJTTLHNl+LRLeQRsLQ4OcZ2n5XLTSZ\n"
+                + "    ZAEsfzFQWeFruAnDpA7yT7/YTUYvQM7KdVzx4vl4FSTllt1wb0UJ0SNjlNGiudA94D43LOsx\n"
+                + "    CsESqhYaVWRz4gLkD2P6FfqZLGCZg=",
+                "1yhACoFkMMv54Xwy9PCxFazQ8BtUb99MhAUEk4Xwq7gVqDoyND9X+pa8CGMYSNUOn2I4tx\n"
+                + "    4PyDzLhPNf+a4AciBNvFhHwK4lljIQAS514NuaNfv3PR0KDkkoXYv8J1EkI9yAyvOzl5Ka2B\n"
+                + "    2yNTkGi6GucEwUlu2Qrk0RYhOYOVM=",
+                "example.org",
+                null,
+                "12345"));
+    }
+
+    // ams_fields_s_empty: empty AMS s= must be rejected.
+    @Test
+    public void validate_arc_chain_fails_when_ams_selector_tag_is_empty() throws Exception {
+        assertValimailFixtureFails(valimailAmsTagFieldsMessage(
+                "iUyd0NGqGiWwg11FiLSmb+053tfp1baKV04kpufd+RESTCeMHlAHj/N2ZyLCHnCZSfgDTb\n"
+                + "    hJy5KSpxO1nsSOlG/FsI6zwfEWCEP91aNjzEQxrX9iCg/zihZ9uv3wgmSOasjjt2kVGCcJUM\n"
+                + "    iLpzGuccZW6C0S8QyOA8ClL0cHnrs=",
+                "DMnmzfNSgbRhHJmeSr5Ahc9FzG0ZFQxd7FVPrmmbpB78dtA4tjLUywkekiqhABliJzs0ut\n"
+                + "    zzkNYHyP0hlxGTaYOQ6OgV+1loymJCJDin9FhPV62CGOBXznuaRxFI+aWKHjW6SFFrZplQHG\n"
+                + "    UQcAeHg8Dd8tdKV4dgUnuW+aphtiQ=",
+                "example.org",
+                "",
+                "12345"));
+    }
+
+    // ams_fields_t_na: AMS t= is optional and a signature generated without it must validate.
+    @Test
+    public void validate_arc_chain_passes_when_ams_timestamp_tag_is_missing() throws Exception {
+        assertValimailFixturePasses(valimailAmsTagFieldsMessage(
+                "rx+UjBcicBZ6s5/J7S5oMw3YVWAWg+q4Sb4XqR0tMmhOyhjLq7702sEFlEDHJjdTuTVMg+\n"
+                + "    c2qwv/XucEGW8/i4AMzNgkzpwk1Icsr0GHGbR7Jm8V+k6Z08tvQ4x1UaYgrTKmSQeyKq8rQQ\n"
+                + "    rRdzsqqX73OFp/cKLa42T3JVTrQpc=",
+                "iRbmo9I0Qn8ZELD2xJ754eoEATUfoRxli5qMUi3AQTwGLHU6oaLFsAP7JDYjRm6al3XGp8\n"
+                + "    73NpnbncM6dnqlBvKK5OmekgztBKiyo7w0Uj6NZbq2KJXYiVW2vAbVkNwy4vPNhMHVTbD/xB\n"
+                + "    PWROiovFOL0q2mHDT1KKLiSzEfrWA=",
+                "example.org",
+                "dummy",
+                null));
+    }
+
+    // ams_fields_t_empty: empty AMS t= must be rejected.
+    @Test
+    public void validate_arc_chain_fails_when_ams_timestamp_tag_is_empty() throws Exception {
+        assertValimailFixtureFails(valimailAmsTagFieldsMessage(
+                "J1fBm2GXu8CCXApvRsyBIITcTcJ4MdgwPIUK2e+vU57BId7RYv2i7/ORWrImxasfuFD17v\n"
+                + "    oU0TUpKqBmD/o6ZdLcgxg72iaYN7CoN9uK9Vr1llrVHuhJa4WUW0XG+a3XqKB2PXJh0LckJu\n"
+                + "    215qpJ4wqx+/6aGVuxQp5LXwktEDM=",
+                "GO1zQzqzWlsUbs6Rag7bYFPB2LgxCLkex8PRM+4/IbysgHm1TVtsPCVAAYp8+MK8UDyuuR\n"
+                + "    s3wgba6Zgh08O4F3MGn5ouJmplCkS/mF1MTAuWF1BiBkzYTdNmwhESK3GBTDNgTzBwa0upsw\n"
+                + "    aYiT87hDd1aqIKekvR3ZyEtZAN0Bc=",
+                "example.org",
+                "dummy",
+                ""));
+    }
+
+    // ams_fields_t_invalid: non-numeric AMS t= must be rejected.
+    @Test
+    public void validate_arc_chain_fails_when_ams_timestamp_tag_is_invalid() throws Exception {
+        assertValimailFixtureFails(valimailAmsTagFieldsMessage(
+                "g1Xr4aSSeSDH0CUBae/NLjI30AgmGDwAdG5BC2c/OuTKGROcimWkt3ikql9YlvBv/3O8AQ\n"
+                + "    fe1XJqEq8EwFpKgk2YvMiWV4YKWPGb4DVNn/N2nk79o2KH/DlXNU4fLGvae9leiu1E+KJERC\n"
+                + "    /sYt7EA0rffMCWMjfHivWEx1swomo=",
+                "B9XbvvEBkWcBoOY6hBRGeJLsADsuzM0ZRvpeBWgF/nx8itykfMZmdeVPzVY5SI7MRCi8jp\n"
+                + "    +RtfP938tY75D6wfNd4+mrDkHyEQFAiE+UlYWjZOGx69go2UQyN5+wocPHHps4n9j279es08\n"
+                + "    zmmxQXWG8wuoq53Y1CfrwNyniO824=",
+                "example.org",
+                "dummy",
+                "icecream"));
+    }
+
     // aar_struct_i_na / aar_i_missing: an ARC-Authentication-Results header without i= is invalid.
     @Test
     public void validate_arc_chain_fails_when_aar_has_no_instance_tag() throws Exception {
@@ -2718,6 +2838,32 @@ public class ARCTest {
                 + "ARC-Authentication-Results: i=1; lists.example.org; spf=pass smtp.mfrom=jqd@d1.example; dkim=pass (1024-bit key) header.i=@d1.example; dmarc=pass\n"
                 + baseMessageOneSignedHeaders()
                 + body;
+    }
+
+    private String valimailAmsTagFieldsMessage(
+            String arcSealSignature,
+            String arcMessageSignature,
+            String domain,
+            String selector,
+            String timestamp) {
+        String domainTag = domain == null ? "" : "d=" + domain + "; ";
+        String selectorTag = selector == null ? "" : "s=" + selector;
+        String timestampTag = timestamp == null ? "" : "; t=" + timestamp;
+        return "MIME-Version: 1.0\n"
+                + "Return-Path: <jqd@d1.example.org>\n"
+                + "ARC-Seal: a=rsa-sha256;\n"
+                + "    b=" + arcSealSignature + "; cv=none; d=example.org; i=1; s=dummy;\n"
+                + "    t=12345\n"
+                + "ARC-Message-Signature: a=rsa-sha256;\n"
+                + "    b=" + arcMessageSignature + ";\n"
+                + "    bh=KWSe46TZKCcDbH4klJPo+tjk5LWJnVRlP5pvjXFZYLQ=; c=relaxed/relaxed;\n"
+                + "    " + domainTag + "h=from:to:date:subject:mime-version:arc-authentication-results;\n"
+                + "    i=1; " + selectorTag + timestampTag + "\n"
+                + "ARC-Authentication-Results: i=1; lists.example.org;\n"
+                + "    spf=pass smtp.mfrom=jqd@d1.example;\n"
+                + "    dkim=pass (1024-bit key) header.i=@d1.example;\n"
+                + "    dmarc=pass\n"
+                + baseMessageOneSignedTail();
     }
 
     private String valimailArcSealFormatCommonTail() {

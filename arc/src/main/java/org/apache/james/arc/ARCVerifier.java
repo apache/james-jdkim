@@ -84,6 +84,8 @@ public class ARCVerifier {
     public static final String ARC_MESSAGE_SIGNATURE = "ARC-Message-Signature";
     public static final String ARC_SEAL = "ARC-Seal";
     public static final String SHA256RSA = "SHA256withRSA";
+    private static final Pattern DOMAIN_PATTERN = Pattern.compile("(?i)^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$");
+    private static final Pattern SELECTOR_PATTERN = Pattern.compile("(?i)^[a-z0-9](?:[a-z0-9._-]*[a-z0-9])?$");
     private static final int MIN_RSA_KEY_BITS = 1024;
     private static final String DNS_RECORD_TYPE = "_domainkey";
     private PublicKeyRetrieverArc _keyRecordRetriever;
@@ -101,7 +103,7 @@ public class ARCVerifier {
         String signedHeaders = tags.get("h");
         String bodyHash = tags.get("bh");
         String signatureB64 = tags.get("b");
-        if (!"rsa-sha256".equals(algorithm) || bodyHash == null || bodyHash.isEmpty()
+        if (!validateAmsTags(tags) || !"rsa-sha256".equals(algorithm) || bodyHash == null || bodyHash.isEmpty()
                 || signatureB64 == null || signatureB64.isEmpty()) {
             return false;
         }
@@ -159,6 +161,19 @@ public class ARCVerifier {
             }
         }
         return result;
+    }
+
+    private boolean validateAmsTags(Map<String, String> tags) {
+        String domain = tags.get("d");
+        String selector = tags.get("s");
+        String timestamp = tags.get("t");
+        if (domain == null || domain.isEmpty() || !DOMAIN_PATTERN.matcher(domain).matches()) {
+            return false;
+        }
+        if (selector == null || selector.isEmpty() || !SELECTOR_PATTERN.matcher(selector).matches()) {
+            return false;
+        }
+        return timestamp == null || timestamp.matches("\\d+");
     }
 
     private boolean verifyAmsBodyHash(Map<String, String> tags, Message message, String bodyCanonicalization) {
