@@ -1289,9 +1289,200 @@ public class ARCTest {
         assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
     }
 
+    // as_fields_i_dup: duplicate ARC-Seal headers at i=1 must be rejected.
+    @Test
+    public void validate_arc_chain_fails_when_i1_arc_seal_field_is_duplicated() throws Exception {
+        Message message = buildOneHopChainWithSeal(seal -> seal, true, true);
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    // as_fields_i_dup2: duplicate ARC-Seal headers at i=2 must be rejected.
+    @Test
+    public void validate_arc_chain_fails_when_i2_arc_seal_field_is_duplicated() throws Exception {
+        Message message = buildNHopChain(2);
+        Field seal = message.getHeader().getFields().stream()
+                .filter(f -> f.getName().equalsIgnoreCase(ARC_SEAL) && f.getBody().contains("i=2"))
+                .findFirst().orElseThrow(() -> new AssertionError("i=2 ARC-Seal not found"));
+        message.getHeader().addField(new RawField(ARC_SEAL, seal.getBody()));
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    // as_fields_a_na: missing ARC-Seal a= changes the sealed data and must be rejected.
+    @Test
+    public void validate_arc_chain_fails_when_arc_seal_algorithm_tag_is_missing() throws Exception {
+        Message message = buildOneHopChainWithSeal(seal -> seal.replaceFirst("a=rsa-sha256;\\s*", ""), true, false);
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    // as_fields_a_empty: empty ARC-Seal a= changes the sealed data and must be rejected.
+    @Test
+    public void validate_arc_chain_fails_when_arc_seal_algorithm_tag_is_empty() throws Exception {
+        Message message = buildOneHopChainWithSeal(seal -> seal.replace("a=rsa-sha256", "a="), true, false);
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    // as_fields_a_sha1: changing ARC-Seal a= to rsa-sha1 invalidates the seal.
+    @Test
+    public void validate_arc_chain_fails_when_arc_seal_algorithm_is_sha1() throws Exception {
+        Message message = buildOneHopChainWithSeal(seal -> seal.replace("a=rsa-sha256", "a=rsa-sha1"), true, false);
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    // as_fields_a_unknown: unknown ARC-Seal algorithms must be rejected.
+    @Test
+    public void validate_arc_chain_fails_when_arc_seal_algorithm_is_unknown() throws Exception {
+        Message message = buildOneHopChainWithSeal(seal -> seal.replace("a=rsa-sha256", "a=ed25519-sha256"), true, false);
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    // as_fields_cv_na: missing ARC-Seal cv= must be rejected.
+    @Test
+    public void validate_arc_chain_fails_when_arc_seal_cv_tag_is_missing() throws Exception {
+        Message message = buildOneHopChainWithSeal(seal -> seal.replaceFirst("cv=none;\\s*", ""), true, false);
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    // as_fields_cv_empty: empty ARC-Seal cv= must be rejected.
+    @Test
+    public void validate_arc_chain_fails_when_arc_seal_cv_tag_is_empty() throws Exception {
+        Message message = buildOneHopChainWithSeal(seal -> seal.replace("cv=none", "cv="), true, false);
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    // as_fields_cv_invalid: invalid ARC-Seal cv= values must be rejected.
+    @Test
+    public void validate_arc_chain_fails_when_arc_seal_cv_tag_is_invalid() throws Exception {
+        Message message = buildOneHopChainWithSeal(seal -> seal.replace("cv=none", "cv=maybe"), true, false);
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    // as_fields_d_na: missing ARC-Seal d= prevents key lookup and must be rejected.
+    @Test
+    public void validate_arc_chain_fails_when_arc_seal_domain_tag_is_missing() throws Exception {
+        Message message = buildOneHopChainWithSeal(seal -> seal.replaceFirst("d=dmarc.example;\\s*", ""), true, false);
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    // as_fields_d_empty: empty ARC-Seal d= prevents key lookup and must be rejected.
+    @Test
+    public void validate_arc_chain_fails_when_arc_seal_domain_tag_is_empty() throws Exception {
+        Message message = buildOneHopChainWithSeal(seal -> seal.replace("d=dmarc.example", "d="), true, false);
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    // as_fields_d_invalid: invalid ARC-Seal d= values must be rejected.
+    @Test
+    public void validate_arc_chain_fails_when_arc_seal_domain_tag_is_invalid() throws Exception {
+        Message message = buildOneHopChainWithSeal(seal -> seal.replace("d=dmarc.example", "d=invalid_domain"), true, false);
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    // as_fields_s_na: missing ARC-Seal s= prevents key lookup and must be rejected.
+    @Test
+    public void validate_arc_chain_fails_when_arc_seal_selector_tag_is_missing() throws Exception {
+        Message message = buildOneHopChainWithSeal(seal -> seal.replaceFirst("s=arc;\\s*", ""), true, false);
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    // as_fields_s_empty: empty ARC-Seal s= prevents key lookup and must be rejected.
+    @Test
+    public void validate_arc_chain_fails_when_arc_seal_selector_tag_is_empty() throws Exception {
+        Message message = buildOneHopChainWithSeal(seal -> seal.replace("s=arc", "s="), true, false);
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    // as_fields_t_na: ARC-Seal t= is optional and a seal generated without it must validate.
+    @Test
+    public void validate_arc_chain_passes_when_arc_seal_timestamp_tag_is_missing() throws Exception {
+        String sealTemplateWithoutTimestamp = "i=; cv=; a=rsa-sha256; d=dmarc.example; s=arc; b=";
+        Message message = buildOneHopChainWithSealTemplate(sealTemplateWithoutTimestamp);
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("pass");
+    }
+
+    // as_fields_t_empty: empty ARC-Seal t= must be rejected.
+    @Test
+    public void validate_arc_chain_fails_when_arc_seal_timestamp_tag_is_empty() throws Exception {
+        Message message = buildOneHopChainWithSeal(seal -> seal.replace("t=1755918846", "t="), true, false);
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    // as_fields_t_invalid: invalid ARC-Seal t= values must be rejected.
+    @Test
+    public void validate_arc_chain_fails_when_arc_seal_timestamp_tag_is_invalid() throws Exception {
+        Message message = buildOneHopChainWithSeal(seal -> seal.replace("t=1755918846", "t=abc"), true, false);
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
     // Builds a valid two-hop ARC chain: applies i=1 to the base message, then applies i=2 on top.
     private Message buildTwoHopChain() throws Exception {
         return buildNHopChain(2);
+    }
+
+    private Message buildOneHopChainWithSealTemplate(String sealTemplate) throws Exception {
+        ByteArrayInputStream emailStream = readFileToByteArrayInputStream("/mail/rfc8617_no_arc.eml");
+        Message message = new DefaultMessageBuilder().parseMessage(emailStream);
+        ArcSetBuilder builder = new ArcSetBuilder(
+                ArcTestKeys.privateKeyArc,
+                ARC_AMS_TEMPLATE,
+                sealTemplate,
+                AUTH_SERVICE,
+                TIMESTAMP);
+        Map<String, String> arcSet = builder.buildArcSet(message, HELO, MAIL_FROM, IP, keyRecordRetriever);
+        for (Map.Entry<String, String> entry : arcSet.entrySet()) {
+            message.getHeader().addField(new RawField(entry.getKey(), entry.getValue()));
+        }
+        return message;
     }
 
     private Message buildOneHopChainWithSeal(java.util.function.Function<String, String> sealMutation,

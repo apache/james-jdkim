@@ -242,6 +242,9 @@ public class ARCVerifier {
         if (arcSealHeader.isPresent()) {
             Map<String, String> tags = parseTagList(arcSealHeader.get().getBody());
             String lastCv = tags.get("cv");
+            if (lastCv == null) {
+                return false;
+            }
             return (instToVerify == 1 && lastCv.equalsIgnoreCase("none")) ||
                     (instToVerify > 1 && lastCv.equalsIgnoreCase("pass"));
         }
