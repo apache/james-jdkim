@@ -75,6 +75,10 @@ public class ARCTest {
             "v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDkHlOQoBTzWRiGs5V6NpP3id"
             + "Y6Wk08a5qhdR6wy5bdOKb2jLQiY/J16JYi0Qvx/byYzCNb3W91y3FutACDfzwQ/BC/e/8uBsCR+yz1Lx"
             + "j+PL6lHvqMKrM3rG4hstT5QjvHO9PzoxZyVYLzBfO2EeC3Ip3G+2kryOTIKT+l/K4w3QIDAQAB";
+    private static final String VALIMAIL_DUMMY2_PUBLIC_KEY =
+            "v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDR3lRpGZS+xO96Znv/BPNQxi"
+            + "m7ZD0v6yFmZa9Rni5FHCeWuQwcp+PH/XXOyF6JsmB+kS0ybxJnx594ulqH2KvLMNsGAD+yRl2bJSXbBH"
+            + "ea7K9C5WX8Vjx3oPoGgw7QCONptnjUsbIIoxUZBEUe17eG44H/PbDqGwCBiyI20KEC/wIDAQAB";
     private static final String VALIMAIL_512_PUBLIC_KEY =
             "v=DKIM1; k=rsa; p=MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAIWmlgix/84GJ+dfgjm7LTc9EPdfk"
             + "ftlgiPpCq4/kbDAZmU0VvYKDljjleJ1dfvS+CGy9U/kk1tG3EeEvb82xAcCAwEAAQ==";
@@ -93,6 +97,18 @@ public class ARCTest {
     private final MockPublicKeyRecordRetrieverArc valimailKeyRecordRetriever = new MockPublicKeyRecordRetrieverArc(
             dmarcRetriever,
             MockPublicKeyRecordRetriever.Record.of("dummy", "example.org", VALIMAIL_DUMMY_PUBLIC_KEY)
+    );
+
+    private final MockPublicKeyRecordRetrieverArc valimailInvalidPublicKeyRecordRetriever = new MockPublicKeyRecordRetrieverArc(
+            dmarcRetriever,
+            MockPublicKeyRecordRetriever.Record.of("dummy", "example.org", VALIMAIL_DUMMY_PUBLIC_KEY),
+            MockPublicKeyRecordRetriever.Record.of("invalid", "example.org", "v=DKIM1; k=rsa; omgwhatsgoingon")
+    );
+
+    private final MockPublicKeyRecordRetrieverArc valimailMixedDomainKeyRecordRetriever = new MockPublicKeyRecordRetrieverArc(
+            dmarcRetriever,
+            MockPublicKeyRecordRetriever.Record.of("dummy", "example.org", VALIMAIL_DUMMY_PUBLIC_KEY),
+            MockPublicKeyRecordRetriever.Record.of("dummy2", "example2.org", VALIMAIL_DUMMY2_PUBLIC_KEY)
     );
 
     private final MockPublicKeyRecordRetrieverArc valimailKeySizeRecordRetriever = new MockPublicKeyRecordRetrieverArc(
@@ -320,6 +336,67 @@ public class ARCTest {
         ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
         ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
         assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("none");
+    }
+
+    // cv_base1: a normal single-part message without ARC headers has no chain to validate.
+    @Test
+    public void validate_arc_chain_returns_none_for_base_message_one_without_arc_headers() throws Exception {
+        assertValimailFixtureHasResult(basicMessageWithoutAuthenticationResults(), "none", valimailKeyRecordRetriever);
+    }
+
+    // cv_base2: a normal multipart message without ARC headers has no chain to validate.
+    @Test
+    public void validate_arc_chain_returns_none_for_base_message_two_without_arc_headers() throws Exception {
+        assertValimailFixtureHasResult(basicMultipartMessageWithoutAuthenticationResults(), "none", valimailKeyRecordRetriever);
+    }
+
+    // cv_pass_i1_1: the upstream single-hop base1 fixture must validate as pass.
+    @Test
+    public void validate_arc_chain_passes_for_single_hop_base_message_one() throws Exception {
+        assertValimailFixturePasses(valimailAmsCanonicalizationMessage(baseMessageOneSignedTail()));
+    }
+
+    // cv_pass_i1_2: the upstream single-hop base2 fixture must validate as pass.
+    @Test
+    public void validate_arc_chain_passes_for_single_hop_base_message_two() throws Exception {
+        assertValimailFixturePasses(valimailSingleHopBaseTwoMessage());
+    }
+
+    // public_key_na: if the AS selector/domain has no DNS public key, validation must fail.
+    @Test
+    public void validate_arc_chain_fails_when_arc_seal_public_key_is_missing() throws Exception {
+        assertValimailFixtureFails(valimailPublicKeyMessage(
+                "example.org",
+                "na",
+                "xEoL/6DZn2+/oIsSIAFRrnQdhyrH/aSGdRqBphcyZvTLhDyd8sPHIqNsr0HROjIybe3lUG"
+                + "/YlYIftmAUP3E7kWbfU7HrolZ/5f4eB0tciltpSyBUPzM2D30IxGmqUvQxk5ATb7WxKAUs4x"
+                + "XiTmx1MaAUKAExlm45pwp5wEoU/D8="));
+    }
+
+    // public_key_invalid: if the AS DNS public key record is malformed, validation must fail.
+    @Test
+    public void validate_arc_chain_fails_when_arc_seal_public_key_is_invalid() throws Exception {
+        assertValimailFixtureFails(
+                valimailPublicKeyMessage(
+                        "example.org",
+                        "invalid",
+                        "G6sqFlzmC87EiD80V9Da8JURM2MUxp1tK3iUxrQdSJ6odUYPT8ApwE1GWodzs8UDuKemL+"
+                        + "qn7E29nhcK8pwjLjWNilPTZJ1Bt1TS8QersJsEe4tD+rcbGd8ZU8C2UcUpv0TFv3m4GrNbwx"
+                        + "JFFf9r1x5VkXulzTwIo1VW6avKShw="),
+                valimailInvalidPublicKeyRecordRetriever);
+    }
+
+    // ams_as_diff_s_d: AMS and AS may use different selector/domain values.
+    @Test
+    public void validate_arc_chain_passes_when_ams_and_arc_seal_use_different_selector_domains() throws Exception {
+        assertValimailFixturePasses(
+                valimailPublicKeyMessage(
+                        "example2.org",
+                        "dummy2",
+                        "Q6K/T+/5h+nkCtO8UVhb5uwy5ozplfBvOV0lSOCIuzDoTlPNg1chaN+04US/AWxvOrBTZf"
+                        + "hzXXdVjXMv2sX4+4ebSegZN7GTakDCd+vfBtF30jR4csBqlhW25NSyLeleZnIMf5I5G4vu5+"
+                        + "Ab38xWCoKnMKTPsPebT273ALMfzOw="),
+                valimailMixedDomainKeyRecordRetriever);
     }
 
     // cv_fail_i2_ams_na: in a two-hop chain, if the ARC-Message-Signature for i=2 is missing, the
@@ -884,6 +961,110 @@ public class ARCTest {
                 + "\n"
                 + "Hey gang,\n"
                 + "This is a test message.\n"
+                + "--J."));
+    }
+
+    // ams_fields_bh_ignores_wsp: whitespace inside bh= is ignored when decoding the body hash.
+    @Test
+    public void validate_arc_chain_passes_when_ams_body_hash_contains_whitespace() throws Exception {
+        assertValimailFixturePasses(valimailAmsBodyHashMessage(
+                "E8x7AZqCzrIuoNF9dWTyteDmtDLHk3J6CSXj1DfRHjk2cd0oeHUIXvtrNtMhYs2sFHoZRR\n"
+                + "    NuVvgDUIwPcbtr2Bz9eYvUTuOToBRn9FZFqnpR/rHl5VbPAIhSwE98WT6PJt8pqNCyKyZU3I\n"
+                + "    szoWq5cB3OWUv6QJ8ctb6rCZLbk3g=",
+                "xWBIUyGnx5WlX005xU8TYkieptAqvslDc7lkuqyFpACyOklw0t4cAONgr6qUavTnRJyZoJ\n"
+                + "    mXXIvvPk/7xgH9eT9lCFYk49vpo+fqZACxJwpRk6WbB3fwbfeZe8C2aL6X/G40ROlh4EVcy2\n"
+                + "    +NjgNS2X9ZEmxKuGEehFLqaJnx8yM=",
+                "K WSe46TZKCcDbH4klJPo+tjk5LWJnVRlP5pvjXFZYLQ=",
+                "relaxed/relaxed",
+                baseMessageOneBody()));
+    }
+
+    // ams_fields_bh_sim_base: simple body canonicalization base case must verify.
+    @Test
+    public void validate_arc_chain_passes_with_simple_body_canonicalization() throws Exception {
+        assertValimailFixturePasses(valimailSimpleBodyHashMessage(baseMessageOneBody()));
+    }
+
+    // ams_fields_bh_sim_end_lines: simple body canonicalization ignores trailing empty lines.
+    @Test
+    public void validate_arc_chain_passes_when_simple_body_has_trailing_empty_lines() throws Exception {
+        assertValimailFixturePasses(valimailSimpleBodyHashMessage(baseMessageOneBody() + "\n\n"));
+    }
+
+    // ams_fields_bh_sim_inl_wsp: simple body canonicalization preserves inline whitespace.
+    @Test
+    public void validate_arc_chain_fails_when_simple_body_inline_whitespace_changes() throws Exception {
+        assertValimailFixtureFails(valimailSimpleBodyHashMessage(
+                "Hey gang,\n"
+                + "This is a   test message.\n"
+                + "--J."));
+    }
+
+    // ams_fields_bh_rel_eol_wsp: relaxed body canonicalization strips line-end whitespace.
+    @Test
+    public void validate_arc_chain_passes_when_relaxed_body_has_line_end_whitespace() throws Exception {
+        assertValimailFixturePasses(valimailAmsCanonicalizationMessage(
+                baseMessageOneSignedHeaders()
+                + "Hey gang,  \n"
+                + "This is a test message.  \n"
+                + "--J.  "));
+    }
+
+    // ams_fields_bh_rel_inl_wsp: relaxed body canonicalization collapses inline whitespace.
+    @Test
+    public void validate_arc_chain_passes_when_relaxed_body_has_extra_inline_whitespace() throws Exception {
+        assertValimailFixturePasses(valimailAmsCanonicalizationMessage(
+                baseMessageOneSignedHeaders()
+                + "Hey       gang,\n"
+                + "This is a test message.\n"
+                + "--J."));
+    }
+
+    // ams_fields_bh_rel_end_lines: relaxed body canonicalization ignores trailing empty lines.
+    @Test
+    public void validate_arc_chain_passes_when_relaxed_body_has_trailing_empty_lines() throws Exception {
+        assertValimailFixturePasses(valimailAmsCanonicalizationMessage(
+                baseMessageOneSignedHeaders() + baseMessageOneBody() + "\n\n"));
+    }
+
+    // ams_fields_bh_rel_trail_crlf: relaxed body canonicalization adds the final CRLF.
+    @Test
+    public void validate_arc_chain_passes_when_relaxed_body_has_no_extra_trailing_crlf() throws Exception {
+        assertValimailFixturePasses(valimailAmsCanonicalizationMessage(
+                baseMessageOneSignedHeaders() + baseMessageOneBody()));
+    }
+
+    // ams_fields_bh_na: missing bh= must be rejected.
+    @Test
+    public void validate_arc_chain_fails_when_ams_body_hash_tag_is_missing() throws Exception {
+        assertValimailFixtureFails(valimailInvalidBodyHashMessage(null));
+    }
+
+    // ams_fields_bh_empty: empty bh= must be rejected.
+    @Test
+    public void validate_arc_chain_fails_when_ams_body_hash_tag_is_empty() throws Exception {
+        assertValimailFixtureFails(valimailInvalidBodyHashMessage(""));
+    }
+
+    // ams_fields_bh_base64: non-base64 bh= must be rejected.
+    @Test
+    public void validate_arc_chain_fails_when_ams_body_hash_is_not_base64() throws Exception {
+        assertValimailFixtureFails(valimailInvalidBodyHashMessage("not_base_64"));
+    }
+
+    // ams_fields_bh_mod_sig: modified bh= must be rejected even when the header signature verifies.
+    @Test
+    public void validate_arc_chain_fails_when_ams_body_hash_is_modified() throws Exception {
+        assertValimailFixtureFails(valimailInvalidBodyHashMessage("Z3JlbWxpbnM="));
+    }
+
+    // ams_fields_bh_mod_body: body changes outside relaxed canonicalization must be rejected.
+    @Test
+    public void validate_arc_chain_fails_when_ams_signed_body_is_modified() throws Exception {
+        assertValimailFixtureFails(valimailAmsCanonicalizationMessage(
+                baseMessageOneSignedHeaders()
+                + "Hey gang,\n"
+                + "This is a changed test message.\n"
                 + "--J."));
     }
 
@@ -2125,19 +2306,22 @@ public class ARCTest {
     }
 
     private void assertValimailFixturePasses(String rawMessage, MockPublicKeyRecordRetrieverArc publicKeyRetriever) throws Exception {
+        assertValimailFixtureHasResult(rawMessage, "pass", publicKeyRetriever);
+    }
+
+    private void assertValimailFixtureHasResult(
+            String rawMessage,
+            String expectedResult,
+            MockPublicKeyRecordRetrieverArc publicKeyRetriever) throws Exception {
         Message message = new DefaultMessageBuilder().parseMessage(
                 new ByteArrayInputStream(rawMessage.replace("\n", "\r\n").getBytes(StandardCharsets.UTF_8)));
         ARCChainValidator arcChainValidator = new ARCChainValidator(publicKeyRetriever);
         ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
-        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("pass");
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo(expectedResult);
     }
 
     private void assertValimailFixtureFails(String rawMessage, MockPublicKeyRecordRetrieverArc publicKeyRetriever) throws Exception {
-        Message message = new DefaultMessageBuilder().parseMessage(
-                new ByteArrayInputStream(rawMessage.replace("\n", "\r\n").getBytes(StandardCharsets.UTF_8)));
-        ARCChainValidator arcChainValidator = new ARCChainValidator(publicKeyRetriever);
-        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
-        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+        assertValimailFixtureHasResult(rawMessage, "fail", publicKeyRetriever);
     }
 
     private void assertValimailFixtureFails(String rawMessage) throws Exception {
@@ -2174,6 +2358,61 @@ public class ARCTest {
                 + "--J.";
     }
 
+    private String basicMultipartMessageWithoutAuthenticationResults() {
+        return "MIME-Version: 1.0\n"
+                + "Return-Path: <jqd@d1.example.org>\n"
+                + "Received: by 10.157.52.162 with SMTP id g31csp5274520otc;\n"
+                + "        Tue, 3 Jan 2017 12:32:02 -0800 (PST)\n"
+                + "X-Received: by 10.36.31.84 with SMTP id d81mr49584685itd.26.1483475522271;\n"
+                + "        Tue, 03 Jan 2017 12:32:02 -0800 (PST)\n"
+                + "Message-ID: <C3A9E208-6B5D-4D9F-B4DE-9323946993AC@d1.example.org>\n"
+                + "Date: Tue, 3 Jan 2017 12:31:41 -080\n"
+                + "From: John Q Doe <jqd@d1.example.org>\n"
+                + "To: arc@dmarc.org\n"
+                + "Subject: Example 2\n"
+                + "Content-Type: multipart/alternative; boundary=001a113e15fcdd0f9e0545366e8f\n"
+                + "\n"
+                + "--001a113e15fcdd0f9e0545366e8f\n"
+                + "Content-Type: text/plain; charset=UTF-8\n"
+                + "\n"
+                + "This is a test message\n"
+                + "\n"
+                + "--001a113e15fcdd0f9e0545366e8f\n"
+                + "Content-Type: text/html; charset=UTF-8\n"
+                + "\n"
+                + "<div dir=\"ltr\">This is a test message</div>\n"
+                + "\n"
+                + "--001a113e15fcdd0f9e0545366e8f--";
+    }
+
+    private String baseMessageOneSignedTail() {
+        return baseMessageOneSignedHeaders() + baseMessageOneBody();
+    }
+
+    private String baseMessageOneSignedHeaders() {
+        return "Received: from segv.d1.example (segv.d1.example [72.52.75.15])\n"
+                + "    by lists.example.org (8.14.5/8.14.5) with ESMTP id t0EKaNU9010123\n"
+                + "    for <arc@example.org>; Thu, 14 Jan 2015 15:01:30 -0800 (PST)\n"
+                + "    (envelope-from jqd@d1.example)\n"
+                + "Authentication-Results: lists.example.org;\n"
+                + "    spf=pass smtp.mfrom=jqd@d1.example;\n"
+                + "    dkim=pass (1024-bit key) header.i=@d1.example;\n"
+                + "    dmarc=pass\n"
+                + "Received: by 10.157.14.6 with HTTP; Tue, 3 Jan 2017 12:22:54 -0800 (PST)\n"
+                + "Message-ID: <54B84785.1060301@d1.example.org>\n"
+                + "Date: Thu, 14 Jan 2015 15:00:01 -0800\n"
+                + "From: John Q Doe <jqd@d1.example.org>\n"
+                + "To: arc@dmarc.org\n"
+                + "Subject: Example 1\n"
+                + "\n";
+    }
+
+    private String baseMessageOneBody() {
+        return "Hey gang,\n"
+                + "This is a test message.\n"
+                + "--J.";
+    }
+
     private String valimailCommonMessageTail() {
         return "ARC-Authentication-Results: i=1; lists.example.org;\n"
                 + "    spf=pass smtp.mfrom=jqd@d1.example;\n"
@@ -2197,6 +2436,130 @@ public class ARCTest {
                 + "Hey gang,\n"
                 + "This is a test message.\n"
                 + "--J.";
+    }
+
+    private String valimailPublicKeyMessage(String arcSealDomain, String arcSealSelector, String arcSealSignature) {
+        return "MIME-Version: 1.0\n"
+                + "Return-Path: <jqd@d1.example.org>\n"
+                + "ARC-Seal: a=rsa-sha256;\n"
+                + "    b=" + arcSealSignature + "; cv=none; d=" + arcSealDomain + "; i=1; s=" + arcSealSelector + ";\n"
+                + "    t=12345\n"
+                + "ARC-Message-Signature: a=rsa-sha256;\n"
+                + "    b=QsRzR/UqwRfVLBc1TnoQomlVw5qi6jp08q8lHpBSl4RehWyHQtY3uOIAGdghDk/mO+/Xpm\n"
+                + "    9JA5UVrPyDV0f+2q/YAHuwvP11iCkBQkocmFvgTSxN8H+DwFFPrVVUudQYZV7UDDycXoM6UE\n"
+                + "    cdfzLLzVNPOAHEDIi/uzoV4sUqZ18=;\n"
+                + "    bh=KWSe46TZKCcDbH4klJPo+tjk5LWJnVRlP5pvjXFZYLQ=; c=relaxed/relaxed;\n"
+                + "    d=example.org; h=from:to:date:subject:mime-version:arc-authentication-results;\n"
+                + "    i=1; s=dummy; t=12345\n"
+                + "ARC-Authentication-Results: i=1; lists.example.org;\n"
+                + "    spf=pass smtp.mfrom=jqd@d1.example;\n"
+                + "    dkim=pass (1024-bit key) header.i=@d1.example;\n"
+                + "    dmarc=pass\n"
+                + baseMessageOneSignedTail();
+    }
+
+    private String valimailSingleHopBaseTwoMessage() {
+        return "MIME-Version: 1.0\n"
+                + "Return-Path: <jqd@d1.example.org>\n"
+                + "ARC-Seal: a=rsa-sha256;\n"
+                + "    b=RkKDOauVsqcsTEFv6NVE6J0sxj8LUE4kfwRzs0CvMg/+KOqRDQoFxxJsJkI77EHZqcSgwr\n"
+                + "    QKpt6aKsl2zyUovVhAppT65S0+vo+h3utd3f8jph++1uiAUhVf57PihDC/GcdhyRGa6YNQGh\n"
+                + "    GoArSHaJKb06/qF5OBif8o9lmRC8E=; cv=none; d=example.org; i=1; s=dummy;\n"
+                + "    t=12345\n"
+                + "ARC-Message-Signature: a=rsa-sha256;\n"
+                + "    b=SMBCg/tHQkIAIzx7OFir0bMhCxk/zaMOx1nyOSAviXW88ERohOFOXIkBVGe74xfJDSh9ou\n"
+                + "    ryKgNA4XhUt4EybBXOn1dlrMA07dDIUFOUE7n+8QsvX1Drii8aBIpiu+O894oBEDSYcd1R+z\n"
+                + "    sZIdXhOjB/Lt4sTE1h5IT2p3UctgY=;\n"
+                + "    bh=dHN66dCNljBC18wb03I1K6hlBvV0qqsKoDsetl+jxb8=; c=relaxed/relaxed;\n"
+                + "    d=example.org; h=from:to:date:subject:mime-version:arc-authentication-results;\n"
+                + "    i=1; s=dummy; t=12345\n"
+                + "ARC-Authentication-Results: i=1; lists.example.org;\n"
+                + "    spf=pass smtp.mfrom=jqd@d1.example;\n"
+                + "    dkim=pass (1024-bit key) header.i=@d1.example;\n"
+                + "    dmarc=pass\n"
+                + "Received: from segv.d1.example (segv.d1.example [72.52.75.15])\n"
+                + "    by lists.example.org (8.14.5/8.14.5) with ESMTP id t0EKaNU9010123\n"
+                + "    for <arc@example.org>; Thu, 14 Jan 2015 15:01:30 -0800 (PST)\n"
+                + "    (envelope-from jqd@d1.example)\n"
+                + "Authentication-Results: lists.example.org;\n"
+                + "    spf=pass smtp.mfrom=jqd@d1.example;\n"
+                + "    dkim=pass (1024-bit key) header.i=@d1.example;\n"
+                + "    dmarc=pass\n"
+                + "MIME-Version: 1.0\n"
+                + "Return-Path: <jqd@d1.example.org>\n"
+                + "Received: by 10.157.52.162 with SMTP id g31csp5274520otc;\n"
+                + "        Tue, 3 Jan 2017 12:32:02 -0800 (PST)\n"
+                + "X-Received: by 10.36.31.84 with SMTP id d81mr49584685itd.26.1483475522271;\n"
+                + "        Tue, 03 Jan 2017 12:32:02 -0800 (PST)\n"
+                + "Message-ID: <C3A9E208-6B5D-4D9F-B4DE-9323946993AC@d1.example.org>\n"
+                + "Date: Thu, 5 Jan 2017 14:39:01 -0800\n"
+                + "From: Gene Q Doe <gqd@d1.example.org>\n"
+                + "To: arc@dmarc.org\n"
+                + "Subject: Example 2\n"
+                + "Content-Type: multipart/alternative; boundary=001a113e15fcdd0f9e0545366e8f\n"
+                + "\n"
+                + "--001a113e15fcdd0f9e0545366e8f\n"
+                + "Content-Type: text/plain; charset=UTF-8\n"
+                + "\n"
+                + "This is a test message\n"
+                + "\n"
+                + "--001a113e15fcdd0f9e0545366e8f\n"
+                + "Content-Type: text/html; charset=UTF-8\n"
+                + "\n"
+                + "<div dir=\"ltr\">This is a test message</div>\n"
+                + "\n"
+                + "--001a113e15fcdd0f9e0545366e8f--";
+    }
+
+    private String valimailSimpleBodyHashMessage(String body) {
+        return valimailAmsBodyHashMessage(
+                "d6sLFV7dCrZT/WzJil6ZyWcA/W5tJGLkP+yx1Fln+uZdjkswYMjvPkO2V2kvMrh2GBgjee\n"
+                + "    j9QiqfGHsJvGqAKrFVzxHEsgVA0IYN6tI5wTKMLgu09b8BeHUr49/XnBEemjbgO8W9n9SCyX\n"
+                + "    hKjsZK5b5ZIYBqjCSDZUwWRWfJywk=",
+                "c+pRG+RBumfEVWDAjHVupy4hZHN2F/AMLHoj6Vha9px35oo6eoyMxxOFUvBgVIUVphuSwV\n"
+                + "    198baYTV6Of9DHw44VS5rf6MDZNtVc8lwm8ei8aSAgzSnuhnr0jW2j134QTsEL1TK1bWfs+l\n"
+                + "    QGXDBN5AUDsbk4jN5akoDqmH7gNlc=",
+                "KWSe46TZKCcDbH4klJPo+tjk5LWJnVRlP5pvjXFZYLQ=",
+                "relaxed/simple",
+                body);
+    }
+
+    private String valimailInvalidBodyHashMessage(String bodyHash) {
+        return valimailAmsBodyHashMessage(
+                "YoXbDMNRVADrsGTtqAuMLWVnRIj62jQOSDFCX875c5ksVoWcKstnor+cGw/PJnz0cPuFGH\n"
+                + "    +vjw3y+tcgBDDbK1qBVyMUpHrahTLL/0IY2jMzoLgPYz7Yawv/gpn7GlyXL72Vdr58s/nEfk\n"
+                + "    le/2NmfPZjlUezbwsw+UHbuqT5V38=",
+                "m5y+bcsy0duHt1KxJ2EakY2mOpwIrFaHD60tlw1PmqNdy4M7XLGTnA10R7k1OsFAQNQdZM\n"
+                + "    n1aKsKDpYuRX21avSuDxximXFwkcWYevOqUmaklFXiWyJVXd9fHId0sEtNt0L28HInLwHeCf\n"
+                + "    IPYbUuddJ8wRWei04RZjqdybh4f2o=",
+                bodyHash,
+                "relaxed/relaxed",
+                baseMessageOneBody());
+    }
+
+    private String valimailAmsBodyHashMessage(
+            String arcSealSignature,
+            String arcMessageSignature,
+            String bodyHash,
+            String canonicalization,
+            String body) {
+        String bodyHashTag = bodyHash == null ? "" : "    bh=" + bodyHash + "; ";
+        return "MIME-Version: 1.0\n"
+                + "Return-Path: <jqd@d1.example.org>\n"
+                + "ARC-Seal: a=rsa-sha256;\n"
+                + "    b=" + arcSealSignature + "; cv=none; d=example.org; i=1; s=dummy;\n"
+                + "    t=12345\n"
+                + "ARC-Message-Signature: a=rsa-sha256;\n"
+                + "    b=" + arcMessageSignature + ";\n"
+                + bodyHashTag + "c=" + canonicalization + ";\n"
+                + "    d=example.org; h=from:to:date:subject:mime-version:arc-authentication-results;\n"
+                + "    i=1; s=dummy; t=12345\n"
+                + "ARC-Authentication-Results: i=1; lists.example.org;\n"
+                + "    spf=pass smtp.mfrom=jqd@d1.example;\n"
+                + "    dkim=pass (1024-bit key) header.i=@d1.example;\n"
+                + "    dmarc=pass\n"
+                + baseMessageOneSignedHeaders()
+                + body;
     }
 
     private String valimailAmsCanonicalizationMessage(String signedMessageTail) {

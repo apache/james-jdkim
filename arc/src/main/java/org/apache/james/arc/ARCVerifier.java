@@ -21,13 +21,23 @@ package org.apache.james.arc;
 import org.apache.james.arc.exceptions.ArcException;
 import org.apache.james.jdkim.exceptions.PermFailException;
 import org.apache.james.jdkim.exceptions.TempFailException;
+import org.apache.james.mime4j.dom.Body;
+import org.apache.james.mime4j.dom.Entity;
 import org.apache.james.mime4j.dom.Header;
 import org.apache.james.mime4j.dom.Message;
+import org.apache.james.mime4j.dom.Multipart;
+import org.apache.james.mime4j.dom.SingleBody;
+import org.apache.james.mime4j.io.EOLConvertingInputStream;
+import org.apache.james.mime4j.stream.NameValuePair;
 import org.apache.james.mime4j.stream.Field;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.KeyFactory;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.security.Signature;
@@ -36,6 +46,7 @@ import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -90,15 +101,19 @@ public class ARCVerifier {
         String signedHeaders = tags.get("h");
         String bodyHash = tags.get("bh");
         String signatureB64 = tags.get("b");
-        if (!"rsa-sha256".equals(algorithm) || signatureB64 == null || signatureB64.isEmpty()) {
+        if (!"rsa-sha256".equals(algorithm) || bodyHash == null || bodyHash.isEmpty()
+                || signatureB64 == null || signatureB64.isEmpty()) {
             return false;
         }
         String b64 = signatureB64
                 .replaceAll("\\s+", "")   // remove spaces, tabs, newlines
                 .replace(";", "");        // defensive: strip trailing semicolon if present
 
-        if (signedHeaders == null || bodyHash == null) {
+        if (signedHeaders == null) {
             throw new ArcException("AMS missing required tags");
+        }
+        if (!verifyAmsBodyHash(tags, message)) {
+            return false;
         }
 
         String amsForSigning = amsValue.replaceFirst(B_TAG_REGEX, "b=");
@@ -143,6 +158,130 @@ public class ARCVerifier {
             }
         }
         return result;
+    }
+
+    private boolean verifyAmsBodyHash(Map<String, String> tags, Message message) {
+        String bodyHash = tags.get("bh");
+        String bodyCanonicalization = getBodyCanonicalization(tags.get("c"));
+        if (bodyCanonicalization == null) {
+            return false;
+        }
+
+        byte[] expectedBodyHash;
+        try {
+            expectedBodyHash = Base64.getDecoder().decode(bodyHash.replaceAll("\\s+", ""));
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
+
+        byte[] computedBodyHash;
+        try {
+            if (message.getBody() == null) {
+                return true;
+            }
+            MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
+            byte[] bodyBytes = readBodyBytes(message.getBody());
+            if (bodyBytes.length == 0 && message.getBody() instanceof Multipart) {
+                return true;
+            }
+            byte[] canonicalizedBody = "relaxed".equals(bodyCanonicalization)
+                    ? canonicalizeRelaxedBody(bodyBytes)
+                    : canonicalizeSimpleBody(bodyBytes);
+            computedBodyHash = messageDigest.digest(canonicalizedBody);
+        } catch (IOException | NoSuchAlgorithmException e) {
+            return false;
+        }
+        return Arrays.equals(expectedBodyHash, computedBodyHash);
+    }
+
+    private byte[] readBodyBytes(Body body) throws IOException {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        writeBody(body, out);
+        return out.toByteArray();
+    }
+
+    private void writeBody(Body body, ByteArrayOutputStream out) throws IOException {
+        if (body instanceof SingleBody) {
+            copy(new EOLConvertingInputStream(((SingleBody) body).getInputStream()), out);
+        } else if (body instanceof Multipart) {
+            writeMultipart((Multipart) body, out);
+        }
+    }
+
+    private void writeMultipart(Multipart multipart, ByteArrayOutputStream out) throws IOException {
+        String boundary = getBoundary(multipart);
+        if (boundary == null) {
+            return;
+        }
+        for (Entity part : multipart.getBodyParts()) {
+            out.write(("--" + boundary + "\r\n").getBytes(StandardCharsets.UTF_8));
+            for (Field field : part.getHeader().getFields()) {
+                out.write((field.getName() + ": " + field.getBody() + "\r\n").getBytes(StandardCharsets.UTF_8));
+            }
+            out.write("\r\n".getBytes(StandardCharsets.UTF_8));
+            writeBody(part.getBody(), out);
+            out.write("\r\n".getBytes(StandardCharsets.UTF_8));
+        }
+        out.write(("--" + boundary + "--").getBytes(StandardCharsets.UTF_8));
+    }
+
+    private String getBoundary(Multipart multipart) {
+        for (NameValuePair parameter : multipart.getContentTypeParameters()) {
+            if ("boundary".equalsIgnoreCase(parameter.getName())) {
+                return parameter.getValue();
+            }
+        }
+        return null;
+    }
+
+    private void copy(InputStream inputStream, ByteArrayOutputStream out) throws IOException {
+        try (InputStream in = inputStream) {
+            byte[] buffer = new byte[2048];
+            int read;
+            while ((read = in.read(buffer)) > 0) {
+                out.write(buffer, 0, read);
+            }
+        }
+    }
+
+    private byte[] canonicalizeSimpleBody(byte[] body) {
+        String normalized = new String(body, StandardCharsets.UTF_8).replaceAll("(?<!\r)\n", "\r\n");
+        normalized = normalized.replaceAll("(\r\n)*$", "");
+        return (normalized + "\r\n").getBytes(StandardCharsets.UTF_8);
+    }
+
+    private byte[] canonicalizeRelaxedBody(byte[] body) {
+        String normalized = new String(body, StandardCharsets.UTF_8).replaceAll("(?<!\r)\n", "\r\n");
+        String[] lines = normalized.split("\r\n", -1);
+        StringBuilder relaxed = new StringBuilder();
+        int lastNonEmptyLine = -1;
+        String[] canonicalLines = new String[lines.length];
+        for (int i = 0; i < lines.length; i++) {
+            canonicalLines[i] = lines[i].replaceAll("[ \t]+$", "").replaceAll("[ \t]+", " ");
+            if (!canonicalLines[i].isEmpty()) {
+                lastNonEmptyLine = i;
+            }
+        }
+        for (int i = 0; i <= lastNonEmptyLine; i++) {
+            relaxed.append(canonicalLines[i]).append("\r\n");
+        }
+        return relaxed.toString().getBytes(StandardCharsets.UTF_8);
+    }
+
+    private String getBodyCanonicalization(String canonicalization) {
+        String bodyCanonicalization;
+        if (canonicalization == null) {
+            bodyCanonicalization = "simple";
+        } else if (canonicalization.isEmpty()) {
+            return null;
+        } else {
+            String[] parts = canonicalization.split("/", -1);
+            bodyCanonicalization = parts.length == 1 ? parts[0] : parts[1];
+        }
+        if (!"simple".equals(bodyCanonicalization) && !"relaxed".equals(bodyCanonicalization)) {
+            return null;
+        }
+        return bodyCanonicalization;
     }
 
     private Signature getSignature(PublicKey publicKey, StringBuilder signingData)  {
