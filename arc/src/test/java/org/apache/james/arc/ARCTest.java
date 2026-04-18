@@ -173,6 +173,19 @@ public class ARCTest {
         assertThat(cv.getResult().toString().toLowerCase()).isEqualTo(expectedCv);
     }
 
+    // i0_base: signing a message with no incoming ARC chain starts at i=1 and seals cv=none.
+    @Test
+    public void build_arc_set_for_message_without_arc_chain_uses_first_instance_and_cv_none() throws Exception {
+        ByteArrayInputStream emailStream = readFileToByteArrayInputStream("/mail/rfc8617_no_arc.eml");
+        Message message = new DefaultMessageBuilder().parseMessage(emailStream);
+
+        Map<String, String> arcSet = arcSetBuilder.buildArcSet(message, HELO, MAIL_FROM, IP, keyRecordRetriever);
+
+        assertThat(arcSet.get(ARC_AUTHENTICATION_RESULTS)).startsWith("i=1;");
+        assertThat(arcSet.get(ARC_MESSAGE_SIGNATURE)).contains("i=1;");
+        assertThat(arcSet.get(ARC_SEAL)).contains("i=1; cv=none;");
+    }
+
     // cv_fail_i1_ams_invalid: builds a valid i=1 ARC set, then replaces the AMS b= signature with
     // wrong bytes before adding headers to the message, expecting chain validation to return cv=fail.
     @Test
@@ -1203,6 +1216,190 @@ public class ARCTest {
                 "example...",
                 "dummy",
                 "12345"));
+    }
+
+    // ams_fields_h_empty: upstream suite accepts an empty AMS h= tag.
+    @Test
+    public void validate_arc_chain_passes_when_ams_signed_headers_tag_is_empty() throws Exception {
+        assertValimailFixturePasses(valimailAmsSignedHeadersMessage(
+                "V/iPFUptKaruDTBpwKcf5i6nu54GxrG3ss2bfPqqT3I5MGMyRmtE+J0kOVtU9qtHIhXUng\n"
+                + "    Iezv5+gCOIf2jP1eYGvhN2Wmkf2zsShG6+Rfpnp9fih71C1f6fh6Qp4tTUhB6ww4ZOTKtVdv\n"
+                + "    H0C2s/5in4RLMxS0FUWge8CvlTnGs=",
+                "ex6hirqdOz1yO1SZE3ALisw3dj1La5L4qHcv8/ttCs1qGajzw0zEtUyMnskTPQnt9cxxF3\n"
+                + "    T74KRXlPVN/4Aqn+K/Q4NHtOW9vyuLt9ek9Vm6/xvZ10KTMrxv24u0eLnsigC6NfablL4wAM\n"
+                + "    epZDlyjf/HPBd0yVLQL8yFDtQ5fE0=",
+                "",
+                "MIME-Version: 1.0\n",
+                baseMessageOneSignedTail()));
+    }
+
+    // ams_fields_h_cws1: whitespace around AMS h= colon separators must be ignored.
+    @Test
+    public void validate_arc_chain_passes_when_ams_signed_headers_have_whitespace_around_colons() throws Exception {
+        assertValimailFixturePasses(valimailAmsSignedHeadersMessage(
+                "0+WA3Dpt9Y1lJ5wkoOZsh6KXEQFv0YE+ykvXAdS5t1toEui1UWzLyKWxSD/H/Xc6eCaQZM\n"
+                + "    ji4IxybZ4OrIdV0yRe1fGqYN/bJ3KnkuzrHpaikXRWxXdX8tiIu5+I+HmERxuGzGqHdNv2zj\n"
+                + "    5L8PNAsGs4LDg3xQXEe3FQAvis9OA=",
+                "Lq5Sy1R3C0RaTxKWfggKBJ2MOdgAHeFy1nELK1c+CFnxdvSL+OxuvSxk8HYv7YMJDTR4Na\n"
+                + "    1D5GaFedB1uYVQsz1T5e3p9B+54W4bObByD14WvTGKV3ys8FlOf4MdRIlD4o6N3INfHrNbYX\n"
+                + "    zwPKjkoYbteAEQ/kTpjESOpm131io=",
+                "from : to : date : subject : mime-version : arc-authentication-results",
+                "MIME-Version: 1.0\n",
+                baseMessageOneSignedTail()));
+    }
+
+    // ams_fields_h_cws2: folded whitespace around AMS h= colon separators must be ignored.
+    @Test
+    public void validate_arc_chain_passes_when_ams_signed_headers_have_folded_whitespace_around_colons() throws Exception {
+        assertValimailFixturePasses(valimailAmsSignedHeadersMessage(
+                "0+WA3Dpt9Y1lJ5wkoOZsh6KXEQFv0YE+ykvXAdS5t1toEui1UWzLyKWxSD/H/Xc6eCaQZM\n"
+                + "    ji4IxybZ4OrIdV0yRe1fGqYN/bJ3KnkuzrHpaikXRWxXdX8tiIu5+I+HmERxuGzGqHdNv2zj\n"
+                + "    5L8PNAsGs4LDg3xQXEe3FQAvis9OA=",
+                "Lq5Sy1R3C0RaTxKWfggKBJ2MOdgAHeFy1nELK1c+CFnxdvSL+OxuvSxk8HYv7YMJDTR4Na\n"
+                + "    1D5GaFedB1uYVQsz1T5e3p9B+54W4bObByD14WvTGKV3ys8FlOf4MdRIlD4o6N3INfHrNbYX\n"
+                + "    zwPKjkoYbteAEQ/kTpjESOpm131io=",
+                "from : to : date : subject : mime-version :\n"
+                + "    arc-authentication-results",
+                "MIME-Version: 1.0\n",
+                baseMessageOneSignedTail()));
+    }
+
+    // ams_fields_h_case: AMS h= header names are case-insensitive.
+    @Test
+    public void validate_arc_chain_passes_when_ams_signed_headers_use_mixed_case() throws Exception {
+        assertValimailFixturePasses(valimailAmsSignedHeadersMessage(
+                "me1uYrnpt5Cdjkfj+bqK8X6abs8TET4r5Wp6e6ZuZ2FAtSzfx8WdnHCnBLUj7t/PR+EGne\n"
+                + "    h4auyljzkm2gz09I0MbaYkd+xDmkRoN2WrFotceq+iROoDLf2NgZJb3SfDcVFp8emRMyyaGL\n"
+                + "    WAtshPjJWnjoNfm+3clEpXzPw4WM4=",
+                "OCzwOGeJy6YL07Rh1A970C9pAK2YJeXr0rDVVbsd/aOxTeKbrIxOfQsJ5hYaze0aeE5U0p\n"
+                + "    y/45cz4Jg07Ch61xZ0G3R3ne4eXxPauAU6QKPwr45HxO2gDywmNruiJP0JPTzcC9SVV/YjyL\n"
+                + "    OGobZNIwUWR1hEkd5/UuAXHk23Q4g=",
+                "From:To:Date:Subject:Mime-version:Arc-authentication-results",
+                "MIME-Version: 1.0\n",
+                baseMessageOneSignedTail()));
+    }
+
+    // ams_fields_h_dup1: duplicate signed headers must be selected from the bottom up.
+    @Test
+    public void validate_arc_chain_passes_when_ams_signed_headers_duplicate_existing_header_in_bottom_up_order() throws Exception {
+        assertValimailFixturePasses(valimailAmsSignedHeadersMessage(
+                "tv8fgth8OQw5DylJlW253wBM12VcMvjFLj+TwonVXPiSPJ1hV7F24q0rgmYeVhSBK/+4Ou\n"
+                + "    kPW3e9oqILXx95sXrE4fiiz46//FtZK7z0YVzy/B3QpR7fGxzzA5uVoUh4WNd0oQEejwDKss\n"
+                + "    ILrzkyu6fDUZ1kLeKyk3clE7b/NJo=",
+                "rGZpmx8nA8Fe0yQ319Ns+DPmwx9ToC7Z5Ba5NNGYtmXF87xboR0Cy7yxlJ2ek6j8WqCRXI\n"
+                + "    jKV32tgZBXu5upoveTLBGzSe+NPTL2SkU2nFnktJjjPwTiPAYyXVBY1Uy7uSv9dT+wfB4Hvg\n"
+                + "    Hm/nSrzqTBOxPsND1F1b2rzE1elQo=",
+                "from:to:to:date:subject:mime-version:arc-authentication-results",
+                "MIME-Version: 1.0\n",
+                baseMessageOneSignedTailWithTwoToHeaders()));
+    }
+
+    // ams_fields_h_non_existant: signing a non-existent header is allowed.
+    @Test
+    public void validate_arc_chain_passes_when_ams_signed_headers_include_non_existent_header() throws Exception {
+        assertValimailFixturePasses(valimailAmsSignedHeadersMessage(
+                "cEfCkdG3zAUpq2XMYEvcI8e+nD53NUuUr/NQ74UBTzSVJBOsNQKADtUWqYirSlB9AFeEIq\n"
+                + "    VGstwfXqh5TiMv1Uk9O04vM7WxrmMsqZI+GiRQvtaanfZQMcaYME1pCURdkDbMK/MOUGV+W2\n"
+                + "    j9anSPB91SOQruKUDtqgwq8z87Ajc=",
+                "QHma3KzZiiP6Yq5jWp+mLznldNAMpK9ffvI87mbvEFFd1YSfoJu9JrxtBgv3/MEBFHLPm9\n"
+                + "    qTii8g+94xOLgp/LEC/dM2E/u7yPAKKMz5fMzJfwqSGAGyBg2f12Mkyaqs3dzv97nZTZFkj8\n"
+                + "    mHCV6SHNfnC+lkIs5XpJNRtddvolQ=",
+                "from:to:date:subject:mime-version:arc-authentication-results",
+                "",
+                baseMessageOneSignedTail()));
+    }
+
+    // ams_fields_h_non_existant_dup: duplicate non-existent signed headers are allowed.
+    @Test
+    public void validate_arc_chain_passes_when_ams_signed_headers_include_duplicate_non_existent_header() throws Exception {
+        assertValimailFixturePasses(valimailAmsSignedHeadersMessage(
+                "akTog4W3hR16mF9pNZIhHzcceyST1LHWaIsDPobRX6iy5jBRbpb+lyKlcyZmS02T2kFYG9\n"
+                + "    iOWQ6UZruiQXQu/u/GSkn0RSCwHWTfb25YqrQBLwH7pki4bDGHrTSrGbuYnFEHadYl2B8Gxo\n"
+                + "    UXYn2/XBBil6Dkku2SswdN6RZhhoM=",
+                "CvqFe5bB3kFEFvITOTVx7VcrJQBT5aAtUJjX0h1L1Gh0MtUQofgKfOakgKr5kUIxv2foZY\n"
+                + "    KJzwNSuUNnDyY87HJeT02j4JlpYnj0+PzB8xjW2Kj4/4TrLMkcJsfC2wujZClzXW65uCsFEb\n"
+                + "    0ht8EEQis3581f6/S2V+2pHxvqRiM=",
+                "from:to:date:subject:mime-version:arc-authentication-results:mime-version",
+                "",
+                baseMessageOneSignedTail()));
+    }
+
+    // ams_fields_h_mis_hdr: blank header names in AMS h= are ignored.
+    @Test
+    public void validate_arc_chain_passes_when_ams_signed_headers_include_blank_header_name() throws Exception {
+        assertValimailFixturePasses(valimailAmsSignedHeadersMessage(
+                "FCq5UA4xGNozfvMgZkQ0Wpu4Q0dkGbrNvMKc0SNQnbObHCA84DNwUUp+I41h5ZvwQBAGxf\n"
+                + "    hvUfjmsMFHBtsYj/aQ5kkehVPkOZ/6hengnO0IJs78Ab/5eivdD7MRLuShcTWd9qx32dVFJD\n"
+                + "    yx8qIaRZplvJYl30ry7sOJQu4qSZk=",
+                "4TbROXpBlHvYUMMvecTyaEqk0DtgISmfrz9L7QEizbAaI6vgDPu1xD8LSj4CfHpak6GMde\n"
+                + "    zpqtfiITgVTBKbkZi2kuFQwmu5xWsReExZEiNq7Tr6L5iObGjL0A27RIBj4znEmO6mk2Umnl\n"
+                + "    +c6LR5XzyE65FGLZ+9nSH2U12klzI=",
+                "from:to::date:subject:mime-version:arc-authentication-results",
+                "MIME-Version: 1.0\n",
+                baseMessageOneSignedTail()));
+    }
+
+    // ams_fields_h_includes_ams: upstream suite currently permits including AMS in h=.
+    @Test
+    public void validate_arc_chain_passes_when_ams_signed_headers_include_arc_message_signature() throws Exception {
+        assertValimailFixturePasses(valimailAmsSignedHeadersIncludesAmsMessage());
+    }
+
+    // ams_fields_h_na: AMS h= is required.
+    @Test
+    public void validate_arc_chain_fails_when_ams_signed_headers_tag_is_missing() throws Exception {
+        assertValimailFixtureFails(valimailAmsMissingSignedHeadersMessage());
+    }
+
+    // ams_fields_h_dup2: duplicate signed headers in the wrong bottom-up order are rejected.
+    @Test
+    public void validate_arc_chain_fails_when_ams_signed_headers_duplicate_existing_header_in_wrong_order() throws Exception {
+        assertValimailFixtureFails(valimailAmsSignedHeadersMessage(
+                "tv8fgth8OQw5DylJlW253wBM12VcMvjFLj+TwonVXPiSPJ1hV7F24q0rgmYeVhSBK/+4Ou\n"
+                + "    kPW3e9oqILXx95sXrE4fiiz46//FtZK7z0YVzy/B3QpR7fGxzzA5uVoUh4WNd0oQEejwDKss\n"
+                + "    ILrzkyu6fDUZ1kLeKyk3clE7b/NJo=",
+                "rGZpmx8nA8Fe0yQ319Ns+DPmwx9ToC7Z5Ba5NNGYtmXF87xboR0Cy7yxlJ2ek6j8WqCRXI\n"
+                + "    jKV32tgZBXu5upoveTLBGzSe+NPTL2SkU2nFnktJjjPwTiPAYyXVBY1Uy7uSv9dT+wfB4Hvg\n"
+                + "    Hm/nSrzqTBOxPsND1F1b2rzE1elQo=",
+                "from:to:to:date:subject:mime-version:arc-authentication-results",
+                "MIME-Version: 1.0\n",
+                baseMessageOneSignedTailWithTwoToHeadersInReverseOrder()));
+    }
+
+    // ams_fields_h_order: misordered signed headers must not validate.
+    @Test
+    public void validate_arc_chain_fails_when_ams_signed_headers_are_misordered() throws Exception {
+        assertValimailFixtureFails(valimailAmsSignedHeadersMessage(
+                "vTCiDmh8p+YFqH8WSxCrLVT3IS1Xmt35hs9y2Fb4EriRTTEmD7lWa0UrCe9j/a3yftcMAb\n"
+                + "    8W01KgTrdIhmUMF7YrElyT1cGc0ChGHmdkuA2MpVBnLJMCgtXEQkWcVRne38KB9P+GLvr5uD\n"
+                + "    nBOjOJNoBt4Nt+Y8zCKG/tN2RetKk=",
+                "2o+Wl1gzbDmg4Hv5q52M7V+E6KBhMISVmqTDrk1HfOgMJwJ+0v8Nl18EjbL+iOTu6Vxz9+\n"
+                + "    1m64cPsNr1Tgm79jjqugOKDI/yaU7h4DaFMmN54tGX8j1ElMXSl8ghcfaknApLU060vKVUoo\n"
+                + "    F2GfD1qo+SSox3wkZNkPQdGKjNmQM=",
+                "from:to:date:subject:mime-version:arc-authentication-results",
+                "MIME-Version: 1.0\n",
+                baseMessageOneSignedTail()));
+    }
+
+    // ams_fields_h_empty_added: a header added after signing a missing header must be rejected.
+    @Test
+    public void validate_arc_chain_fails_when_previously_missing_ams_signed_header_is_added() throws Exception {
+        assertValimailFixtureFails(valimailAmsSignedHeadersMessage(
+                "cEfCkdG3zAUpq2XMYEvcI8e+nD53NUuUr/NQ74UBTzSVJBOsNQKADtUWqYirSlB9AFeEIq\n"
+                + "    VGstwfXqh5TiMv1Uk9O04vM7WxrmMsqZI+GiRQvtaanfZQMcaYME1pCURdkDbMK/MOUGV+W2\n"
+                + "    j9anSPB91SOQruKUDtqgwq8z87Ajc=",
+                "QHma3KzZiiP6Yq5jWp+mLznldNAMpK9ffvI87mbvEFFd1YSfoJu9JrxtBgv3/MEBFHLPm9\n"
+                + "    qTii8g+94xOLgp/LEC/dM2E/u7yPAKKMz5fMzJfwqSGAGyBg2f12Mkyaqs3dzv97nZTZFkj8\n"
+                + "    mHCV6SHNfnC+lkIs5XpJNRtddvolQ=",
+                "from:to:date:subject:mime-version:arc-authentication-results",
+                "MIME-Version: 1.0\n",
+                baseMessageOneSignedTail()));
+    }
+
+    // ams_fields_h_includes_as: including ARC-Seal in AMS h= must be rejected.
+    @Test
+    public void validate_arc_chain_fails_when_ams_signed_headers_include_arc_seal() throws Exception {
+        assertValimailFixtureFails(valimailAmsSignedHeadersIncludesAsMessage());
     }
 
     // ams_fields_s_na: missing AMS s= prevents public-key lookup and must be rejected.
@@ -2601,6 +2798,46 @@ public class ARCTest {
         return baseMessageOneSignedHeaders() + baseMessageOneBody();
     }
 
+    private String baseMessageOneSignedTailWithTwoToHeaders() {
+        return "Received: from segv.d1.example (segv.d1.example [72.52.75.15])\n"
+                + "    by lists.example.org (8.14.5/8.14.5) with ESMTP id t0EKaNU9010123\n"
+                + "    for <arc@example.org>; Thu, 14 Jan 2015 15:01:30 -0800 (PST)\n"
+                + "    (envelope-from jqd@d1.example)\n"
+                + "Authentication-Results: lists.example.org;\n"
+                + "    spf=pass smtp.mfrom=jqd@d1.example;\n"
+                + "    dkim=pass (1024-bit key) header.i=@d1.example;\n"
+                + "    dmarc=pass\n"
+                + "Received: by 10.157.14.6 with HTTP; Tue, 3 Jan 2017 12:22:54 -0800 (PST)\n"
+                + "Message-ID: <54B84785.1060301@d1.example.org>\n"
+                + "Date: Thu, 14 Jan 2015 15:00:01 -0800\n"
+                + "From: John Q Doe <jqd@d1.example.org>\n"
+                + "To: morty@dmarc.org\n"
+                + "To: evil_morty@dmarc.org\n"
+                + "Subject: Example 1\n"
+                + "\n"
+                + baseMessageOneBody();
+    }
+
+    private String baseMessageOneSignedTailWithTwoToHeadersInReverseOrder() {
+        return "Received: from segv.d1.example (segv.d1.example [72.52.75.15])\n"
+                + "    by lists.example.org (8.14.5/8.14.5) with ESMTP id t0EKaNU9010123\n"
+                + "    for <arc@example.org>; Thu, 14 Jan 2015 15:01:30 -0800 (PST)\n"
+                + "    (envelope-from jqd@d1.example)\n"
+                + "Authentication-Results: lists.example.org;\n"
+                + "    spf=pass smtp.mfrom=jqd@d1.example;\n"
+                + "    dkim=pass (1024-bit key) header.i=@d1.example;\n"
+                + "    dmarc=pass\n"
+                + "Received: by 10.157.14.6 with HTTP; Tue, 3 Jan 2017 12:22:54 -0800 (PST)\n"
+                + "Message-ID: <54B84785.1060301@d1.example.org>\n"
+                + "Date: Thu, 14 Jan 2015 15:00:01 -0800\n"
+                + "From: John Q Doe <jqd@d1.example.org>\n"
+                + "To: evil_morty@dmarc.org\n"
+                + "To: morty@dmarc.org\n"
+                + "Subject: Example 1\n"
+                + "\n"
+                + baseMessageOneBody();
+    }
+
     private String baseMessageOneSignedHeaders() {
         return "Received: from segv.d1.example (segv.d1.example [72.52.75.15])\n"
                 + "    by lists.example.org (8.14.5/8.14.5) with ESMTP id t0EKaNU9010123\n"
@@ -2819,6 +3056,126 @@ public class ARCTest {
                 + "    dkim=pass (1024-bit key) header.i=@d1.example;\n"
                 + "    dmarc=pass\n"
                 + signedMessageTail;
+    }
+
+    private String valimailAmsMissingSignedHeadersMessage() {
+        return "MIME-Version: 1.0\n"
+                + "Return-Path: <jqd@d1.example.org>\n"
+                + "ARC-Seal: a=rsa-sha256;\n"
+                + "    b=O9vrOnKLOdZXxa46F8RDPTzqW14JYE7idGn0AfedcpWh58mPFE9jXHeaMda5L59thiQrJN\n"
+                + "    T7Smno713R6DU9CfvnOvq8rQXCJ6D7GzWFhhOn6wEbjTaFQQ3jHn67XVDVnb4yjLElVhixob\n"
+                + "    pG5ouN8U1TPqPWf+41wrIrCd5Mocw=; cv=none; d=example.org; i=1; s=dummy;\n"
+                + "    t=12345\n"
+                + "ARC-Message-Signature: a=rsa-sha256;\n"
+                + "    b=RidA92CmsCgK81At2aPnlGuFlbvNT5IdWz7Z/6j765oabi0LEDkpB+2q+C5TJfc28Gj0Ok\n"
+                + "    gghf2ykPbb7WniSvCue66fvUYaABU5m84urSzGd3MG3F47vTzCQ5qLah7E0UssP2QbP2b1Rt\n"
+                + "    Hry/RlkOzlWeSlxpCcPvArmmcADTc=;\n"
+                + "    bh=KWSe46TZKCcDbH4klJPo+tjk5LWJnVRlP5pvjXFZYLQ=; c=relaxed/relaxed;\n"
+                + "    d=example.org; i=1; s=dummy; t=12345\n"
+                + "ARC-Authentication-Results: i=1; lists.example.org;\n"
+                + "    spf=pass smtp.mfrom=jqd@d1.example;\n"
+                + "    dkim=pass (1024-bit key) header.i=@d1.example;\n"
+                + "    dmarc=pass\n"
+                + baseMessageOneSignedTail();
+    }
+
+    private String valimailAmsSignedHeadersMessage(
+            String arcSealSignature,
+            String arcMessageSignature,
+            String signedHeaders,
+            String initialHeaders,
+            String signedMessageTail) {
+        return initialHeaders
+                + "Return-Path: <jqd@d1.example.org>\n"
+                + "ARC-Seal: a=rsa-sha256;\n"
+                + "    b=" + arcSealSignature + "; cv=none; d=example.org; i=1; s=dummy;\n"
+                + "    t=12345\n"
+                + "ARC-Message-Signature: a=rsa-sha256;\n"
+                + "    b=" + arcMessageSignature + ";\n"
+                + "    bh=KWSe46TZKCcDbH4klJPo+tjk5LWJnVRlP5pvjXFZYLQ=; c=relaxed/relaxed;\n"
+                + "    d=example.org; h=" + signedHeaders + ";\n"
+                + "    i=1; s=dummy; t=12345\n"
+                + "ARC-Authentication-Results: i=1; lists.example.org;\n"
+                + "    spf=pass smtp.mfrom=jqd@d1.example;\n"
+                + "    dkim=pass (1024-bit key) header.i=@d1.example;\n"
+                + "    dmarc=pass\n"
+                + signedMessageTail;
+    }
+
+    private String valimailAmsSignedHeadersIncludesAmsMessage() {
+        return "MIME-Version: 1.0\n"
+                + "Return-Path: <jqd@d1.example.org>\n"
+                + "ARC-Seal: a=rsa-sha256;\n"
+                + "    b=XSOc6bESO7Ek4iCPyVXVE7aR8HUBBOXdOKmFpJO/3DI8rLRHHfRT9XAML3OsBE2RYj+0yd\n"
+                + "    ypsBg8UQEewpY6Z5KEUhxfzwaBGObKr1pgwjkYiOBpPTV1Xfv1lGT+1qlJtBR2AGJauCEs7G\n"
+                + "    fNzwa3MI+iO9E8g6aO/m9Mk1BlLHY=; cv=pass; d=example.org; i=2; s=dummy;\n"
+                + "    t=12346\n"
+                + "ARC-Message-Signature: a=rsa-sha256;\n"
+                + "    b=vpypMlcZNGmeVETFS/+v/Uk9npQE1LhY8tha0XTaeeNMgK1fzWaxvUHY0cuumuzK2pU25O\n"
+                + "    uWTt08QEXczUR/BLmiZaYUWQV8qGOAv5umtEshqjB+0KPg5W09N20vQp8OXMQrenjZz0YPsy\n"
+                + "    VweEidqd3HAcWSbZgW3jAFKXHGSXc=;\n"
+                + "    bh=KWSe46TZKCcDbH4klJPo+tjk5LWJnVRlP5pvjXFZYLQ=; c=relaxed/relaxed;\n"
+                + "    d=example.org; h=from:to:arc-message-signature:date:subject:mime-version:arc-authentication-results;\n"
+                + "    i=2; s=dummy; t=12346\n"
+                + "ARC-Authentication-Results: i=2; lists.example.org;\n"
+                + "    spf=pass smtp.mfrom=jqd@d1.example;\n"
+                + "    dkim=pass (1024-bit key) header.i=@d1.example;\n"
+                + "    dmarc=pass\n"
+                + "ARC-Seal: a=rsa-sha256;\n"
+                + "    b=dOdFEyhrk/tw5wl3vMIogoxhaVsKJkrkEhnAcq2XqOLSQhPpGzhGBJzR7k1sWGokon3TmQ\n"
+                + "    7TX9zQLO6ikRpwd/pUswiRW5DBupy58fefuclXJAhErsrebfvfiueGyhHXV7C1LyJTztywzn\n"
+                + "    QGG4SCciU/FTlsJ0QANrnLRoadfps=; cv=none; d=example.org; i=1; s=dummy;\n"
+                + "    t=12345\n"
+                + "ARC-Message-Signature: a=rsa-sha256;\n"
+                + "    b=QsRzR/UqwRfVLBc1TnoQomlVw5qi6jp08q8lHpBSl4RehWyHQtY3uOIAGdghDk/mO+/Xpm\n"
+                + "    9JA5UVrPyDV0f+2q/YAHuwvP11iCkBQkocmFvgTSxN8H+DwFFPrVVUudQYZV7UDDycXoM6UE\n"
+                + "    cdfzLLzVNPOAHEDIi/uzoV4sUqZ18=;\n"
+                + "    bh=KWSe46TZKCcDbH4klJPo+tjk5LWJnVRlP5pvjXFZYLQ=; c=relaxed/relaxed;\n"
+                + "    d=example.org; h=from:to:date:subject:mime-version:arc-authentication-results;\n"
+                + "    i=1; s=dummy; t=12345\n"
+                + "ARC-Authentication-Results: i=1; lists.example.org;\n"
+                + "    spf=pass smtp.mfrom=jqd@d1.example;\n"
+                + "    dkim=pass (1024-bit key) header.i=@d1.example;\n"
+                + "    dmarc=pass\n"
+                + baseMessageOneSignedTail();
+    }
+
+    private String valimailAmsSignedHeadersIncludesAsMessage() {
+        return "MIME-Version: 1.0\n"
+                + "Return-Path: <jqd@d1.example.org>\n"
+                + "ARC-Seal: a=rsa-sha256;\n"
+                + "    b=OuFcuRk6CdaxxeBmCdvzoFxM6G0xmA3XNh1F243uPQsstHJ+T0csqD6PADig/UPV/Aj6fQ\n"
+                + "    kAOsyZOzIK1X9ZCZLB2idFymnyWtYc2spNgCiSfwQiQuS3SFVUtr+Y7v58PtyAy2HCb2pA5I\n"
+                + "    OIY1WjbK1Pd4SrJbZ4/M0d0wgFt7g=; cv=pass; d=example.org; i=2; s=dummy;\n"
+                + "    t=12346\n"
+                + "ARC-Message-Signature: a=rsa-sha256;\n"
+                + "    b=T5uPa/aCBkG1PK5dsSgO5US5yVvKnf/DAsyxMDCLVgw3auULB52XaLkZbc5KAcbGwz4KQZ\n"
+                + "    H8TTB1qbdHGyUpA/1Tq4QveM4z1x/s/2gK/thnoW0wWEHu5frgmd3tVg8kEjrmU6HOJ1SNYq\n"
+                + "    Qgjxvsd/OwpjYsfOjODwgyGDR/doE=;\n"
+                + "    bh=KWSe46TZKCcDbH4klJPo+tjk5LWJnVRlP5pvjXFZYLQ=; c=relaxed/relaxed;\n"
+                + "    d=example.org; h=from:to:arc-seal:date:subject:mime-version:arc-authentication-results;\n"
+                + "    i=2; s=dummy; t=12346\n"
+                + "ARC-Authentication-Results: i=2; lists.example.org;\n"
+                + "    spf=pass smtp.mfrom=jqd@d1.example;\n"
+                + "    dkim=pass (1024-bit key) header.i=@d1.example;\n"
+                + "    dmarc=pass\n"
+                + "ARC-Seal: a=rsa-sha256;\n"
+                + "    b=dOdFEyhrk/tw5wl3vMIogoxhaVsKJkrkEhnAcq2XqOLSQhPpGzhGBJzR7k1sWGokon3TmQ\n"
+                + "    7TX9zQLO6ikRpwd/pUswiRW5DBupy58fefuclXJAhErsrebfvfiueGyhHXV7C1LyJTztywzn\n"
+                + "    QGG4SCciU/FTlsJ0QANrnLRoadfps=; cv=none; d=example.org; i=1; s=dummy;\n"
+                + "    t=12345\n"
+                + "ARC-Message-Signature: a=rsa-sha256;\n"
+                + "    b=QsRzR/UqwRfVLBc1TnoQomlVw5qi6jp08q8lHpBSl4RehWyHQtY3uOIAGdghDk/mO+/Xpm\n"
+                + "    9JA5UVrPyDV0f+2q/YAHuwvP11iCkBQkocmFvgTSxN8H+DwFFPrVVUudQYZV7UDDycXoM6UE\n"
+                + "    cdfzLLzVNPOAHEDIi/uzoV4sUqZ18=;\n"
+                + "    bh=KWSe46TZKCcDbH4klJPo+tjk5LWJnVRlP5pvjXFZYLQ=; c=relaxed/relaxed;\n"
+                + "    d=example.org; h=from:to:date:subject:mime-version:arc-authentication-results;\n"
+                + "    i=1; s=dummy; t=12345\n"
+                + "ARC-Authentication-Results: i=1; lists.example.org;\n"
+                + "    spf=pass smtp.mfrom=jqd@d1.example;\n"
+                + "    dkim=pass (1024-bit key) header.i=@d1.example;\n"
+                + "    dmarc=pass\n"
+                + baseMessageOneSignedTail();
     }
 
     private String valimailSimpleHeaderCanonicalizationMessage(

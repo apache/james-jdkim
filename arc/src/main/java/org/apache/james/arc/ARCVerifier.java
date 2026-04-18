@@ -114,6 +114,9 @@ public class ARCVerifier {
         if (signedHeaders == null) {
             throw new ArcException("AMS missing required tags");
         }
+        if (signsArcSealHeader(signedHeaders)) {
+            return false;
+        }
         Canonicalization canonicalization = getCanonicalization(tags.get("c"));
         if (canonicalization == null || !verifyAmsBodyHash(tags, message, canonicalization.body)) {
             return false;
@@ -161,6 +164,13 @@ public class ARCVerifier {
             }
         }
         return result;
+    }
+
+    private boolean signsArcSealHeader(String signedHeaders) {
+        return Arrays.stream(signedHeaders.split(":"))
+                .map(String::trim)
+                .map(headerName -> headerName.toLowerCase(Locale.US))
+                .anyMatch("arc-seal"::equals);
     }
 
     private boolean validateAmsTags(Map<String, String> tags) {
