@@ -1068,6 +1068,98 @@ public class ARCTest {
                 + "--J."));
     }
 
+    // ams_fields_c_na: missing c= uses the default simple/simple canonicalization.
+    @Test
+    public void validate_arc_chain_passes_when_ams_canonicalization_tag_is_missing() throws Exception {
+        assertValimailFixturePasses(valimailAmsCanonicalizationTagMessage(
+                "ygcIhWO/8u3FP5h+7kQH7X9Yqxs0MIHuMUA6PapmNf+8CP5Fb/mY/mZ5aUcLxJNozQ2oUU\n"
+                + "    ukkGEysRaqm5uTJMhiy4YjZgJqMRVka3xMGeIaSw1PiugVu015l8wKR1ollDSN7POJaajQBC\n"
+                + "    /4mUnAUFfND8OqfE/VimB6flYiUJ8=",
+                "1+WHHTxU+XLWVsbRsvjlW2kMRRhmGE+OE9jxnmLt4ryEa/AezAflCMmVzM7r1dKwxJA1oc\n"
+                + "    YmkN0ga0CO/nxSvB9XR0dsg/TH7TTSQKIllCRxsmGLt+jG/9Mw5yTRxtBOOuFK4xbHbFbCLU\n"
+                + "    vRCry9p9YZpoAemnEb24tm9vjlrsQ=",
+                "KWSe46TZKCcDbH4klJPo+tjk5LWJnVRlP5pvjXFZYLQ=",
+                null,
+                "from:to:date:subject:mime-version:arc-authentication-results",
+                baseMessageOneSignedTail()));
+    }
+
+    // ams_fields_c_empty: empty c= must be rejected.
+    @Test
+    public void validate_arc_chain_fails_when_ams_canonicalization_tag_is_empty() throws Exception {
+        assertValimailFixtureFails(valimailAmsCanonicalizationTagMessage(
+                "eTLQqvFomQqHaOc36izhl5UMp6wVe8vGsLLuPCraumms100F7tOUhRpAII90YkwX0AK+RT\n"
+                + "    5ij+3Ngk2sQRpMupfFTgeF1olGU+jt943VkFbmSYXYp0AwBe4TGsLugWmfkUy2sGBSC1Rv7n\n"
+                + "    ZaC9m6Y2bNMJcwix1EAuFFV6ck1Wg=",
+                "QdAvD1bnatYxK/JQCvI1uSuKxOYC+oR7wqg/twCt+zAFm8Tvu+fZpO79+TSx+cLAETXKNT\n"
+                + "    6mgQLaLROfq3sNf8tP0f/4oqzMUb6Ybz2syHL7hkmC6Za5Ii8RDKwMSc8lmvJk6HXUKgsndZ\n"
+                + "    vWsQCfv+jyLmfDfCI8v9WP7xa2UEU=",
+                "KWSe46TZKCcDbH4klJPo+tjk5LWJnVRlP5pvjXFZYLQ=",
+                "",
+                "from:to:date:subject:mime-version:arc-authentication-results",
+                baseMessageOneSignedTail()));
+    }
+
+    // ams_fields_c_rr: relaxed/relaxed canonicalization must be honored.
+    @Test
+    public void validate_arc_chain_passes_with_relaxed_header_and_relaxed_body_canonicalization() throws Exception {
+        assertValimailFixturePasses(valimailAmsCanonicalizationMessage(
+                baseMessageOneSignedHeaders()
+                + "Hey gang,  \n"
+                + "This is a test message.\n"
+                + "--J."));
+    }
+
+    // ams_fields_c_rs: relaxed/simple canonicalization must be honored.
+    @Test
+    public void validate_arc_chain_passes_with_relaxed_header_and_simple_body_canonicalization() throws Exception {
+        assertValimailFixturePasses(valimailSimpleBodyHashMessage(baseMessageOneBody()));
+    }
+
+    // ams_fields_c_sr: simple/relaxed canonicalization must be honored.
+    @Test
+    public void validate_arc_chain_passes_with_simple_header_and_relaxed_body_canonicalization() throws Exception {
+        assertValimailFixturePasses(valimailSimpleHeaderCanonicalizationMessage(
+                "rhXdX7jNW4wMS/SjYKBYC9eW6q5KnnQ7UGICE45CsYhwEoi38c3nM+91lvM3zhUILxo51X\n"
+                + "    htsrMDLw5TJeZdiCqgXhQZmSEzR+KEdnu2oidezrK/hUzYPlKdO59EQgGIiDAmIRoKZ6+rGV\n"
+                + "    fUCltnyjA07a9KpIpeXRKT3WDCE6A=",
+                "RWHWmB6euT01CXN0PJKCrmmoPPGc+pxxurfyJBjnNzkTizZKD7XwHLqTuNPaRG7PULU6ffq8FQ7IivdffwqXNj4L3ttpKNIjfsndMFvn5lpKZGfvJZfjTmbTJMhF4CCJZZm7l1xy7LbYMaMb12WY47vXOe9RNjW7jQyw8iqctcA=",
+                "KWSe46TZKCcDbH4klJPo+tjk5LWJnVRlP5pvjXFZYLQ=",
+                "simple/relaxed",
+                baseMessageOneBody()));
+    }
+
+    // ams_fields_c_ss: simple/simple canonicalization must be honored.
+    @Test
+    public void validate_arc_chain_passes_with_simple_header_and_simple_body_canonicalization() throws Exception {
+        assertValimailFixturePasses(valimailSimpleHeaderCanonicalizationMessage(
+                "X9qtjasr0URzC564MZz0bwckcIVnBW9yUZP+xt4rStU7MIuuo266KZ1V/e5tbg/MOCZJ2m\n"
+                + "    3hvKRsVy1fMeIus2RVBg88zwfjyRMsJBC+zKV8oONpIcxriN8imZcaeWdcfsghbAFBM3viCE\n"
+                + "    MdvebSvInMfz0vZsD1DJBYTjPel8w=",
+                "fv7KIaPfZRTQynzpQ7Gkg3thdZn78iGc5L1hTQoWrY1nSaE3pqQTHsGDW7+FRquewwFoakGLSERxBnC67Sdvw9Exv+/CEs/spqRrDjNygkCf/BIZcURb2nXXFHqPy31X6r2bufWKj6Lbo+5MCyaS2tWkV+KoZhUpolYSo0CoGfk=",
+                "hhFbTjokraRYc/Af+8v4zyKm/9ApHGkBSLO129NtPbo=",
+                "simple/simple",
+                "Hey gang,  \n"
+                + "This is a test message.\n"
+                + "--J."));
+    }
+
+    // ams_fields_c_invalid: unknown canonicalization names must be rejected.
+    @Test
+    public void validate_arc_chain_fails_when_ams_canonicalization_tag_is_invalid() throws Exception {
+        assertValimailFixtureFails(valimailAmsCanonicalizationTagMessage(
+                "YYGtMgeVAGSLLMZ0k9D0yRRzsfKpbHCoqfLAKz+Du2++GE82Dvz2OT60ebG9m6vmT6nT1t\n"
+                + "    D+rMJnTXIZDUPZ6BLH8rLo8jMb33cBV5NzBD3SDYqWA7OOkYrMGRGmoMfxpcGV8m77YykscT\n"
+                + "    +cpxxA2Ytld+YTd0mTtxdOCN3T1M4=",
+                "DJZENNFBf+SwDthFmU1ztUBIsKRAAaUdY9CjuGXejv8T29jf3q3EDUz6OnMevRWiSLj4ED\n"
+                + "    gymMDJNGSTUaz3N85KmzWrTJ7QOLNke1H9L9kkfEFowatF8fW5cV/7Y6Ubzh0e1626TELeE+\n"
+                + "    kvczpXT7prdjJZZjQAbDuHsWXkOys=",
+                "KWSe46TZKCcDbH4klJPo+tjk5LWJnVRlP5pvjXFZYLQ=",
+                "pancake/waffle",
+                "from:to:date:subject:mime-version:arc-authentication-results",
+                baseMessageOneSignedTail()));
+    }
+
     // aar_struct_i_na / aar_i_missing: an ARC-Authentication-Results header without i= is invalid.
     @Test
     public void validate_arc_chain_fails_when_aar_has_no_instance_tag() throws Exception {
@@ -2582,6 +2674,50 @@ public class ARCTest {
                 + "    dkim=pass (1024-bit key) header.i=@d1.example;\n"
                 + "    dmarc=pass\n"
                 + signedMessageTail;
+    }
+
+    private String valimailAmsCanonicalizationTagMessage(
+            String arcSealSignature,
+            String arcMessageSignature,
+            String bodyHash,
+            String canonicalization,
+            String signedHeaders,
+            String signedMessageTail) {
+        String canonicalizationTag = canonicalization == null ? "" : " c=" + canonicalization + ";";
+        return "MIME-Version: 1.0\n"
+                + "Return-Path: <jqd@d1.example.org>\n"
+                + "ARC-Seal: a=rsa-sha256;\n"
+                + "    b=" + arcSealSignature + "; cv=none; d=example.org; i=1; s=dummy;\n"
+                + "    t=12345\n"
+                + "ARC-Message-Signature: a=rsa-sha256;\n"
+                + "    b=" + arcMessageSignature + ";\n"
+                + "    bh=" + bodyHash + ";" + canonicalizationTag + "\n"
+                + "    d=example.org; h=" + signedHeaders + ";\n"
+                + "    i=1; s=dummy; t=12345\n"
+                + "ARC-Authentication-Results: i=1; lists.example.org;\n"
+                + "    spf=pass smtp.mfrom=jqd@d1.example;\n"
+                + "    dkim=pass (1024-bit key) header.i=@d1.example;\n"
+                + "    dmarc=pass\n"
+                + signedMessageTail;
+    }
+
+    private String valimailSimpleHeaderCanonicalizationMessage(
+            String arcSealSignature,
+            String arcMessageSignature,
+            String bodyHash,
+            String canonicalization,
+            String body) {
+        return "MIME-Version: 1.0\n"
+                + "Return-Path: <jqd@d1.example.org>\n"
+                + "ARC-Seal: a=rsa-sha256;\n"
+                + "    b=" + arcSealSignature + "; cv=none; d=example.org; i=1; s=dummy;\n"
+                + "    t=12345\n"
+                + "ARC-Message-Signature: a=rsa-sha256; b=" + arcMessageSignature
+                + "; bh=" + bodyHash + "; c=" + canonicalization
+                + "; d=example.org; h=From:To:Date:Subject:MIME-Version:ARC-Authentication-Results; i=1; s=dummy; t=12345\n"
+                + "ARC-Authentication-Results: i=1; lists.example.org; spf=pass smtp.mfrom=jqd@d1.example; dkim=pass (1024-bit key) header.i=@d1.example; dmarc=pass\n"
+                + baseMessageOneSignedHeaders()
+                + body;
     }
 
     private String valimailArcSealFormatCommonTail() {

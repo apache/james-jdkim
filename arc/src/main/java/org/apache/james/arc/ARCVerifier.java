@@ -112,7 +112,8 @@ public class ARCVerifier {
         if (signedHeaders == null) {
             throw new ArcException("AMS missing required tags");
         }
-        if (!verifyAmsBodyHash(tags, message)) {
+        Canonicalization canonicalization = getCanonicalization(tags.get("c"));
+        if (canonicalization == null || !verifyAmsBodyHash(tags, message, canonicalization.body)) {
             return false;
         }
 
@@ -133,13 +134,13 @@ public class ARCVerifier {
                     continue;
                 }
                 Field f = fields.get(fields.size() - doneHeaders);
-                signingData.append(canonicalizeRegularHeader(f));
+                signingData.append(canonicalizeRegularHeader(f, canonicalization.header));
                 processedHeaders.put(hName, doneHeaders);
             }
         }
 
         // AMS itself must be included last
-        signingData.append(canonicalizeHeader(amsField.getName(), amsForSigning));
+        signingData.append(canonicalizeHeader(amsField.getName(), amsForSigning, canonicalization.header));
 
         // Build RSA public key from DNS record
         PublicKey publicKey = parsePublicKeyFromDns(publicKeyDnsRecord);
@@ -160,13 +161,8 @@ public class ARCVerifier {
         return result;
     }
 
-    private boolean verifyAmsBodyHash(Map<String, String> tags, Message message) {
+    private boolean verifyAmsBodyHash(Map<String, String> tags, Message message, String bodyCanonicalization) {
         String bodyHash = tags.get("bh");
-        String bodyCanonicalization = getBodyCanonicalization(tags.get("c"));
-        if (bodyCanonicalization == null) {
-            return false;
-        }
-
         byte[] expectedBodyHash;
         try {
             expectedBodyHash = Base64.getDecoder().decode(bodyHash.replaceAll("\\s+", ""));
@@ -268,20 +264,29 @@ public class ARCVerifier {
         return relaxed.toString().getBytes(StandardCharsets.UTF_8);
     }
 
-    private String getBodyCanonicalization(String canonicalization) {
+    private Canonicalization getCanonicalization(String canonicalization) {
+        String headerCanonicalization;
         String bodyCanonicalization;
         if (canonicalization == null) {
+            headerCanonicalization = "relaxed";
             bodyCanonicalization = "simple";
         } else if (canonicalization.isEmpty()) {
             return null;
         } else {
             String[] parts = canonicalization.split("/", -1);
-            bodyCanonicalization = parts.length == 1 ? parts[0] : parts[1];
+            if (parts.length > 2) {
+                return null;
+            }
+            headerCanonicalization = parts[0];
+            bodyCanonicalization = parts.length == 1 ? "simple" : parts[1];
+        }
+        if (!"simple".equals(headerCanonicalization) && !"relaxed".equals(headerCanonicalization)) {
+            return null;
         }
         if (!"simple".equals(bodyCanonicalization) && !"relaxed".equals(bodyCanonicalization)) {
             return null;
         }
-        return bodyCanonicalization;
+        return new Canonicalization(headerCanonicalization, bodyCanonicalization);
     }
 
     private Signature getSignature(PublicKey publicKey, StringBuilder signingData)  {
@@ -322,18 +327,32 @@ public class ARCVerifier {
         return map;
     }
 
-    private String canonicalizeRegularHeader(Field field) {
-        String retVal = canonicalizeHeader(field.getName(), field.getBody());
+    private String canonicalizeRegularHeader(Field field, String headerCanonicalization) {
+        String retVal = canonicalizeHeader(field.getName(), field.getBody(), headerCanonicalization);
         return retVal + "\r\n";
     }
 
-    private String canonicalizeHeader(String name, String value) {
+    private String canonicalizeHeader(String name, String value, String headerCanonicalization) {
+        if ("simple".equals(headerCanonicalization)) {
+            String separator = value.startsWith(" ") || value.startsWith("\t") ? ":" : ": ";
+            return name + separator + value;
+        }
         // relaxed canonicalization: lowercase field name, unfold spaces, trim
         String n = name.toLowerCase(Locale.ROOT);
         String v = value.replaceAll("[\\r\\n]+", " ")
                 .replaceAll("\\s+", " ")
                 .trim();
         return n + ":" + v;
+    }
+
+    private static class Canonicalization {
+        private final String header;
+        private final String body;
+
+        private Canonicalization(String header, String body) {
+            this.header = header;
+            this.body = body;
+        }
     }
 
     public PublicKey parsePublicKeyFromDns(String dnsRecord) {
