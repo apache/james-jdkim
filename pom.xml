@@ -69,6 +69,7 @@
         <junit.version>4.13.2</junit.version>
         <target.jdk>11</target.jdk>
         <jspf-resolver.version>1.0.5</jspf-resolver.version>
+        <guava.version>33.0.0-jre</guava.version>
     </properties>
 
     <dependencyManagement>
@@ -110,6 +111,11 @@
                 <groupId>org.assertj</groupId>
                 <artifactId>assertj-core</artifactId>
                 <version>3.27.7</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>${guava.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

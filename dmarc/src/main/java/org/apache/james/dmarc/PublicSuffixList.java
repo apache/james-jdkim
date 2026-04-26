@@ -18,82 +18,27 @@
  ******************************************************************************/
 package org.apache.james.dmarc;
 
-import org.apache.james.dmarc.exceptions.DmarcException;
-
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.Locale;
-import java.util.Set;
+
+import com.google.common.net.InternetDomainName;
 
 public class PublicSuffixList {
-    private static final Set<String> RULES = new HashSet<>();
-    private static final Set<String> WILDCARDS = new HashSet<>();
-    private static final Set<String> EXCEPTIONS = new HashSet<>();
-
-    static {
-        try (InputStream is = PublicSuffixList.class.getResourceAsStream("/public_suffix_list.dat")) {
-            assert is != null;
-            parsePsl(is);
-        }
-        catch (Exception e) {
-            throw new DmarcException("Failed to load Public Suffix List", e);
-        }
-    }
-
-    private static void parsePsl(InputStream is) {
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(is))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                line = line.trim();
-                if (line.isEmpty() || line.startsWith("//")) continue;
-                if (line.startsWith("!")) {
-                    EXCEPTIONS.add(line.substring(1).toLowerCase());
-                } else if (line.startsWith("*.")) {
-                    WILDCARDS.add(line.substring(2).toLowerCase());
-                } else {
-                    RULES.add(line.toLowerCase());
-            }
-        }
-    } catch (IOException e) {
-            throw new DmarcException("Failed to read Public Suffix List", e);
-        }
-    }
-
     private PublicSuffixList() {}
 
     public static String getOrgDomain(String domainToCheck) {
-        if (domainToCheck == null || domainToCheck.trim().isEmpty()) return domainToCheck;
-
-        domainToCheck = domainToCheck.toLowerCase(Locale.ROOT).trim();
-        String[] domainParts = domainToCheck.split("\\.");
-        int numParts = domainParts.length;
-
-        PSLMatchOutcome outcome = null;
-
-        for (int i = 0; i < numParts && outcome == null; i++) {
-            String[] candidateArr = Arrays.copyOfRange(domainParts, i, numParts);
-            String matchedCandidate = String.join(".", candidateArr);
-
-            if (EXCEPTIONS.contains(matchedCandidate)) {
-                // Exception rules take precedence
-                outcome = new PSLMatchOutcome(PSLMatch.EXCEPTION, matchedCandidate, domainParts, i);
-            }
-
-            if (WILDCARDS.contains(matchedCandidate)) {
-                outcome = new PSLMatchOutcome(PSLMatch.WILDCARD, matchedCandidate, domainParts, i);
-            }
-
-            if (RULES.contains(matchedCandidate)) {
-                outcome = new PSLMatchOutcome(PSLMatch.RULE, matchedCandidate, domainParts, i);
-            }
+        if (domainToCheck == null || domainToCheck.trim().isEmpty()) {
+            return domainToCheck;
         }
 
-        return outcome == null?
-                new PSLMatchOutcome(PSLMatch.NONE, null, domainParts, -1).getRelaxedOrgDomain():
-                outcome.getRelaxedOrgDomain();
+        String normalizedDomain = domainToCheck.toLowerCase(Locale.ROOT).trim();
+        try {
+            InternetDomainName domainName = InternetDomainName.from(normalizedDomain);
+            if (domainName.isUnderPublicSuffix()) {
+                return domainName.topPrivateDomain().toString();
+            }
+            return normalizedDomain;
+        } catch (IllegalArgumentException e) {
+            return normalizedDomain;
+        }
     }
 }
