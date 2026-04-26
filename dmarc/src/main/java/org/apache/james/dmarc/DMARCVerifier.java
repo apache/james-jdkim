@@ -40,13 +40,13 @@ public class DMARCVerifier {
         String shortSpfResult = spfHeaderText.split(" ")[0];
         MailboxList mailboxList = message.getFrom();
         if (mailboxList == null || mailboxList.size() != 1) {
-            throw new DmarcException("Incorrect From header: must have exactly one mailbox"); // rejecting immediately unless exactly one mailbox
+            return new DmarcValidationResult("permerror", null, null, "From header must contain exactly one mailbox");
         }
 
         Mailbox mailbox = message.getFrom().get(0);
         String fromDomain = mailbox.getDomain();
         if (fromDomain == null || fromDomain.isEmpty()) {
-            throw new DmarcException("From header is missing or has no domain part");
+            return new DmarcValidationResult("permerror", null, null, "From header is missing a domain");
         }
 
         // 2. Fetch DMARC record from DNS

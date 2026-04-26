@@ -21,18 +21,28 @@ package org.apache.james.dmarc;
 public class DmarcValidationResult {
     private static final String DEFAULT_RESPONSE_TEMPLATE = "dmarc=%s (p=%s) header.from=%s";
     private static final String DEFAULT_NONE_RESPONSE_TEMPLATE = "dmarc=none (no policy) header.from=%s";
+    private static final String DEFAULT_ERROR_RESPONSE_TEMPLATE = "dmarc=%s reason=\"%s\"";
     private final String result;
     private final String policy;
     private final String domain;
+    private final String reason;
 
     public DmarcValidationResult(String result, String policy, String domain) {
+        this(result, policy, domain, null);
+    }
+
+    public DmarcValidationResult(String result, String policy, String domain, String reason) {
         this.result = result;
         this.policy = policy;
         this.domain = domain;
+        this.reason = reason;
     }
 
     @Override
     public String toString() {
+        if ("permerror".equals(result) && reason != null) {
+            return String.format(DEFAULT_ERROR_RESPONSE_TEMPLATE, result, reason);
+        }
         return (policy == null || result == null) ?
             String.format(DEFAULT_NONE_RESPONSE_TEMPLATE, domain) :
             String.format(DEFAULT_RESPONSE_TEMPLATE, result, policy, domain);

@@ -91,14 +91,21 @@ public class ARCChainValidator {
             return new ArcValidationOutcome(ArcValidationResult.FAIL, "ARC set structure is invalid");
         }
 
-        Set<Field> prevArcSet;
-        prevArcSet = arcVerifier.extractArcSet(messageHeaders, numArcInstances);
-        if  (prevArcSet != null) {
-            boolean amsOk = checkArcAms(prevArcSet, message, arcVerifier);
-            boolean asOk = checkArcSeal(messageHeaders.getFields(), numArcInstances, arcVerifier);
-            if (amsOk && asOk) {
-                return new ArcValidationOutcome(ArcValidationResult.PASS, "All previous ARC hops validated successfully");
+        // RFC 8617 section 5.2: verify AMS for every instance from i=1 to i=N.
+        for (int i = 1; i <= numArcInstances; i++) {
+            Set<Field> arcSet = arcVerifier.extractArcSet(messageHeaders, i);
+            if (arcSet == null || !checkArcAms(arcSet, message, arcVerifier)) {
+                return new ArcValidationOutcome(ArcValidationResult.FAIL, "Previous ARC hops validation failed");
             }
+        }
+        boolean asOk;
+        try {
+            asOk = checkArcSeal(messageHeaders.getFields(), numArcInstances, arcVerifier);
+        } catch (ArcException | IllegalArgumentException e) {
+            return new ArcValidationOutcome(ArcValidationResult.FAIL, e.getMessage());
+        }
+        if (asOk) {
+            return new ArcValidationOutcome(ArcValidationResult.PASS, "All previous ARC hops validated successfully");
         }
         return new ArcValidationOutcome(ArcValidationResult.FAIL, "Previous ARC hops validation failed");
     }
@@ -127,10 +134,13 @@ public class ARCChainValidator {
         boolean retVal = false;
         Map<Integer, List<Field>> arcHeadersByI = arcVerifier.getArcHeadersByI(headers);
         ArcSealVerifyData verifyData = arcVerifier.buildArcSealSigningData(arcHeadersByI, instToVerify);
-        Field arcSealHeader = headers.stream()
+        Field arcSealHeader = arcHeadersByI.get(instToVerify).stream()
                 .filter(f -> f.getName().equalsIgnoreCase(ARC_SEAL))
                 .findFirst().orElse(null);
         if (arcSealHeader == null) return retVal;
+        String algorithm = arcVerifier.parseTagGeneric(arcSealHeader.getBody(), "a");
+        if (algorithm == null || algorithm.isEmpty()) return false;
+        arcVerifier.validateSupportedAlgorithm(ARC_SEAL, algorithm);
 
         String txtDnsRecord = arcVerifier.getTxtDnsRecordByField(arcSealHeader);
         if (txtDnsRecord == null) return retVal;

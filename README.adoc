@@ -1,40 +1,96 @@
-= JAMES jDKIM fork with ARC support
+= JAMES jDKIM library
 
-This repository is a fork of Apache James jDKIM that adds ARC (Authenticated Received Chain) signing and related mail authentication capabilities alongside
-the original DKIM functionality.
 
-It is intended for experimentation and integration work around RFC 8617 in Java-based mail processing workflows.
-
-Original upstream project:
-https://github.com/apache/james-jdkim
+Library dealing with parsing and cryptography to sign and verify DKIM signatures.
+It also provides DMARC verification and ARC (Authenticated Received Chain)
+support for Java-based mail processing workflows.
 
 The mailet has been moved to James project: https://github.com/apache/james-project/tree/master/server/mailet/dkim
-
-== Fork-specific additions
-
-This fork extends the original Apache James jDKIM codebase with ARC-related functionality.
-
-Current fork-specific focus includes:
-
-- ARC signing support
-- ARC chain handling
-- Mail authentication extensions related to RFC 8617
-
-== Test Coverage
-
-ARC functionality is covered by tests in
-https://github.com/apache/james-jdkim/blob/master/arc/src/test/java/org/apache/james/arc/ARCTest.java[ARCTest].
-The coverage is based on the ARC protocol requirements from
-https://datatracker.ietf.org/doc/html/rfc8617[RFC 8617] and on the public
-https://github.com/ValiMail/arc_test_suite[ValiMail ARC test suite]. The tests
-exercise ARC set creation, chain validation, ARC-Seal verification,
-ARC-Message-Signature canonicalization, body hash handling, required tag
-validation, and malformed or tampered ARC header cases.
 
 == Usage
 
 A full example is available in
-https://github.com/apache/james-jdkim/blob/master/arc/src/test/java/org/apache/james/arc/ARCTest.java[ARCTest]
+https://github.com/apache/james-jdkim/blob/master/main/src/test/java/org/apache/james/jdkim/DKIMTest.java[DKIMTest]
+
+=== Signing
+
+Signing a mime message can be achieved using the following snippet
+
+[source,java]
+----
+import java.io.InputStream;
+import java.security.PrivateKey;
+
+String signatureTemplate = "v=1; a=rsa-sha256; c=simple; d=messiah.edu; h=date:from:subject; q=dns/txt; s=selector2;";
+
+PrivateKey privateKey = null;
+DKIMSigner dkimSigner = new DKIMSigner(signatureTemplate, privateKey);
+// You need to provide the input stream of the mime message, it will be parsed
+// by mime4j
+InputStream stream = null;
+String signature = dkimSigner.sign(inputStream);
+// `signature` contains the full header
+// DKIM-Signature: a=rsa-sha256; q=dns/txt; b=Axa8s/g...U1SIw==; c=simple; s=selector2; d=messiah.edu; v=1; bh=6pQ...6g=; h=date:from:subject;
+----
+
+More advanced usage such as including multiple signatures can be found in
+https://github.com/apache/james-jdkim/blob/master/main/src/test/java/org/apache/james/jdkim/DKIMTest.java[DKIMTest]
+
+=== Verifying
+
+Verifying a mime message DKIM signatures can be achieved using the following
+snippet. The verifier always verifies all the signatures.
+
+[source,java]
+----
+import java.io.InputStream;
+// You can override the resolver in the constructor, use your own
+// implementation of a retriever or use multiple implementations using a
+// `MultiplexingPublicKeyRecordRetriever`
+PublicKeyRecordRetriever keyRecordRetriever = new DNSPublicKeyRecordRetriever();
+DKIMVerifier verifier = new DKIMVerifier(keyRecordRetriever);
+InputStream stream = null; // you need to provide the input stream of the mime message
+List<SignatureRecord> verifiedSignatures = verifier.verify(stream);
+// `verifiedSignatures` contains only the signatures that have successfully
+// passed the validation.
+// If you want to query all the results including all the failures, you can
+// retrieve them from the verifier
+List<Result> results = verifier.getResults();
+----
+
+=== Checking DMARC
+
+DMARC verification combines SPF and DKIM results with the RFC5322 `From`
+domain and the domain DMARC policy.
+
+[source,java]
+----
+import org.apache.james.dmarc.DMARCVerifier;
+import org.apache.james.dmarc.DmarcValidationResult;
+import org.apache.james.dmarc.PublicKeyRecordRetrieverDmarc;
+import org.apache.james.mime4j.dom.Message;
+
+PublicKeyRecordRetrieverDmarc recordRetriever = null;
+Message message = null;
+
+DMARCVerifier dmarcVerifier = new DMARCVerifier(recordRetriever);
+DmarcValidationResult dmarcResult = dmarcVerifier.runDmarcCheck(
+        message,
+        "pass client-ip=192.0.2.1; envelope-from=sender@example.org",
+        "example.org",
+        "pass",
+        "example.org");
+
+String authenticationResult = dmarcResult.toString();
+----
+
+More complete DMARC examples can be found in
+https://github.com/apache/james-jdkim/blob/master/dmarc/src/main/test/java/org/apache/james/dmarc/DMARCTest.java[DMARCTest].
+
+== ARC Support
+
+ARC support adds RFC 8617 signing and validation for intermediaries that need to
+preserve authentication results across forwarding hops.
 
 === Building An ARC Set
 
@@ -83,9 +139,6 @@ String arcSeal = arcSet.get("ARC-Seal");
 The generated map contains the ARC headers for the current hop, ready to be
 added to the message.
 
-More complete usage can be found in
-https://github.com/apache/james-jdkim/blob/master/arc/src/test/java/org/apache/james/arc/ARCTest.java[ARCTest]
-
 === Validating An ARC Chain
 
 Validating ARC headers on a MIME message can be achieved using the following
@@ -94,6 +147,7 @@ snippet.
 [source,java]
 ----
 import java.io.InputStream;
+
 import org.apache.james.arc.ARCChainValidator;
 import org.apache.james.arc.ArcValidationOutcome;
 import org.apache.james.arc.PublicKeyRetrieverArc;
@@ -107,6 +161,51 @@ Message message = new DefaultMessageBuilder().parseMessage(stream);
 ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
 ArcValidationOutcome validation = arcChainValidator.validateArcChain(message);
 
-boolean valid = validation.isValid();
 String chainValidation = validation.getResult().toString();
+String description = validation.getDescription();
+----
+
+More complete ARC usage can be found in
+https://github.com/apache/james-jdkim/blob/master/arc/src/test/java/org/apache/james/arc/ARCTest.java[ARCTest].
+
+== Test Coverage
+
+ARC functionality is covered by tests in
+https://github.com/apache/james-jdkim/blob/master/arc/src/test/java/org/apache/james/arc/ARCTest.java[ARCTest].
+The coverage is based on the ARC protocol requirements from
+https://datatracker.ietf.org/doc/html/rfc8617[RFC 8617] and on the public
+https://github.com/ValiMail/arc_test_suite[ValiMail ARC test suite]. The tests
+exercise ARC set creation, chain validation, ARC-Seal verification,
+ARC-Message-Signature canonicalization, body hash handling, required tag
+validation, and malformed or tampered ARC header cases.
+
+== Cryptography Notice
+
+----
+   This distribution includes cryptographic software.  The country in
+   which you currently reside may have restrictions on the import,
+   possession, use, and/or re-export to another country, of
+   encryption software.  BEFORE using any encryption software, please
+   check your country's laws, regulations and policies concerning the
+   import, possession, or use, and re-export of encryption software, to
+   see if this is permitted.  See http://www.wassenaar.org for more
+   information.
+
+   The U.S. Government Department of Commerce, Bureau of Industry and
+   Security (BIS), has classified this software as Export Commodity
+   Control Number (ECCN) 5D002.C.1, which includes information security
+   software using or performing cryptographic functions with asymmetric
+   algorithms.  The form and manner of this Apache Software Foundation
+   distribution makes it eligible for export under the License Exception
+   ENC Technology Software Unrestricted (TSU) exception (see the BIS
+   Export Administration Regulations, Section 740.13) for both object
+   code and source code.
+
+   The following provides more details on the included cryptographic
+   software:
+
+    - jDKIM includes code designed to work with Java SE Security
+
+    Export classifications and source links can be found
+    at http://www.apache.org/licenses/exports/.
 ----

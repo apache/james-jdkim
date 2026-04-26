@@ -33,7 +33,6 @@ public class DNSPublicKeyRecordRetrieverArc extends DNSPublicKeyRecordRetriever 
 
     @Override
     public String getSpfRecord(String helo, String from, String ip) {
-        Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
         SPF spf = new DefaultSPF();
         return spf.checkSPF(ip, from, helo).getHeaderText();
     }

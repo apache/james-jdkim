@@ -87,6 +87,8 @@ public class ARCVerifier {
     private static final Pattern DOMAIN_PATTERN = Pattern.compile("(?i)^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$");
     private static final Pattern SELECTOR_PATTERN = Pattern.compile("(?i)^[a-z0-9](?:[a-z0-9._-]*[a-z0-9])?$");
     private static final int MIN_RSA_KEY_BITS = 1024;
+    private static final int MIN_ARC_INSTANCE = 1;
+    private static final int MAX_ARC_INSTANCE = 50;
     private static final String DNS_RECORD_TYPE = "_domainkey";
     private PublicKeyRetrieverArc _keyRecordRetriever;
 
@@ -103,10 +105,12 @@ public class ARCVerifier {
         String signedHeaders = tags.get("h");
         String bodyHash = tags.get("bh");
         String signatureB64 = tags.get("b");
-        if (!validateAmsTags(tags) || !"rsa-sha256".equals(algorithm) || bodyHash == null || bodyHash.isEmpty()
+        if (!validateAmsTags(tags) || algorithm == null || algorithm.isEmpty() || bodyHash == null || bodyHash.isEmpty()
                 || signatureB64 == null || signatureB64.isEmpty()) {
             return false;
         }
+        validateSupportedAlgorithm("ARC-Message-Signature", algorithm);
+        validateAmsTimestamp(tags);
         String b64 = signatureB64
                 .replaceAll("\\s+", "")   // remove spaces, tabs, newlines
                 .replace(";", "");        // defensive: strip trailing semicolon if present
@@ -166,6 +170,12 @@ public class ARCVerifier {
         return result;
     }
 
+    void validateSupportedAlgorithm(String headerName, String algorithm) {
+        if (!"rsa-sha256".equals(algorithm)) {
+            throw new ArcException(headerName + " uses unsupported algorithm: " + algorithm);
+        }
+    }
+
     private boolean signsArcSealHeader(String signedHeaders) {
         return Arrays.stream(signedHeaders.split(":"))
                 .map(String::trim)
@@ -177,13 +187,31 @@ public class ARCVerifier {
         String domain = tags.get("d");
         String selector = tags.get("s");
         String timestamp = tags.get("t");
+        String expiration = tags.get("x");
         if (domain == null || domain.isEmpty() || !DOMAIN_PATTERN.matcher(domain).matches()) {
             return false;
         }
         if (selector == null || selector.isEmpty() || !SELECTOR_PATTERN.matcher(selector).matches()) {
             return false;
         }
-        return timestamp == null || timestamp.matches("\\d+");
+        return (timestamp == null || timestamp.matches("\\d+"))
+                && (expiration == null || expiration.matches("\\d+"));
+    }
+
+    private void validateAmsTimestamp(Map<String, String> tags) {
+        String timestamp = tags.get("t");
+        String expiration = tags.get("x");
+        if (expiration == null) {
+            return;
+        }
+        long expirationEpoch = Long.parseLong(expiration);
+        if (timestamp != null && expirationEpoch <= Long.parseLong(timestamp)) {
+            throw new ArcException("AMS x= expiration must be greater than t= timestamp");
+        }
+        long now = System.currentTimeMillis() / 1000;
+        if (expirationEpoch < now) {
+            throw new ArcException("AMS signature is expired");
+        }
     }
 
     private boolean verifyAmsBodyHash(Map<String, String> tags, Message message, String bodyCanonicalization) {
@@ -197,17 +225,12 @@ public class ARCVerifier {
 
         byte[] computedBodyHash;
         try {
-            if (message.getBody() == null) {
-                return true;
-            }
             MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
-            byte[] bodyBytes = readBodyBytes(message.getBody());
+            byte[] bodyBytes = message.getBody() == null ? new byte[0] : readBodyBytes(message.getBody());
             if (bodyBytes.length == 0 && message.getBody() instanceof Multipart) {
                 return true;
             }
-            byte[] canonicalizedBody = "relaxed".equals(bodyCanonicalization)
-                    ? canonicalizeRelaxedBody(bodyBytes)
-                    : canonicalizeSimpleBody(bodyBytes);
+            byte[] canonicalizedBody = canonicalizeBody(bodyBytes, bodyCanonicalization);
             computedBodyHash = messageDigest.digest(canonicalizedBody);
         } catch (IOException | NoSuchAlgorithmException e) {
             return false;
@@ -243,7 +266,7 @@ public class ARCVerifier {
             writeBody(part.getBody(), out);
             out.write("\r\n".getBytes(StandardCharsets.UTF_8));
         }
-        out.write(("--" + boundary + "--").getBytes(StandardCharsets.UTF_8));
+        out.write(("--" + boundary + "--\r\n").getBytes(StandardCharsets.UTF_8));
     }
 
     private String getBoundary(Multipart multipart) {
@@ -269,6 +292,12 @@ public class ARCVerifier {
         String normalized = new String(body, StandardCharsets.UTF_8).replaceAll("(?<!\r)\n", "\r\n");
         normalized = normalized.replaceAll("(\r\n)*$", "");
         return (normalized + "\r\n").getBytes(StandardCharsets.UTF_8);
+    }
+
+    private byte[] canonicalizeBody(byte[] body, String bodyCanonicalization) {
+        return "relaxed".equals(bodyCanonicalization)
+                ? canonicalizeRelaxedBody(body)
+                : canonicalizeSimpleBody(body);
     }
 
     private byte[] canonicalizeRelaxedBody(byte[] body) {
@@ -426,8 +455,22 @@ public class ARCVerifier {
             if (!cvOk) {
                 throw new ArcException("ARC Chain validation fails due to cv check failing at instance [" + i + "].");
             }
+
+            boolean sealTagsOk = checkArcSealTags(arcSet);
+            if (!sealTagsOk) {
+                throw new ArcException("ARC Chain validation fails due to invalid ARC-Seal tags at instance [" + i + "].");
+            }
         }
         return true;
+    }
+
+    private boolean checkArcSealTags(List<Field> arcSet) {
+        Optional<Field> arcSealHeader = arcSet.stream()
+                .filter(f -> f.getName().equalsIgnoreCase(ARC_SEAL))
+                .findFirst();
+        return arcSealHeader
+                .map(field -> !parseTagList(field.getBody()).containsKey("h"))
+                .orElse(false);
     }
 
     private boolean checkCv(List<Field> lastArcSet, int instToVerify) {
@@ -476,20 +519,28 @@ public class ARCVerifier {
         for (Field f : headers) {
             String name = f.getName().toUpperCase(Locale.ROOT);
             if (name.startsWith("ARC-")) {
-                int i = -1;
-                String iTag = parseTagGeneric(f.getBody(), "i");
-                if (iTag != null) {
-                    i = Integer.parseInt(iTag);
-                }
-                if (i == -1) {
-                    throw new IllegalStateException("ARC Header missing i= tag");
-                }
-                else {
-                    headersByI.computeIfAbsent(i, k -> new ArrayList<>()).add(f);
-                }
+                int i = parseArcInstance(f);
+                headersByI.computeIfAbsent(i, k -> new ArrayList<>()).add(f);
             }
         }
         return headersByI;
+    }
+
+    private int parseArcInstance(Field field) {
+        String iTag = parseTagGeneric(field.getBody(), "i");
+        if (iTag == null) {
+            throw new IllegalStateException("ARC Header missing i= tag");
+        }
+        int instance;
+        try {
+            instance = Integer.parseInt(iTag);
+        } catch (NumberFormatException e) {
+            throw new IllegalStateException("ARC Header has invalid i= tag", e);
+        }
+        if (instance < MIN_ARC_INSTANCE || instance > MAX_ARC_INSTANCE) {
+            throw new IllegalStateException("ARC Header i= tag must be between 1 and 50");
+        }
+        return instance;
     }
 
     public String canonicalizeBody(String body) {
@@ -568,7 +619,7 @@ public class ARCVerifier {
     public Set<Field> extractArcSet(Header messageHeaders, int instance) {
         Set<Field> prevArcSet = null;
         for (Field field : messageHeaders.getFields()) {
-            if (field.getName().startsWith("ARC-") && field.getBody().contains("i="+instance)) {
+            if (field.getName().startsWith("ARC-") && hasArcInstance(field, instance)) {
                 if (prevArcSet == null) {
                     prevArcSet = new HashSet<>();
                 }
@@ -576,6 +627,18 @@ public class ARCVerifier {
             }
         }
         return prevArcSet;
+    }
+
+    private boolean hasArcInstance(Field field, int instance) {
+        String iTag = parseTagGeneric(field.getBody(), "i");
+        if (iTag == null) {
+            return false;
+        }
+        try {
+            return Integer.parseInt(iTag) == instance;
+        } catch (NumberFormatException e) {
+            return false;
+        }
     }
 
     public String getTxtDnsRecordByField(Field signedHeader) {

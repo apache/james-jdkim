@@ -18,11 +18,16 @@
  ******************************************************************************/
 package org.apache.james.arc;
 
+import org.apache.james.arc.exceptions.ArcException;
 import org.apache.james.dmarc.MockPublicKeyRecordRetrieverDmarc;
 import org.apache.james.jdkim.DKIMCommon;
 import org.apache.james.jdkim.MockPublicKeyRecordRetriever;
+import org.apache.james.mime4j.dom.Body;
 import org.apache.james.mime4j.dom.Message;
+import org.apache.james.mime4j.message.BodyPartBuilder;
 import org.apache.james.mime4j.message.DefaultMessageBuilder;
+import org.apache.james.mime4j.message.MultipartBuilder;
+import org.apache.james.mime4j.stream.NameValuePair;
 import org.apache.james.mime4j.stream.RawField;
 import org.junit.Test;
 
@@ -34,12 +39,16 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.security.Signature;
 import java.util.Map;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class ARCTest {
     public static final String AUTHENTICATION_RESULTS = "Authentication-Results";
@@ -59,6 +68,28 @@ public class ARCTest {
                     "arc",
                     "dmarc.example",
                     "k=rsa; p=" + Base64.getEncoder().encodeToString(ArcTestKeys.publicKeyArc.getEncoded()) + ";"
+            ),
+            MockPublicKeyRecordRetriever.Record.of(
+                    "origin2015",
+                    "d1.example",
+                    "k=rsa; p=" + Base64.getEncoder().encodeToString(ArcTestKeys.publicKeyDkim.getEncoded()) + ";"
+            ),
+            MockPublicKeyRecordRetrieverArc.SpfRecord.spfOf("d1.example",
+                    "jqd@d1.example",
+                    "222.222.222.222",
+                    "softfail (spfCheck: transitioning domain of d1.example does not designate 222.222.222.222 as permitted sender) client-ip=222.222.222.222; envelope-from=jqd@d1.example; helo=d1.example")
+    );
+
+    private final MockPublicKeyRecordRetrieverArc mixedArcKeyRecordRetriever = new MockPublicKeyRecordRetrieverArc( dmarcRetriever,
+            MockPublicKeyRecordRetriever.Record.of(
+                    "arc",
+                    "dmarc.example",
+                    "k=rsa; p=" + Base64.getEncoder().encodeToString(ArcTestKeys.publicKeyArc.getEncoded()) + ";"
+            ),
+            MockPublicKeyRecordRetriever.Record.of(
+                    "arc-alt",
+                    "alt.example",
+                    "k=rsa; p=" + Base64.getEncoder().encodeToString(ArcTestKeys.publicKeyDkim.getEncoded()) + ";"
             ),
             MockPublicKeyRecordRetriever.Record.of(
                     "origin2015",
@@ -562,6 +593,62 @@ public class ARCTest {
         assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
     }
 
+    // cv_fail_i2_1_ams1_invalid_resigned: if a forwarder corrupts i=1 AMS and then re-seals the chain
+    // at i=2 (so i=2 AS honestly covers the corrupted i=1 AMS), the chain must still be rejected
+    // because the validator must independently verify every AMS, not just the last one.
+    @Test
+    public void validate_arc_chain_fails_when_i1_ams_corrupted_and_chain_resigned_at_i2() throws Exception {
+        ByteArrayInputStream emailStream = readFileToByteArrayInputStream("/mail/rfc8617_no_arc.eml");
+        Message message = new DefaultMessageBuilder().parseMessage(emailStream);
+
+        // Build valid i=1 ARC set
+        Map<String, String> hop1 = arcSetBuilder.buildArcSet(message, HELO, MAIL_FROM, IP, keyRecordRetriever);
+        for (Map.Entry<String, String> entry : hop1.entrySet()) {
+            message.getHeader().addField(new RawField(entry.getKey(), entry.getValue()));
+        }
+
+        // Corrupt i=1 AMS before hop 2 seals the chain
+        corruptSignatureOnHeader(message, ARC_MESSAGE_SIGNATURE, "i=1");
+
+        // Build i=2 ARC set over the already-corrupted chain; i=2 AS honestly covers corrupted i=1 AMS
+        Map<String, String> hop2 = arcSetBuilder.buildArcSet(message, HELO, MAIL_FROM, IP, keyRecordRetriever);
+        for (Map.Entry<String, String> entry : hop2.entrySet()) {
+            message.getHeader().addField(new RawField(entry.getKey(), entry.getValue()));
+        }
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    // cv_pass_i2_as_keys_differ: ARC-Seal verification must use the key from the seal being verified,
+    // not an earlier seal in the chain.
+    @Test
+    public void validate_arc_chain_passes_when_latest_arc_seal_uses_different_key_than_previous_seal() throws Exception {
+        ByteArrayInputStream emailStream = readFileToByteArrayInputStream("/mail/rfc8617_no_arc.eml");
+        Message message = new DefaultMessageBuilder().parseMessage(emailStream);
+        ArcSetBuilder altArcSetBuilder = new ArcSetBuilder(
+                ArcTestKeys.privateKeyDkim,
+                "i=; a=rsa-sha256; c=relaxed/relaxed; d=alt.example; s=arc-alt; t=; h=Subject:From:To; bh=; b=",
+                "i=; cv=; a=rsa-sha256; d=alt.example; s=arc-alt; t=; b=",
+                AUTH_SERVICE,
+                TIMESTAMP);
+
+        Map<String, String> hop1 = altArcSetBuilder.buildArcSet(message, HELO, MAIL_FROM, IP, mixedArcKeyRecordRetriever);
+        for (Map.Entry<String, String> entry : hop1.entrySet()) {
+            message.getHeader().addField(new RawField(entry.getKey(), entry.getValue()));
+        }
+
+        Map<String, String> hop2 = arcSetBuilder.buildArcSet(message, HELO, MAIL_FROM, IP, mixedArcKeyRecordRetriever);
+        for (Map.Entry<String, String> entry : hop2.entrySet()) {
+            message.getHeader().addField(new RawField(entry.getKey(), entry.getValue()));
+        }
+
+        ARCChainValidator arcChainValidator = new ARCChainValidator(mixedArcKeyRecordRetriever);
+        ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
+        assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("pass");
+    }
+
     // cv_pass_i3_1: a three-hop chain where every ARC set is valid should validate as cv=pass.
     @Test
     public void validate_arc_chain_passes_for_valid_three_hop_chain() throws Exception {
@@ -587,6 +674,48 @@ public class ARCTest {
         ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
         ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
         assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("pass");
+    }
+
+    // arc_set_extract_i10: extracting i=1 must not accidentally include i=10 ARC headers.
+    @Test
+    public void extract_arc_set_matches_exact_instance_number() throws Exception {
+        Message message = new DefaultMessageBuilder().parseMessage(
+                new ByteArrayInputStream("Subject: exact instance test\n\nbody".getBytes(StandardCharsets.UTF_8)));
+        message.getHeader().addField(new RawField(ARC_AUTHENTICATION_RESULTS, "i=1; mx.example; arc=none"));
+        message.getHeader().addField(new RawField(ARC_MESSAGE_SIGNATURE, "i=1; d=example.org; s=arc; b=one"));
+        message.getHeader().addField(new RawField(ARC_SEAL, "i=1; cv=none; d=example.org; s=arc; b=one"));
+        message.getHeader().addField(new RawField(ARC_AUTHENTICATION_RESULTS, "i=10; mx.example; arc=pass"));
+        message.getHeader().addField(new RawField(ARC_MESSAGE_SIGNATURE, "i=10; d=example.org; s=arc; b=ten"));
+        message.getHeader().addField(new RawField(ARC_SEAL, "i=10; cv=pass; d=example.org; s=arc; b=ten"));
+        ARCVerifier arcVerifier = new ARCVerifier(keyRecordRetriever);
+
+        Set<Field> arcSet = arcVerifier.extractArcSet(message.getHeader(), 1);
+
+        assertThat(arcSet).hasSize(3);
+        assertThat(arcSet)
+                .allMatch(field -> "1".equals(arcVerifier.parseTagGeneric(field.getBody(), "i")));
+    }
+
+    @Test
+    public void arc_header_grouping_rejects_zero_instance_number() throws Exception {
+        Message message = new DefaultMessageBuilder().parseMessage(
+                new ByteArrayInputStream("Subject: invalid instance test\n\nbody".getBytes(StandardCharsets.UTF_8)));
+        message.getHeader().addField(new RawField(ARC_AUTHENTICATION_RESULTS, "i=0; mx.example; arc=none"));
+
+        assertThatThrownBy(() -> new ARCVerifier(keyRecordRetriever).getArcHeadersByI(message.getHeader().getFields()))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("ARC Header i= tag must be between 1 and 50");
+    }
+
+    @Test
+    public void arc_header_grouping_rejects_instance_number_above_fifty() throws Exception {
+        Message message = new DefaultMessageBuilder().parseMessage(
+                new ByteArrayInputStream("Subject: invalid instance test\n\nbody".getBytes(StandardCharsets.UTF_8)));
+        message.getHeader().addField(new RawField(ARC_AUTHENTICATION_RESULTS, "i=51; mx.example; arc=pass"));
+
+        assertThatThrownBy(() -> new ARCVerifier(keyRecordRetriever).getArcHeadersByI(message.getHeader().getFields()))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("ARC Header i= tag must be between 1 and 50");
     }
 
     // ams_struct_i_na: an ARC-Message-Signature with no i= tag at all must be rejected.
@@ -733,6 +862,20 @@ public class ARCTest {
         ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
         ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
         assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    @Test
+    public void verify_ams_throws_clear_exception_when_algorithm_is_sha1() throws Exception {
+        ByteArrayInputStream emailStream = readFileToByteArrayInputStream("/mail/rfc8617_no_arc.eml");
+        Message message = new DefaultMessageBuilder().parseMessage(emailStream);
+        Map<String, String> arcSet = arcSetBuilder.buildArcSet(message, HELO, MAIL_FROM, IP, keyRecordRetriever);
+        Field amsField = new RawField(ARC_MESSAGE_SIGNATURE,
+                arcSet.get(ARC_MESSAGE_SIGNATURE).replace("a=rsa-sha256", "a=rsa-sha1"));
+        String publicKeyDnsRecord = "k=rsa; p=" + Base64.getEncoder().encodeToString(ArcTestKeys.publicKeyArc.getEncoded()) + ";";
+
+        assertThatThrownBy(() -> new ARCVerifier(keyRecordRetriever).verifyAms(amsField, message, publicKeyDnsRecord))
+                .isInstanceOf(ArcException.class)
+                .hasMessage("ARC-Message-Signature uses unsupported algorithm: rsa-sha1");
     }
 
     // ams_fields_a_unknown: unknown AMS signature algorithms must be rejected.
@@ -1047,6 +1190,21 @@ public class ARCTest {
                 baseMessageOneSignedHeaders() + baseMessageOneBody()));
     }
 
+    @Test
+    public void multipart_body_reconstruction_adds_crlf_after_closing_boundary() throws Exception {
+        Body body = MultipartBuilder.create("alternative")
+                .addContentTypeParameter(new NameValuePair("boundary", "abc"))
+                .addBodyPart(BodyPartBuilder.create()
+                        .setContentType("text/plain")
+                        .setBody("plain", StandardCharsets.UTF_8))
+                .build();
+
+        byte[] bodyBytes = readBodyBytesWithVerifier(body);
+
+        assertThat(new String(bodyBytes, StandardCharsets.UTF_8))
+                .endsWith("--abc--\r\n");
+    }
+
     // ams_fields_bh_na: missing bh= must be rejected.
     @Test
     public void validate_arc_chain_fails_when_ams_body_hash_tag_is_missing() throws Exception {
@@ -1069,6 +1227,22 @@ public class ARCTest {
     @Test
     public void validate_arc_chain_fails_when_ams_body_hash_is_modified() throws Exception {
         assertValimailFixtureFails(valimailInvalidBodyHashMessage("Z3JlbWxpbnM="));
+    }
+
+    @Test
+    public void verify_ams_fails_when_no_body_message_has_wrong_body_hash() throws Exception {
+        Message message = new DefaultMessageBuilder().parseMessage(new ByteArrayInputStream(
+                ("From: sender@example.org\r\n"
+                + "To: recipient@example.org\r\n"
+                + "Subject: no body\r\n").getBytes(StandardCharsets.UTF_8)));
+        String amsWithoutSignature = "i=1; a=rsa-sha256; c=relaxed/relaxed; d=dmarc.example; s=arc; "
+                + "t=12345; h=from:to:subject; bh=KWSe46TZKCcDbH4klJPo+tjk5LWJnVRlP5pvjXFZYLQ=; b=";
+        String signature = signRelaxedAmsForNoBodyMessage(message, amsWithoutSignature);
+        Field amsField = new RawField(ARC_MESSAGE_SIGNATURE, amsWithoutSignature + signature);
+        String publicKeyDnsRecord = "k=rsa; p=" + Base64.getEncoder().encodeToString(ArcTestKeys.publicKeyArc.getEncoded()) + ";";
+
+        assertThat(new ARCVerifier(keyRecordRetriever).verifyAms(amsField, message, publicKeyDnsRecord))
+                .isFalse();
     }
 
     // ams_fields_bh_mod_body: body changes outside relaxed canonicalization must be rejected.
@@ -1475,6 +1649,40 @@ public class ARCTest {
                 "example.org",
                 "dummy",
                 "icecream"));
+    }
+
+    @Test
+    public void verify_ams_throws_clear_exception_when_signature_is_expired() throws Exception {
+        Message message = new DefaultMessageBuilder().parseMessage(new ByteArrayInputStream(
+                ("From: sender@example.org\r\n"
+                + "To: recipient@example.org\r\n"
+                + "Subject: expired ams\r\n").getBytes(StandardCharsets.UTF_8)));
+        String amsWithoutSignature = "i=1; a=rsa-sha256; c=relaxed/relaxed; d=dmarc.example; s=arc; "
+                + "t=1; x=2; h=from:to:subject; bh=KWSe46TZKCcDbH4klJPo+tjk5LWJnVRlP5pvjXFZYLQ=; b=";
+        String signature = signRelaxedAmsForNoBodyMessage(message, amsWithoutSignature);
+        Field amsField = new RawField(ARC_MESSAGE_SIGNATURE, amsWithoutSignature + signature);
+        String publicKeyDnsRecord = "k=rsa; p=" + Base64.getEncoder().encodeToString(ArcTestKeys.publicKeyArc.getEncoded()) + ";";
+
+        assertThatThrownBy(() -> new ARCVerifier(keyRecordRetriever).verifyAms(amsField, message, publicKeyDnsRecord))
+                .isInstanceOf(ArcException.class)
+                .hasMessage("AMS signature is expired");
+    }
+
+    @Test
+    public void verify_ams_throws_clear_exception_when_expiration_is_not_after_timestamp() throws Exception {
+        Message message = new DefaultMessageBuilder().parseMessage(new ByteArrayInputStream(
+                ("From: sender@example.org\r\n"
+                + "To: recipient@example.org\r\n"
+                + "Subject: invalid ams lifetime\r\n").getBytes(StandardCharsets.UTF_8)));
+        String amsWithoutSignature = "i=1; a=rsa-sha256; c=relaxed/relaxed; d=dmarc.example; s=arc; "
+                + "t=200; x=100; h=from:to:subject; bh=KWSe46TZKCcDbH4klJPo+tjk5LWJnVRlP5pvjXFZYLQ=; b=";
+        String signature = signRelaxedAmsForNoBodyMessage(message, amsWithoutSignature);
+        Field amsField = new RawField(ARC_MESSAGE_SIGNATURE, amsWithoutSignature + signature);
+        String publicKeyDnsRecord = "k=rsa; p=" + Base64.getEncoder().encodeToString(ArcTestKeys.publicKeyArc.getEncoded()) + ";";
+
+        assertThatThrownBy(() -> new ARCVerifier(keyRecordRetriever).verifyAms(amsField, message, publicKeyDnsRecord))
+                .isInstanceOf(ArcException.class)
+                .hasMessage("AMS x= expiration must be greater than t= timestamp");
     }
 
     // aar_struct_i_na / aar_i_missing: an ARC-Authentication-Results header without i= is invalid.
@@ -2984,6 +3192,23 @@ public class ARCTest {
                 bodyHash,
                 "relaxed/relaxed",
                 baseMessageOneBody());
+    }
+
+    private String signRelaxedAmsForNoBodyMessage(Message message, String amsWithoutSignature) throws Exception {
+        String signingData = "from:" + message.getHeader().getField("From").getBody() + "\r\n"
+                + "to:" + message.getHeader().getField("To").getBody() + "\r\n"
+                + "subject:" + message.getHeader().getField("Subject").getBody() + "\r\n"
+                + "arc-message-signature:" + amsWithoutSignature;
+        Signature signature = Signature.getInstance("SHA256withRSA");
+        signature.initSign(ArcTestKeys.privateKeyArc);
+        signature.update(signingData.getBytes(StandardCharsets.UTF_8));
+        return Base64.getEncoder().encodeToString(signature.sign());
+    }
+
+    private byte[] readBodyBytesWithVerifier(Body body) throws Exception {
+        Method readBodyBytes = ARCVerifier.class.getDeclaredMethod("readBodyBytes", Body.class);
+        readBodyBytes.setAccessible(true);
+        return (byte[]) readBodyBytes.invoke(new ARCVerifier(keyRecordRetriever), body);
     }
 
     private String valimailAmsBodyHashMessage(

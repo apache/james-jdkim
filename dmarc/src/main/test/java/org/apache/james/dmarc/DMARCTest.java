@@ -18,7 +18,12 @@
  ******************************************************************************/
 package org.apache.james.dmarc;
 
+import org.apache.james.mime4j.dom.Message;
+import org.apache.james.mime4j.message.DefaultMessageBuilder;
 import org.junit.Test;
+
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -50,5 +55,49 @@ public class DMARCTest {
         passRequests.forEach(r -> {
             assertThat(dmarcVerifier.runDmarcCheck(r.message(), r.spfResult(), r.spfDomain(), r.dkimResult(), r.dkimDomain()).toString()).hasToString(r.expectedResult());
         });
+    }
+
+    @Test
+    public void dmarc_check_returns_permerror_when_from_header_is_missing() throws Exception {
+        Message message = parseMessage(
+                "To: recipient@example.org\r\n"
+                + "Subject: missing from\r\n"
+                + "\r\n"
+                + "body\r\n");
+
+        DmarcValidationResult result = dmarcVerifier.runDmarcCheck(
+                message,
+                "pass client-ip=192.0.2.1; envelope-from=sender@example.org",
+                "example.org",
+                "pass",
+                "example.org");
+
+        assertThat(result.toString())
+                .isEqualTo("dmarc=permerror reason=\"From header must contain exactly one mailbox\"");
+    }
+
+    @Test
+    public void dmarc_check_returns_permerror_when_from_header_has_multiple_mailboxes() throws Exception {
+        Message message = parseMessage(
+                "From: Alice <alice@example.org>, Bob <bob@example.org>\r\n"
+                + "To: recipient@example.org\r\n"
+                + "Subject: multiple from\r\n"
+                + "\r\n"
+                + "body\r\n");
+
+        DmarcValidationResult result = dmarcVerifier.runDmarcCheck(
+                message,
+                "pass client-ip=192.0.2.1; envelope-from=sender@example.org",
+                "example.org",
+                "pass",
+                "example.org");
+
+        assertThat(result.toString())
+                .isEqualTo("dmarc=permerror reason=\"From header must contain exactly one mailbox\"");
+    }
+
+    private Message parseMessage(String rawMessage) throws Exception {
+        return new DefaultMessageBuilder().parseMessage(
+                new ByteArrayInputStream(rawMessage.getBytes(StandardCharsets.UTF_8)));
     }
 }

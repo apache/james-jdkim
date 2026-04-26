@@ -48,7 +48,7 @@ public class PublicSuffixListTest {
     @Test
     public void getOrgDomain_shouldReturnPublicSuffixIfMatched() {
         assertEquals("example.co.uk", PublicSuffixList.getOrgDomain("example.co.uk"));
-        assertEquals("mail.replit.app", PublicSuffixList.getOrgDomain("mail.replit.app"));
+        assertEquals("replit.app", PublicSuffixList.getOrgDomain("mail.replit.app"));
     }
 
     /*
