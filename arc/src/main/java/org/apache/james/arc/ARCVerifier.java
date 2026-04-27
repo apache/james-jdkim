@@ -27,6 +27,7 @@ import org.apache.james.mime4j.dom.Header;
 import org.apache.james.mime4j.dom.Message;
 import org.apache.james.mime4j.dom.Multipart;
 import org.apache.james.mime4j.dom.SingleBody;
+import org.apache.james.mime4j.dom.field.ContentTypeField;
 import org.apache.james.mime4j.io.EOLConvertingInputStream;
 import org.apache.james.mime4j.stream.NameValuePair;
 import org.apache.james.mime4j.stream.Field;
@@ -45,6 +46,7 @@ import java.security.SignatureException;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
+import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
@@ -53,6 +55,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
@@ -73,7 +76,7 @@ import java.util.regex.Pattern;
  *   <li>Building signing data for ARC-Seal verification</li>
  * </ul>
  * <p>
- * This class is not instantiable and all methods are static.
+ * Instances are configured with a public key retriever and an optional clock.
  */
 public class ARCVerifier {
     public static final String RSA = "RSA";
@@ -90,10 +93,16 @@ public class ARCVerifier {
     private static final int MIN_ARC_INSTANCE = 1;
     private static final int MAX_ARC_INSTANCE = 50;
     private static final String DNS_RECORD_TYPE = "_domainkey";
-    private PublicKeyRetrieverArc _keyRecordRetriever;
+    private final PublicKeyRetrieverArc _keyRecordRetriever;
+    private final Clock clock;
 
-    ARCVerifier(PublicKeyRetrieverArc keyRecordRetriever) {
-        _keyRecordRetriever = keyRecordRetriever;
+    public ARCVerifier(PublicKeyRetrieverArc keyRecordRetriever) {
+        this(keyRecordRetriever, Clock.systemUTC());
+    }
+
+    public ARCVerifier(PublicKeyRetrieverArc keyRecordRetriever, Clock clock) {
+        _keyRecordRetriever = Objects.requireNonNull(keyRecordRetriever);
+        this.clock = Objects.requireNonNull(clock);
     }
 
     public boolean verifyAms(Field amsField, Message message, String publicKeyDnsRecord) {
@@ -201,6 +210,10 @@ public class ARCVerifier {
     private void validateAmsTimestamp(Map<String, String> tags) {
         String timestamp = tags.get("t");
         String expiration = tags.get("x");
+        long now = clock.instant().getEpochSecond();
+        if (timestamp != null && Long.parseLong(timestamp) > now) {
+            throw new ArcException("AMS t= timestamp must not be in the future");
+        }
         if (expiration == null) {
             return;
         }
@@ -208,7 +221,6 @@ public class ARCVerifier {
         if (timestamp != null && expirationEpoch <= Long.parseLong(timestamp)) {
             throw new ArcException("AMS x= expiration must be greater than t= timestamp");
         }
-        long now = System.currentTimeMillis() / 1000;
         if (expirationEpoch < now) {
             throw new ArcException("AMS signature is expired");
         }
@@ -227,9 +239,6 @@ public class ARCVerifier {
         try {
             MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
             byte[] bodyBytes = message.getBody() == null ? new byte[0] : readBodyBytes(message.getBody());
-            if (bodyBytes.length == 0 && message.getBody() instanceof Multipart) {
-                return true;
-            }
             byte[] canonicalizedBody = canonicalizeBody(bodyBytes, bodyCanonicalization);
             computedBodyHash = messageDigest.digest(canonicalizedBody);
         } catch (IOException | NoSuchAlgorithmException e) {
@@ -274,6 +283,11 @@ public class ARCVerifier {
             if ("boundary".equalsIgnoreCase(parameter.getName())) {
                 return parameter.getValue();
             }
+        }
+        Entity parent = multipart.getParent();
+        if (parent != null && parent.getHeader() != null
+                && parent.getHeader().getField("Content-Type") instanceof ContentTypeField) {
+            return ((ContentTypeField) parent.getHeader().getField("Content-Type")).getBoundary();
         }
         return null;
     }
@@ -469,8 +483,35 @@ public class ARCVerifier {
                 .filter(f -> f.getName().equalsIgnoreCase(ARC_SEAL))
                 .findFirst();
         return arcSealHeader
-                .map(field -> !parseTagList(field.getBody()).containsKey("h"))
+                .map(field -> {
+                    Map<String, String> tags = parseTagList(field.getBody());
+                    return hasRequiredArcSealTags(tags)
+                            && isValidArcSealCv(tags.get("cv"))
+                            && DOMAIN_PATTERN.matcher(tags.get("d")).matches()
+                            && SELECTOR_PATTERN.matcher(tags.get("s")).matches()
+                            && !tags.containsKey("h");
+                })
                 .orElse(false);
+    }
+
+    private boolean hasRequiredArcSealTags(Map<String, String> tags) {
+        return hasNonEmptyTag(tags, "i")
+                && hasNonEmptyTag(tags, "a")
+                && hasNonEmptyTag(tags, "cv")
+                && hasNonEmptyTag(tags, "d")
+                && hasNonEmptyTag(tags, "s")
+                && hasNonEmptyTag(tags, "b");
+    }
+
+    private boolean hasNonEmptyTag(Map<String, String> tags, String tagName) {
+        String value = tags.get(tagName);
+        return value != null && !value.replaceAll("\\s+", "").isEmpty();
+    }
+
+    private boolean isValidArcSealCv(String cv) {
+        return "none".equalsIgnoreCase(cv)
+                || "pass".equalsIgnoreCase(cv)
+                || "fail".equalsIgnoreCase(cv);
     }
 
     private boolean checkCv(List<Field> lastArcSet, int instToVerify) {

@@ -24,13 +24,20 @@ import org.apache.james.mime4j.dom.address.Mailbox;
 import org.apache.james.mime4j.dom.address.MailboxList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 public class DMARCVerifier {
     public static final String FROM = "From";
     private final PublicKeyRecordRetrieverDmarc _recordRetriever;
+    private final PublicSuffixList publicSuffixList;
 
     public DMARCVerifier(PublicKeyRecordRetrieverDmarc recordRetriever) {
-        _recordRetriever = recordRetriever;
+        this(recordRetriever, new DefaultPublicSuffixList());
+    }
+
+    public DMARCVerifier(PublicKeyRecordRetrieverDmarc recordRetriever, PublicSuffixList publicSuffixList) {
+        _recordRetriever = Objects.requireNonNull(recordRetriever);
+        this.publicSuffixList = Objects.requireNonNull(publicSuffixList);
     }
 
     public DmarcValidationResult runDmarcCheck(Message message, String spfHeaderText, String
@@ -93,8 +100,8 @@ public class DMARCVerifier {
     private boolean getDomainAlignment(String flag, String result, String receivedDomain, String expectedDomain) {
         // we expect flag to be either "s" or "r"; default is "r" when omitted
         if (flag.equalsIgnoreCase("r")){ //relaxed
-            String fromOrgDomain = PublicSuffixList.getOrgDomain(receivedDomain); //we get the organizational domain using PSL
-            String spfOrgDomain = PublicSuffixList.getOrgDomain(expectedDomain);
+            String fromOrgDomain = publicSuffixList.getOrgDomain(receivedDomain); //we get the organizational domain using PSL
+            String spfOrgDomain = publicSuffixList.getOrgDomain(expectedDomain);
 
             return  "pass".equals(result)
                     && fromOrgDomain.equalsIgnoreCase(spfOrgDomain);
