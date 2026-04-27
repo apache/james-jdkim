@@ -44,6 +44,9 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.security.Signature;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.Map;
 import java.util.Set;
 
@@ -239,6 +242,7 @@ public class ARCTest {
         ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
         ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
         assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+        assertThat(cv.getDescription()).isEqualTo("Previous ARC hop validation failed at i=1");
     }
 
     // cv_fail_i1_as_invalid: builds a valid i=1 ARC set, then replaces the ARC-Seal b= signature with
@@ -1245,6 +1249,24 @@ public class ARCTest {
                 .isFalse();
     }
 
+    @Test
+    public void verify_ams_fails_when_empty_multipart_has_wrong_body_hash() throws Exception {
+        Message message = parseRawEmail(
+                "From: sender@example.org\n"
+                + "To: recipient@example.org\n"
+                + "Subject: empty multipart\n"
+                + "Content-Type: multipart/alternative; boundary=abc\n"
+                + "\n");
+        String amsWithoutSignature = "i=1; a=rsa-sha256; c=relaxed/relaxed; d=dmarc.example; s=arc; "
+                + "t=12345; h=from:to:subject; bh=KWSe46TZKCcDbH4klJPo+tjk5LWJnVRlP5pvjXFZYLQ=; b=";
+        String signature = signRelaxedAmsForNoBodyMessage(message, amsWithoutSignature);
+        Field amsField = new RawField(ARC_MESSAGE_SIGNATURE, amsWithoutSignature + signature);
+        String publicKeyDnsRecord = "k=rsa; p=" + Base64.getEncoder().encodeToString(ArcTestKeys.publicKeyArc.getEncoded()) + ";";
+
+        assertThat(new ARCVerifier(keyRecordRetriever).verifyAms(amsField, message, publicKeyDnsRecord))
+                .isFalse();
+    }
+
     // ams_fields_bh_mod_body: body changes outside relaxed canonicalization must be rejected.
     @Test
     public void validate_arc_chain_fails_when_ams_signed_body_is_modified() throws Exception {
@@ -1658,14 +1680,33 @@ public class ARCTest {
                 + "To: recipient@example.org\r\n"
                 + "Subject: expired ams\r\n").getBytes(StandardCharsets.UTF_8)));
         String amsWithoutSignature = "i=1; a=rsa-sha256; c=relaxed/relaxed; d=dmarc.example; s=arc; "
-                + "t=1; x=2; h=from:to:subject; bh=KWSe46TZKCcDbH4klJPo+tjk5LWJnVRlP5pvjXFZYLQ=; b=";
+                + "t=1; x=1000; h=from:to:subject; bh=KWSe46TZKCcDbH4klJPo+tjk5LWJnVRlP5pvjXFZYLQ=; b=";
         String signature = signRelaxedAmsForNoBodyMessage(message, amsWithoutSignature);
         Field amsField = new RawField(ARC_MESSAGE_SIGNATURE, amsWithoutSignature + signature);
         String publicKeyDnsRecord = "k=rsa; p=" + Base64.getEncoder().encodeToString(ArcTestKeys.publicKeyArc.getEncoded()) + ";";
+        Clock clockAfterExpiration = Clock.fixed(Instant.ofEpochSecond(1001), ZoneOffset.UTC);
 
-        assertThatThrownBy(() -> new ARCVerifier(keyRecordRetriever).verifyAms(amsField, message, publicKeyDnsRecord))
+        assertThatThrownBy(() -> new ARCVerifier(keyRecordRetriever, clockAfterExpiration).verifyAms(amsField, message, publicKeyDnsRecord))
                 .isInstanceOf(ArcException.class)
                 .hasMessage("AMS signature is expired");
+    }
+
+    @Test
+    public void verify_ams_throws_clear_exception_when_timestamp_is_in_the_future_without_expiration() throws Exception {
+        Message message = new DefaultMessageBuilder().parseMessage(new ByteArrayInputStream(
+                ("From: sender@example.org\r\n"
+                + "To: recipient@example.org\r\n"
+                + "Subject: future ams timestamp\r\n").getBytes(StandardCharsets.UTF_8)));
+        String amsWithoutSignature = "i=1; a=rsa-sha256; c=relaxed/relaxed; d=dmarc.example; s=arc; "
+                + "t=1001; h=from:to:subject; bh=KWSe46TZKCcDbH4klJPo+tjk5LWJnVRlP5pvjXFZYLQ=; b=";
+        String signature = signRelaxedAmsForNoBodyMessage(message, amsWithoutSignature);
+        Field amsField = new RawField(ARC_MESSAGE_SIGNATURE, amsWithoutSignature + signature);
+        String publicKeyDnsRecord = "k=rsa; p=" + Base64.getEncoder().encodeToString(ArcTestKeys.publicKeyArc.getEncoded()) + ";";
+        Clock clockBeforeTimestamp = Clock.fixed(Instant.ofEpochSecond(1000), ZoneOffset.UTC);
+
+        assertThatThrownBy(() -> new ARCVerifier(keyRecordRetriever, clockBeforeTimestamp).verifyAms(amsField, message, publicKeyDnsRecord))
+                .isInstanceOf(ArcException.class)
+                .hasMessage("AMS t= timestamp must not be in the future");
     }
 
     @Test

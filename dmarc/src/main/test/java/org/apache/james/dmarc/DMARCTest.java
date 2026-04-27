@@ -58,6 +58,23 @@ public class DMARCTest {
     }
 
     @Test
+    public void dmarc_check_can_use_custom_public_suffix_list() {
+        PublicSuffixList customPublicSuffixList = domain -> "example.test";
+        DMARCVerifier verifier = new DMARCVerifier(recordRetrieverDmarc, customPublicSuffixList);
+        DmarcRequestMock request = passRequests.get(0);
+
+        DmarcValidationResult result = verifier.runDmarcCheck(
+                request.message(),
+                "pass client-ip=192.0.2.1; envelope-from=sender@different.example.test",
+                "different.example.test",
+                "fail",
+                "not-used.example.test");
+
+        assertThat(result.toString())
+                .isEqualTo("dmarc=pass (p=reject) header.from=d1.example");
+    }
+
+    @Test
     public void dmarc_check_returns_permerror_when_from_header_is_missing() throws Exception {
         Message message = parseMessage(
                 "To: recipient@example.org\r\n"

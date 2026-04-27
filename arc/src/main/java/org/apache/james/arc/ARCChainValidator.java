@@ -95,7 +95,7 @@ public class ARCChainValidator {
         for (int i = 1; i <= numArcInstances; i++) {
             Set<Field> arcSet = arcVerifier.extractArcSet(messageHeaders, i);
             if (arcSet == null || !checkArcAms(arcSet, message, arcVerifier)) {
-                return new ArcValidationOutcome(ArcValidationResult.FAIL, "Previous ARC hops validation failed");
+                return new ArcValidationOutcome(ArcValidationResult.FAIL, "Previous ARC hop validation failed at i=" + i);
             }
         }
         boolean asOk;

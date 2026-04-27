@@ -18,6 +18,20 @@
  ******************************************************************************/
 package org.apache.james.dmarc;
 
-public interface PublicSuffixList {
-    String getOrgDomain(String domainToCheck);
+import java.util.Locale;
+
+public class DefaultPublicSuffixList implements PublicSuffixList {
+    @Override
+    public String getOrgDomain(String domainToCheck) {
+        if (domainToCheck == null || domainToCheck.trim().isEmpty()) {
+            return domainToCheck;
+        }
+
+        String normalizedDomain = domainToCheck.toLowerCase(Locale.ROOT).trim();
+        String[] labels = normalizedDomain.split("\\.");
+        if (labels.length < 3) {
+            return normalizedDomain;
+        }
+        return labels[labels.length - 2] + "." + labels[labels.length - 1];
+    }
 }

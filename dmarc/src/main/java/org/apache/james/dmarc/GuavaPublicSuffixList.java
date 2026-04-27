@@ -18,6 +18,26 @@
  ******************************************************************************/
 package org.apache.james.dmarc;
 
-public interface PublicSuffixList {
-    String getOrgDomain(String domainToCheck);
+import java.util.Locale;
+
+import com.google.common.net.InternetDomainName;
+
+public class GuavaPublicSuffixList implements PublicSuffixList {
+    @Override
+    public String getOrgDomain(String domainToCheck) {
+        if (domainToCheck == null || domainToCheck.trim().isEmpty()) {
+            return domainToCheck;
+        }
+
+        String normalizedDomain = domainToCheck.toLowerCase(Locale.ROOT).trim();
+        try {
+            InternetDomainName domainName = InternetDomainName.from(normalizedDomain);
+            if (domainName.isUnderPublicSuffix()) {
+                return domainName.topPrivateDomain().toString();
+            }
+            return normalizedDomain;
+        } catch (IllegalArgumentException e) {
+            return normalizedDomain;
+        }
+    }
 }

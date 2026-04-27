@@ -22,6 +22,7 @@ import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 
 public class PublicSuffixListTest {
+    private final PublicSuffixList publicSuffixList = new GuavaPublicSuffixList();
 
     /*
         `example.com` does not exist in the PSL, only `com` does
@@ -29,9 +30,9 @@ public class PublicSuffixListTest {
     */
     @Test
     public void getOrgDomain_simpleMatch() {
-        assertEquals("example.com", PublicSuffixList.getOrgDomain("example.com"));
-        assertEquals("example.com", PublicSuffixList.getOrgDomain("aaa.example.com"));
-        assertEquals("example.com", PublicSuffixList.getOrgDomain("bbb.aaa.example.com"));
+        assertEquals("example.com", publicSuffixList.getOrgDomain("example.com"));
+        assertEquals("example.com", publicSuffixList.getOrgDomain("aaa.example.com"));
+        assertEquals("example.com", publicSuffixList.getOrgDomain("bbb.aaa.example.com"));
     }
 
     /*
@@ -40,15 +41,15 @@ public class PublicSuffixListTest {
     */
     @Test
     public void getOrgDomain_noPslMatch() {
-        assertEquals("unknown.private", PublicSuffixList.getOrgDomain("unknown.private"));
-        assertEquals("my.localdomain", PublicSuffixList.getOrgDomain("my.localdomain"));
-        assertEquals("service.internal", PublicSuffixList.getOrgDomain("service.internal"));
+        assertEquals("unknown.private", publicSuffixList.getOrgDomain("unknown.private"));
+        assertEquals("my.localdomain", publicSuffixList.getOrgDomain("my.localdomain"));
+        assertEquals("service.internal", publicSuffixList.getOrgDomain("service.internal"));
     }
 
     @Test
     public void getOrgDomain_shouldReturnPublicSuffixIfMatched() {
-        assertEquals("example.co.uk", PublicSuffixList.getOrgDomain("example.co.uk"));
-        assertEquals("replit.app", PublicSuffixList.getOrgDomain("mail.replit.app"));
+        assertEquals("example.co.uk", publicSuffixList.getOrgDomain("example.co.uk"));
+        assertEquals("replit.app", publicSuffixList.getOrgDomain("mail.replit.app"));
     }
 
     /*
@@ -56,10 +57,10 @@ public class PublicSuffixListTest {
     */
     @Test
     public void getOrgDomain_wildCardMatched() {
-        assertEquals("sapporo.jp", PublicSuffixList.getOrgDomain("sapporo.jp"));
-        assertEquals("abc.sapporo.jp", PublicSuffixList.getOrgDomain("abc.sapporo.jp"));
-        assertEquals("foo.abc.sapporo.jp", PublicSuffixList.getOrgDomain("foo.abc.sapporo.jp"));
-        assertEquals("foo.abc.sapporo.jp", PublicSuffixList.getOrgDomain("bar.foo.abc.sapporo.jp"));
+        assertEquals("sapporo.jp", publicSuffixList.getOrgDomain("sapporo.jp"));
+        assertEquals("abc.sapporo.jp", publicSuffixList.getOrgDomain("abc.sapporo.jp"));
+        assertEquals("foo.abc.sapporo.jp", publicSuffixList.getOrgDomain("foo.abc.sapporo.jp"));
+        assertEquals("foo.abc.sapporo.jp", publicSuffixList.getOrgDomain("bar.foo.abc.sapporo.jp"));
     }
 
     /*
@@ -67,9 +68,9 @@ public class PublicSuffixListTest {
     */
     @Test
     public void getOrgDomain_exceptionsMatched() {
-        assertEquals("city.sapporo.jp", PublicSuffixList.getOrgDomain("city.sapporo.jp"));
-        assertEquals("city.sapporo.jp", PublicSuffixList.getOrgDomain("abc.city.sapporo.jp"));
-        assertEquals("city.sapporo.jp", PublicSuffixList.getOrgDomain("x.y.city.sapporo.jp"));
+        assertEquals("city.sapporo.jp", publicSuffixList.getOrgDomain("city.sapporo.jp"));
+        assertEquals("city.sapporo.jp", publicSuffixList.getOrgDomain("abc.city.sapporo.jp"));
+        assertEquals("city.sapporo.jp", publicSuffixList.getOrgDomain("x.y.city.sapporo.jp"));
     }
 
     /*
@@ -79,11 +80,11 @@ public class PublicSuffixListTest {
  */
     @Test
     public void getOrgDomain_wildCardAndExceptionCombo() {
-        assertEquals("www.ck", PublicSuffixList.getOrgDomain("www.ck"));                 // exception
-        assertEquals("www.ck", PublicSuffixList.getOrgDomain("a.www.ck"));               // exception overrides wildcard
-        assertEquals("abc.ck", PublicSuffixList.getOrgDomain("abc.ck"));                 // wildcard + one left
-        assertEquals("foo.abc.ck", PublicSuffixList.getOrgDomain("foo.abc.ck"));         // wildcard + two left
-        assertEquals("foo.abc.ck", PublicSuffixList.getOrgDomain("bar.foo.abc.ck"));     // wildcard + two. we stop at two left labels
+        assertEquals("www.ck", publicSuffixList.getOrgDomain("www.ck"));                 // exception
+        assertEquals("www.ck", publicSuffixList.getOrgDomain("a.www.ck"));               // exception overrides wildcard
+        assertEquals("abc.ck", publicSuffixList.getOrgDomain("abc.ck"));                 // wildcard + one left
+        assertEquals("foo.abc.ck", publicSuffixList.getOrgDomain("foo.abc.ck"));         // wildcard + two left
+        assertEquals("foo.abc.ck", publicSuffixList.getOrgDomain("bar.foo.abc.ck"));     // wildcard + two. we stop at two left labels
     }
 
     /*
@@ -91,9 +92,9 @@ public class PublicSuffixListTest {
      */
     @Test
     public void getOrgDomain_singleLabel() {
-        assertEquals("localhost", PublicSuffixList.getOrgDomain("localhost"));
-        assertEquals("com", PublicSuffixList.getOrgDomain("com"));
-        assertEquals("example", PublicSuffixList.getOrgDomain("example"));
+        assertEquals("localhost", publicSuffixList.getOrgDomain("localhost"));
+        assertEquals("com", publicSuffixList.getOrgDomain("com"));
+        assertEquals("example", publicSuffixList.getOrgDomain("example"));
     }
 
     /*
@@ -101,8 +102,8 @@ public class PublicSuffixListTest {
     */
     @Test
     public void getOrgDomain_openAiWildcard() {
-        assertEquals("三重.jp", PublicSuffixList.getOrgDomain("三重.jp"));                  //Bare PSL match
-        assertEquals("北海道.三重.jp", PublicSuffixList.getOrgDomain("北海道.三重.jp"));      //PSL + one left
-        assertEquals("北海道.三重.jp", PublicSuffixList.getOrgDomain("大分.北海道.三重.jp"));  //PSL + two left
+        assertEquals("三重.jp", publicSuffixList.getOrgDomain("三重.jp"));                  //Bare PSL match
+        assertEquals("北海道.三重.jp", publicSuffixList.getOrgDomain("北海道.三重.jp"));      //PSL + one left
+        assertEquals("北海道.三重.jp", publicSuffixList.getOrgDomain("大分.北海道.三重.jp"));  //PSL + two left
     }
 }
