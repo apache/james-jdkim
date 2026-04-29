@@ -47,6 +47,7 @@ import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.time.Clock;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
@@ -93,16 +94,26 @@ public class ARCVerifier {
     private static final int MIN_ARC_INSTANCE = 1;
     private static final int MAX_ARC_INSTANCE = 50;
     private static final String DNS_RECORD_TYPE = "_domainkey";
+    private static final Duration DEFAULT_CLOCK_SKEW = Duration.ofMinutes(5);
     private final PublicKeyRetrieverArc _keyRecordRetriever;
     private final Clock clock;
+    private final Duration acceptedClockSkew;
 
     public ARCVerifier(PublicKeyRetrieverArc keyRecordRetriever) {
         this(keyRecordRetriever, Clock.systemUTC());
     }
 
     public ARCVerifier(PublicKeyRetrieverArc keyRecordRetriever, Clock clock) {
+        this(keyRecordRetriever, clock, DEFAULT_CLOCK_SKEW);
+    }
+
+    public ARCVerifier(PublicKeyRetrieverArc keyRecordRetriever, Clock clock, Duration acceptedClockSkew) {
         _keyRecordRetriever = Objects.requireNonNull(keyRecordRetriever);
         this.clock = Objects.requireNonNull(clock);
+        this.acceptedClockSkew = Objects.requireNonNull(acceptedClockSkew);
+        if (acceptedClockSkew.isNegative()) {
+            throw new IllegalArgumentException("acceptedClockSkew must not be negative");
+        }
     }
 
     public boolean verifyAms(Field amsField, Message message, String publicKeyDnsRecord) {
@@ -211,7 +222,8 @@ public class ARCVerifier {
         String timestamp = tags.get("t");
         String expiration = tags.get("x");
         long now = clock.instant().getEpochSecond();
-        if (timestamp != null && Long.parseLong(timestamp) > now) {
+        long clockSkewSeconds = acceptedClockSkew.getSeconds();
+        if (timestamp != null && Long.parseLong(timestamp) > now + clockSkewSeconds) {
             throw new ArcException("AMS t= timestamp must not be in the future");
         }
         if (expiration == null) {
@@ -221,7 +233,7 @@ public class ARCVerifier {
         if (timestamp != null && expirationEpoch <= Long.parseLong(timestamp)) {
             throw new ArcException("AMS x= expiration must be greater than t= timestamp");
         }
-        if (expirationEpoch < now) {
+        if (expirationEpoch < now - clockSkewSeconds) {
             throw new ArcException("AMS signature is expired");
         }
     }
@@ -487,6 +499,7 @@ public class ARCVerifier {
                     Map<String, String> tags = parseTagList(field.getBody());
                     return hasRequiredArcSealTags(tags)
                             && isValidArcSealCv(tags.get("cv"))
+                            && isValidArcSealTimestamp(tags.get("t"))
                             && DOMAIN_PATTERN.matcher(tags.get("d")).matches()
                             && SELECTOR_PATTERN.matcher(tags.get("s")).matches()
                             && !tags.containsKey("h");
@@ -512,6 +525,20 @@ public class ARCVerifier {
         return "none".equalsIgnoreCase(cv)
                 || "pass".equalsIgnoreCase(cv)
                 || "fail".equalsIgnoreCase(cv);
+    }
+
+    private boolean isValidArcSealTimestamp(String timestamp) {
+        if (timestamp == null) {
+            return true;
+        }
+        if (!timestamp.matches("\\d+")) {
+            return false;
+        }
+        try {
+            return Long.parseLong(timestamp) <= clock.instant().getEpochSecond() + acceptedClockSkew.getSeconds();
+        } catch (NumberFormatException e) {
+            return false;
+        }
     }
 
     private boolean checkCv(List<Field> lastArcSet, int instToVerify) {

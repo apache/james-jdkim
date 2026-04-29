@@ -45,12 +45,14 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.security.Signature;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.Map;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class ARCTest {
@@ -698,6 +700,16 @@ public class ARCTest {
         assertThat(arcSet).hasSize(3);
         assertThat(arcSet)
                 .allMatch(field -> "1".equals(arcVerifier.parseTagGeneric(field.getBody(), "i")));
+    }
+
+    @Test
+    public void current_instance_ignores_tag_names_containing_i_suffix() throws Exception {
+        Message message = new DefaultMessageBuilder().parseMessage(
+                new ByteArrayInputStream("Subject: exact instance test\n\nbody".getBytes(StandardCharsets.UTF_8)));
+        message.getHeader().addField(new RawField(ARC_SEAL, "unrelatedi=10; i=1; cv=none; d=example.org; s=arc; b=one"));
+        ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
+
+        assertThat(arcChainValidator.getCurrentInstance(message.getHeader())).isEqualTo(2);
     }
 
     @Test
@@ -1684,11 +1696,63 @@ public class ARCTest {
         String signature = signRelaxedAmsForNoBodyMessage(message, amsWithoutSignature);
         Field amsField = new RawField(ARC_MESSAGE_SIGNATURE, amsWithoutSignature + signature);
         String publicKeyDnsRecord = "k=rsa; p=" + Base64.getEncoder().encodeToString(ArcTestKeys.publicKeyArc.getEncoded()) + ";";
-        Clock clockAfterExpiration = Clock.fixed(Instant.ofEpochSecond(1001), ZoneOffset.UTC);
+        Clock clockAfterExpiration = Clock.fixed(Instant.ofEpochSecond(1301), ZoneOffset.UTC);
 
         assertThatThrownBy(() -> new ARCVerifier(keyRecordRetriever, clockAfterExpiration).verifyAms(amsField, message, publicKeyDnsRecord))
                 .isInstanceOf(ArcException.class)
                 .hasMessage("AMS signature is expired");
+    }
+
+    @Test
+    public void verify_ams_accepts_timestamp_within_default_clock_skew() throws Exception {
+        Message message = new DefaultMessageBuilder().parseMessage(new ByteArrayInputStream(
+                ("From: sender@example.org\r\n"
+                + "To: recipient@example.org\r\n"
+                + "Subject: future ams timestamp within skew\r\n").getBytes(StandardCharsets.UTF_8)));
+        String amsWithoutSignature = "i=1; a=rsa-sha256; c=relaxed/relaxed; d=dmarc.example; s=arc; "
+                + "t=1300; h=from:to:subject; bh=KWSe46TZKCcDbH4klJPo+tjk5LWJnVRlP5pvjXFZYLQ=; b=";
+        String signature = signRelaxedAmsForNoBodyMessage(message, amsWithoutSignature);
+        Field amsField = new RawField(ARC_MESSAGE_SIGNATURE, amsWithoutSignature + signature);
+        String publicKeyDnsRecord = "k=rsa; p=" + Base64.getEncoder().encodeToString(ArcTestKeys.publicKeyArc.getEncoded()) + ";";
+        Clock clockBeforeTimestamp = Clock.fixed(Instant.ofEpochSecond(1000), ZoneOffset.UTC);
+
+        assertThatCode(() -> new ARCVerifier(keyRecordRetriever, clockBeforeTimestamp).verifyAms(amsField, message, publicKeyDnsRecord))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    public void verify_ams_throws_clear_exception_when_timestamp_exceeds_default_clock_skew() throws Exception {
+        Message message = new DefaultMessageBuilder().parseMessage(new ByteArrayInputStream(
+                ("From: sender@example.org\r\n"
+                + "To: recipient@example.org\r\n"
+                + "Subject: future ams timestamp beyond skew\r\n").getBytes(StandardCharsets.UTF_8)));
+        String amsWithoutSignature = "i=1; a=rsa-sha256; c=relaxed/relaxed; d=dmarc.example; s=arc; "
+                + "t=1301; h=from:to:subject; bh=KWSe46TZKCcDbH4klJPo+tjk5LWJnVRlP5pvjXFZYLQ=; b=";
+        String signature = signRelaxedAmsForNoBodyMessage(message, amsWithoutSignature);
+        Field amsField = new RawField(ARC_MESSAGE_SIGNATURE, amsWithoutSignature + signature);
+        String publicKeyDnsRecord = "k=rsa; p=" + Base64.getEncoder().encodeToString(ArcTestKeys.publicKeyArc.getEncoded()) + ";";
+        Clock clockBeforeTimestamp = Clock.fixed(Instant.ofEpochSecond(1000), ZoneOffset.UTC);
+
+        assertThatThrownBy(() -> new ARCVerifier(keyRecordRetriever, clockBeforeTimestamp).verifyAms(amsField, message, publicKeyDnsRecord))
+                .isInstanceOf(ArcException.class)
+                .hasMessage("AMS t= timestamp must not be in the future");
+    }
+
+    @Test
+    public void verify_ams_uses_configured_clock_skew() throws Exception {
+        Message message = new DefaultMessageBuilder().parseMessage(new ByteArrayInputStream(
+                ("From: sender@example.org\r\n"
+                + "To: recipient@example.org\r\n"
+                + "Subject: future ams timestamp with configured skew\r\n").getBytes(StandardCharsets.UTF_8)));
+        String amsWithoutSignature = "i=1; a=rsa-sha256; c=relaxed/relaxed; d=dmarc.example; s=arc; "
+                + "t=1060; h=from:to:subject; bh=KWSe46TZKCcDbH4klJPo+tjk5LWJnVRlP5pvjXFZYLQ=; b=";
+        String signature = signRelaxedAmsForNoBodyMessage(message, amsWithoutSignature);
+        Field amsField = new RawField(ARC_MESSAGE_SIGNATURE, amsWithoutSignature + signature);
+        String publicKeyDnsRecord = "k=rsa; p=" + Base64.getEncoder().encodeToString(ArcTestKeys.publicKeyArc.getEncoded()) + ";";
+        Clock clockBeforeTimestamp = Clock.fixed(Instant.ofEpochSecond(1000), ZoneOffset.UTC);
+
+        assertThatCode(() -> new ARCVerifier(keyRecordRetriever, clockBeforeTimestamp, Duration.ofMinutes(1)).verifyAms(amsField, message, publicKeyDnsRecord))
+                .doesNotThrowAnyException();
     }
 
     @Test
@@ -1704,7 +1768,7 @@ public class ARCTest {
         String publicKeyDnsRecord = "k=rsa; p=" + Base64.getEncoder().encodeToString(ArcTestKeys.publicKeyArc.getEncoded()) + ";";
         Clock clockBeforeTimestamp = Clock.fixed(Instant.ofEpochSecond(1000), ZoneOffset.UTC);
 
-        assertThatThrownBy(() -> new ARCVerifier(keyRecordRetriever, clockBeforeTimestamp).verifyAms(amsField, message, publicKeyDnsRecord))
+        assertThatThrownBy(() -> new ARCVerifier(keyRecordRetriever, clockBeforeTimestamp, Duration.ZERO).verifyAms(amsField, message, publicKeyDnsRecord))
                 .isInstanceOf(ArcException.class)
                 .hasMessage("AMS t= timestamp must not be in the future");
     }
@@ -2817,6 +2881,45 @@ public class ARCTest {
         ARCChainValidator arcChainValidator = new ARCChainValidator(keyRecordRetriever);
         ArcValidationOutcome cv = arcChainValidator.validateArcChain(message);
         assertThat(cv.getResult().toString().toLowerCase()).isEqualTo("fail");
+    }
+
+    @Test
+    public void validate_arc_set_structure_passes_when_arc_seal_timestamp_is_within_default_clock_skew() throws Exception {
+        Message message = buildOneHopChainWithSeal(seal -> seal.replace("t=1755918846", "t=1300"), true, false);
+        ARCVerifier arcVerifier = new ARCVerifier(
+                keyRecordRetriever,
+                Clock.fixed(Instant.ofEpochSecond(1000), ZoneOffset.UTC));
+
+        Map<Integer, List<Field>> arcHeadersByI = arcVerifier.getArcHeadersByI(message.getHeader().getFields());
+
+        assertThat(arcVerifier.validateArcSetStructure(arcHeadersByI)).isTrue();
+    }
+
+    @Test
+    public void validate_arc_set_structure_fails_when_arc_seal_timestamp_exceeds_default_clock_skew() throws Exception {
+        Message message = buildOneHopChainWithSeal(seal -> seal.replace("t=1755918846", "t=1301"), true, false);
+        ARCVerifier arcVerifier = new ARCVerifier(
+                keyRecordRetriever,
+                Clock.fixed(Instant.ofEpochSecond(1000), ZoneOffset.UTC));
+
+        Map<Integer, List<Field>> arcHeadersByI = arcVerifier.getArcHeadersByI(message.getHeader().getFields());
+
+        assertThatThrownBy(() -> arcVerifier.validateArcSetStructure(arcHeadersByI))
+                .isInstanceOf(ArcException.class)
+                .hasMessage("ARC Chain validation fails due to invalid ARC-Seal tags at instance [1].");
+    }
+
+    @Test
+    public void validate_arc_set_structure_uses_configured_arc_seal_clock_skew() throws Exception {
+        Message message = buildOneHopChainWithSeal(seal -> seal.replace("t=1755918846", "t=1060"), true, false);
+        ARCVerifier arcVerifier = new ARCVerifier(
+                keyRecordRetriever,
+                Clock.fixed(Instant.ofEpochSecond(1000), ZoneOffset.UTC),
+                Duration.ofMinutes(1));
+
+        Map<Integer, List<Field>> arcHeadersByI = arcVerifier.getArcHeadersByI(message.getHeader().getFields());
+
+        assertThat(arcVerifier.validateArcSetStructure(arcHeadersByI)).isTrue();
     }
 
     // Builds a valid two-hop ARC chain: applies i=1 to the base message, then applies i=2 on top.

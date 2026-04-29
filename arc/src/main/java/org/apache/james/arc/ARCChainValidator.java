@@ -29,12 +29,13 @@ import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.security.Signature;
 import java.security.SignatureException;
+import java.time.Clock;
+import java.time.Duration;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Validates the ARC (Authenticated Received Chain) chain in an email message.
@@ -49,11 +50,26 @@ public class ARCChainValidator {
     public static final String ARC_MESSAGE_SIGNATURE = "ARC-Message-Signature";
     public static final String ARC_SEAL = "ARC-Seal";
     private static final String SHA256_RSA = "SHA256withRSA";
-    private final Pattern INST_RGX_PATTERN = Pattern.compile("i=([0-9]+)");
+    private static final Duration DEFAULT_CLOCK_SKEW = Duration.ofMinutes(5);
     private final PublicKeyRetrieverArc _keyRecordRetriever;
+    private final Clock clock;
+    private final Duration acceptedClockSkew;
 
     public ARCChainValidator(PublicKeyRetrieverArc keyRecordRetriever) {
+        this(keyRecordRetriever, Clock.systemUTC());
+    }
+
+    public ARCChainValidator(PublicKeyRetrieverArc keyRecordRetriever, Clock clock) {
+        this(keyRecordRetriever, clock, DEFAULT_CLOCK_SKEW);
+    }
+
+    public ARCChainValidator(PublicKeyRetrieverArc keyRecordRetriever, Clock clock, Duration acceptedClockSkew) {
         this._keyRecordRetriever = keyRecordRetriever;
+        this.clock = Objects.requireNonNull(clock);
+        this.acceptedClockSkew = Objects.requireNonNull(acceptedClockSkew);
+        if (acceptedClockSkew.isNegative()) {
+            throw new IllegalArgumentException("acceptedClockSkew must not be negative");
+        }
     }
 
     public ArcValidationOutcome validateArcChain(Message message) {
@@ -73,7 +89,7 @@ public class ARCChainValidator {
     }
 
     private ArcValidationOutcome validatePreviousArcHops(Message message, Header messageHeaders, int myInstance) {
-        ARCVerifier arcVerifier = new ARCVerifier(_keyRecordRetriever);
+        ARCVerifier arcVerifier = new ARCVerifier(_keyRecordRetriever, clock, acceptedClockSkew);
         Map<Integer, List<Field>> arcHeadersByI;
         try {
             arcHeadersByI = arcVerifier.getArcHeadersByI(messageHeaders.getFields());
@@ -134,6 +150,9 @@ public class ARCChainValidator {
         boolean retVal = false;
         Map<Integer, List<Field>> arcHeadersByI = arcVerifier.getArcHeadersByI(headers);
         ArcSealVerifyData verifyData = arcVerifier.buildArcSealSigningData(arcHeadersByI, instToVerify);
+        if (verifyData == null) {
+            return false;
+        }
         Field arcSealHeader = arcHeadersByI.get(instToVerify).stream()
                 .filter(f -> f.getName().equalsIgnoreCase(ARC_SEAL))
                 .findFirst().orElse(null);
@@ -182,11 +201,17 @@ public class ARCChainValidator {
 
     public int getCurrentInstance(Header messageHeaders) {
         int retVal = 1;
+        ARCVerifier arcVerifier = new ARCVerifier(_keyRecordRetriever, clock, acceptedClockSkew);
         for (Field field : messageHeaders.getFields()) {
             if (field.getName().startsWith("ARC-")) {
-                Matcher m = INST_RGX_PATTERN.matcher(field.getBody());
-                if (m.find()) {
-                    int iVal = Integer.parseInt(m.group(1));
+                String iTag = arcVerifier.parseTagGeneric(field.getBody(), "i");
+                if (iTag != null) {
+                    int iVal;
+                    try {
+                        iVal = Integer.parseInt(iTag);
+                    } catch (NumberFormatException e) {
+                        continue;
+                    }
                     if (iVal >= retVal) {
                         retVal = iVal + 1;
                     }
