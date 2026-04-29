@@ -89,7 +89,7 @@ public class DMARCVerifier {
         String[] parts = dmarcRecord.split(";");
         for (String part : parts) {
             String trimmed = part.trim();
-            String[] tagValue = trimmed.split("=");
+            String[] tagValue = trimmed.split("=", 2);
             if (tagValue.length == 2) {
                 dmarcTags.put(tagValue[0].toLowerCase(), tagValue[1]);
             }
