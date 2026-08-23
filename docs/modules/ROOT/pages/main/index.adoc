@@ -13,3 +13,5 @@ The whole internal verification/signing is done via `OutputStream`, leaving much
 more flexibility than the use of `InputStream`. As the `InputStream` approach is
 easier from the user side, the default implementation simply prepares the
 `OutputStream` and copies the supplied `InputStream` to the `OutputStream`.
+
+See xref:usage.adoc[Using the library] for signing and verifying examples.

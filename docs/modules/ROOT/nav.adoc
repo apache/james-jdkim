@@ -1,5 +1,6 @@
 * xref:index.adoc[Overview]
 * xref:main/index.adoc[Library]
+* xref:usage.adoc[Using the library]
 * https://issues.apache.org/jira/browse/JDKIM[Issue Tracker]
 * Related Projects
 ** https://james.apache.org/jspf/index.html[jSPF]
