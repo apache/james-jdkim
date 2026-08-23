@@ -1,4 +1,6 @@
 name: jdkim
 title: Apache James JDKIM
-version: '0.3-SNAPSHOT'
+version: '0.6-SNAPSHOT'
 prerelease: true
+nav:
+  - modules/ROOT/nav.adoc

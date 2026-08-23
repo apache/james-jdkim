@@ -1,0 +1,8 @@
+* xref:index.adoc[Overview]
+* xref:main/index.adoc[Library]
+* https://issues.apache.org/jira/browse/JDKIM[Issue Tracker]
+* Related Projects
+** https://james.apache.org/jspf/index.html[jSPF]
+** https://dkim-javamail.sourceforge.net[DKIM Javamail]
+** https://www.badpenguin.co.uk/dkim/[JavaDKIM]
+* https://james.apache.org/download.cgi#Apache_jDKIM[Download Releases]

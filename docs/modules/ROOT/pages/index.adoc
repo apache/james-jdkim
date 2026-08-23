@@ -1,4 +1,26 @@
-= Apache James JDKIM documentation
+= Apache jDKIM Project
 
+jDKIM is a DKIM implementation library written in Java. It provides both
+verification and signing.
 
-TODO: This is a placeholder. Migrate older documentation.
+The architecture is thought to handle multiple signatures with performance in
+mind: body hashing for multiple signatures is computed concurrently in a single
+stream run.
+
+The whole internal verification/signing is done via `OutputStream`, leaving much
+more flexibility than the use of `InputStream`. As the `InputStream` approach is
+easier from the user side, the default implementation simply prepares the
+`OutputStream` and copies the supplied `InputStream` to the `OutputStream`.
+
+jDKIM requires Java 11 at runtime, and it requires the JVM running the library
+to support the `SHA256withRSA` cipher suite. If your JVM doesn't support it you
+can install a third party cryptography provider like BouncyCastle and configure
+it appropriately in your JVM.
+
+The product currently consists of a single generic library module,
+xref:main/index.adoc[main].
+
+The DKIM mailets for the Apache James server are no longer part of this project.
+They live in
+https://github.com/apache/james-project/tree/master/server/mailet/dkim[james-project]
+under `server/mailet/dkim`.
