@@ -1,0 +1,15 @@
+= Java DKIM Library
+
+This is a DKIM implementation library written in Java.
+
+The architecture is interface based and pluggable. You can tweak it in almost
+every behaviour.
+
+The architecture is thought to handle multiple signatures with performance in
+mind: body hashing for multiple signatures is computed concurrently in a single
+stream run.
+
+The whole internal verification/signing is done via `OutputStream`, leaving much
+more flexibility than the use of `InputStream`. As the `InputStream` approach is
+easier from the user side, the default implementation simply prepares the
+`OutputStream` and copies the supplied `InputStream` to the `OutputStream`.
