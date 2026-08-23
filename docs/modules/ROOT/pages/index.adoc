@@ -18,7 +18,8 @@ can install a third party cryptography provider like BouncyCastle and configure
 it appropriately in your JVM.
 
 The product currently consists of a single generic library module,
-xref:main/index.adoc[main].
+xref:main/index.adoc[main]. See xref:usage.adoc[Using the library] to get
+started with signing and verifying.
 
 The DKIM mailets for the Apache James server are no longer part of this project.
 They live in

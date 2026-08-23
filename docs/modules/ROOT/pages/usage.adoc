@@ -1,0 +1,249 @@
+= Using the jDKIM library
+:toc: macro
+:toclevels: 2
+
+This page walks through signing and verifying messages with jDKIM.
+
+toc::[]
+
+== Getting the library
+
+[source,xml,subs=attributes+]
+----
+<dependency>
+    <groupId>org.apache.james.jdkim</groupId>
+    <artifactId>apache-jdkim-library</artifactId>
+    <version>{page-component-version}</version>
+</dependency>
+----
+
+jDKIM requires Java 11 and a JVM providing the `SHA256withRSA` cipher suite.
+Message parsing is delegated to
+https://james.apache.org/mime4j/[Apache James Mime4J], and DNS lookups to
+https://github.com/dnsjava/dnsjava[dnsjava]; both are pulled in transitively.
+
+== Signing a message
+
+`DKIMSigner` is built from a *signature template* and a `PrivateKey`. The
+template carries the DKIM tags you control -- the signing domain (`d=`), the
+selector (`s=`), the algorithm (`a=`), the canonicalization (`c=`) and the list
+of headers to cover (`h=`):
+
+[source,java]
+----
+import java.io.InputStream;
+import java.security.PrivateKey;
+import org.apache.james.jdkim.DKIMSigner;
+
+String signatureTemplate =
+    "v=1; a=rsa-sha256; c=simple; d=example.com; h=date:from:subject; q=dns/txt; s=selector;";
+
+PrivateKey privateKey = ...;
+DKIMSigner signer = new DKIMSigner(signatureTemplate, privateKey);
+
+String signature = signer.sign(messageInputStream);
+----
+
+`sign` returns the *complete header*, prefix included:
+
+[source]
+----
+DKIM-Signature: a=rsa-sha256; q=dns/txt; b=Axa8s/gTnnJ8em45KV/AQw33hQ4uYtBK...==; c=simple; s=selector; d=example.com; v=1; bh=6pQY5V6Dw8mCYWq017gfbpv+x2X4GvOhIIZtKw6iU6g=; h=date:from:subject;
+----
+
+Prepend it to the message -- signatures go at the top, per
+https://datatracker.ietf.org/doc/html/rfc6376#section-3.5[RFC 6376 section 3.5].
+The `b=` and `bh=` tags are computed by the signer; you do not put them in the
+template.
+
+`h=` must list `from`. A signature that does not cover the `From` field is
+rejected at verification time with "From field not signed".
+
+[IMPORTANT]
+====
+`sign(InputStream)` **closes the stream it is given**. If you also need the
+message body afterwards (to write out the signed message, for instance), buffer
+it or open a second stream over the same source.
+====
+
+=== Loading a private key
+
+`DKIMSigner.getPrivateKey` reads a Base64-encoded PKCS#8 RSA key -- that is the
+body of a `BEGIN PRIVATE KEY` PEM file, without the `-----BEGIN-----` /
+`-----END-----` delimiters:
+
+[source,java]
+----
+import java.security.PrivateKey;
+import org.apache.james.jdkim.DKIMSigner;
+
+String pkcs8Base64 = "MIICdgIBADANBgkqhkiG9w0BAQEFAASCAmAwggJcAgEAAoGBAL...";
+PrivateKey privateKey = DKIMSigner.getPrivateKey(pkcs8Base64);
+----
+
+A PKCS#1 key (`BEGIN RSA PRIVATE KEY`) must be converted first:
+
+[source,bash]
+----
+openssl pkcs8 -topk8 -nocrypt -in pkcs1.pem -out pkcs8.pem
+----
+
+== Verifying a message
+
+`DKIMVerifier` with no argument resolves public keys over DNS:
+
+[source,java]
+----
+import java.util.List;
+import org.apache.james.jdkim.DKIMVerifier;
+import org.apache.james.jdkim.api.SignatureRecord;
+
+DKIMVerifier verifier = new DKIMVerifier();
+List<SignatureRecord> verifiedSignatures = verifier.verify(messageInputStream);
+----
+
+The verifier checks *every* `DKIM-Signature` header on the message and returns
+only those that passed. Like `sign`, `verify(InputStream)` closes the stream.
+
+[WARNING]
+====
+`verify` never returns an empty list, and the two "nothing passed" cases are
+*not* reported the same way:
+
+[cols="1,1"]
+|===
+|Message |Outcome
+
+|No `DKIM-Signature` header at all
+|Returns `null`
+
+|Signatures present, none of them valid
+|Throws `FailException`
+
+|At least one valid signature
+|Returns the list of records that passed
+|===
+
+The `null` is the sharp edge -- `verifier.verify(is).isEmpty()` throws a
+`NullPointerException` on unsigned mail. Null-check the result:
+
+[source,java]
+----
+List<SignatureRecord> verified = verifier.verify(messageInputStream);
+if (verified == null) {
+    // unsigned message: dkim=none
+}
+----
+
+The failure exceptions, all subclasses of `FailException`, are a normal outcome
+rather than a bug:
+
+* `PermFailException` -- permanent failure (bad signature, no key published,
+  malformed record); do not retry.
+* `TempFailException` -- transient failure (DNS timeout); retrying may help.
+* `CompositeFailException` -- several signatures failed for different reasons.
+====
+
+=== Inspecting the outcome of every signature
+
+`verify` only reports the successes. To see what happened to each signature --
+including the failures -- read the results. They are populated even when
+`verify` throws, so collect them from the `catch` block too:
+
+[source,java]
+----
+import org.apache.james.jdkim.api.Result;
+
+for (Result result : verifier.getResults()) {
+    result.isSuccess();          // did this signature pass?
+    result.getResultType();      // PASS, FAIL, NEUTRAL, TEMPERROR, PERMERROR, POLICY, NONE
+    result.getRecord();          // the SignatureRecord, e.g. getSelector() / getDToken()
+    result.getErrorMessage();    // why it failed, when it did
+    result.getHeaderText();      // ready-to-use Authentication-Results fragment
+}
+----
+
+The result types follow
+https://datatracker.ietf.org/doc/html/rfc8601#section-2.7.1[RFC 8601 section 2.7.1],
+so `getHeaderText()` can feed an `Authentication-Results` header directly.
+
+For a DMARC-style verdict -- a message passes when at least one signature is
+valid -- use:
+
+[source,java]
+----
+boolean passes = verifier.hasAnyValidSignature();
+----
+
+[NOTE]
+====
+`getResults()` *accumulates* across calls. Reusing one `DKIMVerifier` for
+several messages requires clearing it between them:
+
+[source,java]
+----
+verifier.resetResults();
+----
+====
+
+== Tuning the verifier
+
+`VerifierOptions` configures key lookup and clock tolerance:
+
+[source,java]
+----
+import java.time.Duration;
+import org.apache.james.jdkim.DKIMVerifier;
+import org.apache.james.jdkim.api.VerifierOptions;
+
+DKIMVerifier verifier = new DKIMVerifier(new VerifierOptions.Builder()
+    .withClockDriftTolerance(Duration.ofMinutes(5))
+    .build());
+----
+
+`withClockDriftTolerance(Duration)`::
+How far in the future a signature's `t=` timestamp may be before it is rejected
+as `PermFailException` ("Signature date is more than ... in the future"). It
+covers clock drift between signer and verifier, as allowed by
+https://datatracker.ietf.org/doc/html/rfc6376#section-3.5[RFC 6376 section 3.5].
+Defaults to 5 minutes; must not be negative. Note this tolerance applies to `t=`
+only -- an expired `x=` is rejected against the local clock with no slack.
+
+`withDnsResolver(Resolver)`::
+A dnsjava `Resolver` to query instead of the system default -- useful to point
+at a specific resolver or to shorten timeouts.
+
+`withPublicKeyRecordRetriever(PublicKeyRecordRetriever)`::
+Bypasses DNS entirely. Implement `PublicKeyRecordRetriever` to serve keys from a
+database, a cache, or a fixture in tests. `MultiplexingPublicKeyRecordRetriever`
+dispatches on the `q=` method (`dns/txt` by default).
+
+[source,java]
+----
+DKIMVerifier verifier = new DKIMVerifier(new VerifierOptions.Builder()
+    .withPublicKeyRecordRetriever(myRetriever)
+    .build());
+----
+
+== Applying several signatures
+
+Signing with more than one key lets you offer several algorithms on one
+selector, or roll a key over without a gap. Use one `DKIMSigner` per template
+and prepend all the resulting headers:
+
+[source,java]
+----
+String sig1 = new DKIMSigner(templateSha256, key).sign(streamOverMessage());
+String sig2 = new DKIMSigner(templateSha1, key).sign(streamOverMessage());
+----
+
+Each `sign` call consumes its own stream, since the signer closes what it reads.
+On the verifying side nothing changes: `verify` walks every `DKIM-Signature`
+header it finds, and `getResults()` reports one `Result` per signature.
+
+== A complete example
+
+`DKIMTest` in the test sources signs a message, feeds the signature back into
+the verifier and asserts the outcome -- including the multiple-signature case:
+
+https://github.com/apache/james-jdkim/blob/master/main/src/test/java/org/apache/james/jdkim/DKIMTest.java[main/src/test/java/org/apache/james/jdkim/DKIMTest.java]
