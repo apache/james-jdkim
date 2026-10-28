@@ -21,6 +21,16 @@ package org.apache.james.jdkim.api;
 
 import java.util.List;
 
+/**
+ * Raw header fields of a message, as used for DKIM header canonicalization.
+ * <p>
+ * Each returned field is the raw field (name, colon and value, folding
+ * included, without the trailing CRLF) where every char is one octet of the
+ * message, as decoded with ISO-8859-1. Implementations must not decode the
+ * field with any other charset: canonicalization works on the raw octets
+ * (RFC 6376 section 3.4) and a lossy decoding would let signed bytes be
+ * altered without breaking the signature.
+ */
 public interface Headers {
 
     /**

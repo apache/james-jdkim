@@ -26,6 +26,7 @@ import org.apache.james.jdkim.exceptions.PermFailException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.security.Signature;
 import java.security.SignatureException;
 import java.util.HashMap;
@@ -37,6 +38,14 @@ public abstract class DKIMCommon {
 
     private static final boolean DEEP_DEBUG = false;
 
+    /**
+     * Header fields are carried as Strings where each char is one raw octet
+     * (see {@link Headers}): ISO-8859-1 gives them back unchanged.
+     */
+    private static byte[] octets(String s) {
+        return s.getBytes(StandardCharsets.ISO_8859_1);
+    }
+
     protected static void updateSignature(Signature signature,
                                           boolean relaxed,
                                           CharSequence header,
@@ -45,17 +54,17 @@ public abstract class DKIMCommon {
             if (DEEP_DEBUG)
                 System.out
                         .println("#" + header.toString().toLowerCase() + ":-");
-            signature.update(header.toString().toLowerCase().getBytes());
-            signature.update(":".getBytes());
+            signature.update(octets(header.toString().toLowerCase(Locale.US)));
+            signature.update(octets(":"));
             String headerValue = fv.substring(fv.indexOf(':') + 1);
             headerValue = headerValue.replaceAll("\r\n[\t ]", " ");
             headerValue = headerValue.replaceAll("[\t ]+", " ");
             headerValue = headerValue.trim();
-            signature.update(headerValue.getBytes());
+            signature.update(octets(headerValue));
             if (DEEP_DEBUG)
                 System.out.println("#" + headerValue + "#");
         } else {
-            signature.update(fv.getBytes());
+            signature.update(octets(fv));
             if (DEEP_DEBUG)
                 System.out.println("#" + fv + "#");
         }
@@ -89,7 +98,7 @@ public abstract class DKIMCommon {
                 if (doneHeaders <= hl.size()) {
                     String fv = hl.get(hl.size() - doneHeaders);
                     updateSignature(signature, relaxedHeaders, header, fv);
-                    signature.update("\r\n".getBytes());
+                    signature.update(octets("\r\n"));
                     processedHeader.put(lowerCaseHeader, doneHeaders);
                 }
             }
