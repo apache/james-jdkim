@@ -33,6 +33,7 @@ import org.apache.james.mime4j.stream.MimeConfig;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -100,8 +101,9 @@ public class Message implements Headers {
             try {
                 mw.writeField(f, bos);
                 // writeField always ends with CRLF and we don't want it.
+                // ISO-8859-1 maps each raw octet to one char, losslessly.
                 byte[] fieldbytes = bos.toByteArray();
-                field = new String(fieldbytes, 0, fieldbytes.length - 2);
+                field = new String(fieldbytes, 0, fieldbytes.length - 2, StandardCharsets.ISO_8859_1);
             } catch (IOException ignored) {
             }
             res2.add(field);

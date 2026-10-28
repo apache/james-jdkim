@@ -20,6 +20,7 @@
 package org.apache.james.jdkim;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertEquals;
 
 import java.io.ByteArrayInputStream;
@@ -41,6 +42,7 @@ import org.apache.james.jdkim.api.Headers;
 import org.apache.james.jdkim.api.Result;
 import org.apache.james.jdkim.api.SignatureRecord;
 import org.apache.james.jdkim.api.VerifierOptions;
+import org.apache.james.jdkim.exceptions.PermFailException;
 import org.apache.james.jdkim.impl.Message;
 import org.junit.Test;
 
@@ -146,6 +148,38 @@ public class DKIMTest {
 
     }
 
+    @Test
+    public void nonUtf8BytesOfASignedHeaderShouldVerify() throws Exception {
+        byte[] mail = "From: joe@messiah.edu\r\nSubject: café\r\n\r\nbody\r\n".getBytes(StandardCharsets.ISO_8859_1);
+        String field = dkimSigner.sign(new ByteArrayInputStream(mail));
+
+        InputStream in = new SequenceInputStream(
+                new ByteArrayInputStream((field + "\r\n").getBytes(StandardCharsets.US_ASCII)), new ByteArrayInputStream(mail));
+
+        assertThat(verifier.verify(in)).hasSize(1);
+    }
+
+    @Test
+    public void alteringNonUtf8BytesOfASignedHeaderShouldBreakTheSignature() throws Exception {
+        assertTamperingNonUtf8HeaderBytesIsDetected(dkimSigner);
+    }
+
+    @Test
+    public void alteringNonUtf8BytesOfASignedHeaderShouldBreakTheRelaxedSignature() throws Exception {
+        DKIMSigner relaxedSigner = new DKIMSigner(SIGNATURE_TEMPLATE.replace("c=simple", "c=relaxed"), TestKeys.privateKey);
+        assertTamperingNonUtf8HeaderBytesIsDetected(relaxedSigner);
+    }
+
+    private void assertTamperingNonUtf8HeaderBytesIsDetected(DKIMSigner signer) throws Exception {
+        byte[] mail = "From: joe@messiah.edu\r\nSubject: café\r\n\r\nbody\r\n".getBytes(StandardCharsets.ISO_8859_1);
+        byte[] tampered = "From: joe@messiah.edu\r\nSubject: cafè\r\n\r\nbody\r\n".getBytes(StandardCharsets.ISO_8859_1);
+        String field = signer.sign(new ByteArrayInputStream(mail));
+
+        InputStream in = new SequenceInputStream(
+                new ByteArrayInputStream((field + "\r\n").getBytes(StandardCharsets.US_ASCII)), new ByteArrayInputStream(tampered));
+
+        assertThatThrownBy(() -> verifier.verify(in)).isInstanceOf(PermFailException.class);
+    }
 
     private ByteArrayInputStream readFileToByteArrayInputStream(String fileName) throws URISyntaxException, IOException {
         URL resource = this.getClass().getResource(fileName);
