@@ -85,12 +85,13 @@ public abstract class DKIMCommon {
         // NOTE: this relies on the list returned by Message being in insertion
         // order
         Map<String, Integer> processedHeader = new HashMap<>();
+        // Each distinct name is fetched once: h= may repeat a name many times.
+        Map<String, List<String>> fieldsByName = new HashMap<>();
 
         for (CharSequence header : headers) {
-            // NOTE check this getter is case insensitive
-            List<String> hl = h.getFields(header.toString());
+            String lowerCaseHeader = header.toString().toLowerCase(Locale.US);
+            List<String> hl = fieldsByName.computeIfAbsent(lowerCaseHeader, h::getFields);
             if (hl != null && !hl.isEmpty()) {
-                String lowerCaseHeader = header.toString().toLowerCase(Locale.US);
                 Integer done = processedHeader.get(lowerCaseHeader);
                 if (done == null)
                     done = 0;
