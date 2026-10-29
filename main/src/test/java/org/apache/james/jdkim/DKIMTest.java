@@ -33,9 +33,12 @@ import java.io.SequenceInputStream;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.security.Signature;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.james.jdkim.MockPublicKeyRecordRetriever.Record;
 import org.apache.james.jdkim.api.Headers;
@@ -44,6 +47,7 @@ import org.apache.james.jdkim.api.SignatureRecord;
 import org.apache.james.jdkim.api.VerifierOptions;
 import org.apache.james.jdkim.exceptions.PermFailException;
 import org.apache.james.jdkim.impl.Message;
+import org.apache.james.jdkim.tagvalue.SignatureRecordImpl;
 import org.junit.Test;
 
 public class DKIMTest {
@@ -218,4 +222,45 @@ public class DKIMTest {
             return headers.getBodyInputStream();
         }
     }
+    @Test
+    public void signatureCheckShouldConvertEachFieldAtMostOnce() throws Exception {
+        StringBuilder mail = new StringBuilder();
+        for (int i = 0; i < 500; i++) {
+            mail.append("From: x").append(i).append("@example.com\r\n");
+        }
+        mail.append("\r\n");
+        Message message = new Message(new ByteArrayInputStream(mail.toString().getBytes(StandardCharsets.US_ASCII)));
+        AtomicInteger converted = new AtomicInteger();
+        Headers counting = new Headers() {
+            public List<String> getFields() {
+                return message.getFields();
+            }
+
+            public List<String> getFields(String name) {
+                List<String> l = message.getFields(name);
+                converted.addAndGet(l.size());
+                return l;
+            }
+        };
+        SignatureRecord sign = new SignatureRecordImpl("v=1; a=rsa-sha256; d=example.com; s=s; bh=AAAA; b=AAAA; h="
+                + String.join(":", Collections.nCopies(500, "from")));
+        Signature sig = Signature.getInstance("SHA256withRSA");
+        sig.initSign(TestKeys.privateKey);
+
+        DKIMCommon.signatureCheck(counting, sign, sign.getHeaders(), sig);
+
+        assertThat(converted.get()).isLessThanOrEqualTo(1000);
+    }
+
+    @Test
+    public void messageShouldConvertFieldsOnce() throws Exception {
+        String mail = "From: joe@example.com\r\nSubject: test\r\nfrom: jane@example.com\r\n\r\nbody\r\n";
+        Message message = new Message(new ByteArrayInputStream(mail.getBytes(StandardCharsets.US_ASCII)));
+
+        assertThat(message.getFields("FROM")).containsExactly("From: joe@example.com", "from: jane@example.com");
+        assertThat(message.getFields("from")).isSameAs(message.getFields("From"));
+        assertThat(message.getFields()).containsExactly("From: joe@example.com", "Subject: test", "from: jane@example.com");
+        assertThat(message.getFields("missing")).isEmpty();
+    }
+
 }

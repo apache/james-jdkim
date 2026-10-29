@@ -34,8 +34,12 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.LinkedList;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 /**
  * The header of an entity (see RFC 2045).
@@ -43,6 +47,9 @@ import java.util.List;
 public class Message implements Headers {
 
     private final org.apache.james.mime4j.dom.Message message;
+    private final MessageServiceFactory messageServiceFactory;
+    private List<String> fields;
+    private Map<String, List<String>> fieldsByName;
 
     /**
      * Creates a new <code>Header</code> from the specified stream.
@@ -52,7 +59,8 @@ public class Message implements Headers {
      * @throws MimeIOException on MIME protocol violations.
      */
     public Message(InputStream is) throws IOException, MimeException {
-        MessageBuilder mb = newMessageBuilder().newMessageBuilder();
+        this.messageServiceFactory = newMessageBuilder();
+        MessageBuilder mb = messageServiceFactory.newMessageBuilder();
 
         this.message = mb.parseMessage(new EOLConvertingInputStream(is));
     }
@@ -83,20 +91,23 @@ public class Message implements Headers {
      * @see org.apache.james.jdkim.api.Headers#getFields()
      */
     public List<String> getFields() {
-        List<Field> res = message.getHeader().getFields();
-        return convertFields(res);
+        convertFields();
+        return fields;
     }
 
-    private List<String> convertFields(List<Field> res) {
-        List<String> res2 = new LinkedList<>();
-        MessageWriter mw;
-        try {
-            mw = newMessageBuilder().newMessageWriter();
-        } catch (MimeException e1) {
-            return res2;
+    /**
+     * Serializes every field once, so that lookups by name do not convert them again.
+     */
+    private void convertFields() {
+        if (fields != null) {
+            return;
         }
-        for (Field f : res) {
-            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        List<String> all = new ArrayList<>();
+        Map<String, List<String>> byName = new HashMap<>();
+        MessageWriter mw = messageServiceFactory.newMessageWriter();
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        for (Field f : message.getHeader().getFields()) {
+            bos.reset();
             String field = null;
             try {
                 mw.writeField(f, bos);
@@ -106,16 +117,20 @@ public class Message implements Headers {
                 field = new String(fieldbytes, 0, fieldbytes.length - 2, StandardCharsets.ISO_8859_1);
             } catch (IOException ignored) {
             }
-            res2.add(field);
+            all.add(field);
+            byName.computeIfAbsent(f.getName().toLowerCase(Locale.US), name -> new ArrayList<>()).add(field);
         }
-        return res2;
+        byName.replaceAll((name, list) -> Collections.unmodifiableList(list));
+        fields = Collections.unmodifiableList(all);
+        fieldsByName = byName;
     }
 
     /**
      * @see org.apache.james.jdkim.api.Headers#getFields(java.lang.String)
      */
     public List<String> getFields(final String name) {
-        return convertFields(message.getHeader().getFields(name));
+        convertFields();
+        return fieldsByName.getOrDefault(name.toLowerCase(Locale.US), Collections.emptyList());
     }
 
     /**
