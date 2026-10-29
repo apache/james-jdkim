@@ -23,6 +23,8 @@ package org.apache.james.jdkim.api;
  * Class to hold results of DKIMVerifier
  */
 public class Result {
+    private static final String TSPECIALS = "()<>@,;:\\\"/[]?=";
+
     private final String errorMessage;
     private final String dkimRawField;
     private final SignatureRecord record;
@@ -98,11 +100,9 @@ public class Result {
         String partialSig = "";
         String reasonProp = "";
         if (record.getRawSignature() != null) {
-            if (record.getRawSignature().length() >= 12) {
-                partialSig = " header.b=" + record.getRawSignature().subSequence(0, 12);
-            } else {
-                partialSig = " header.b=" + record.getRawSignature();
-            }
+            // base64 ignores FWS: truncate after removing it so the prefix holds 12 base64 characters.
+            String signature = sanitize(record.getRawSignature()).replaceAll("[\t ]", "");
+            partialSig = " header.b=" + pvalue(signature.substring(0, Math.min(12, signature.length())));
         }
 
         if (withReason) {
@@ -118,11 +118,55 @@ public class Result {
                     reasonMsg = errorMessage != null ? errorMessage : "";
                     break;
             }
-            reasonProp = reasonMsg.isEmpty() ? "" : String.format(" reason=\"%s\"", reasonMsg);
+            reasonProp = reasonMsg.isEmpty() ? "" : " reason=" + quotedString(sanitize(reasonMsg));
         }
 
         return String.format("dkim=%s header.d=%s header.s=%s%s%s",
-                type.toString().toLowerCase(), record.getDToken(), record.getSelector(), partialSig, reasonProp);
+                type.toString().toLowerCase(), pvalue(sanitize(record.getDToken())), pvalue(sanitize(record.getSelector())),
+                partialSig, reasonProp);
+    }
+
+    /**
+     * Unfolds the value and drops control characters, which a quoted-string can not hold. Tabs become spaces.
+     */
+    private static String sanitize(CharSequence value) {
+        if (value == null) {
+            return "";
+        }
+        StringBuilder res = new StringBuilder(value.length());
+        for (int i = 0; i < value.length(); i++) {
+            char c = value.charAt(i);
+            if (c == '\t') {
+                res.append(' ');
+            } else if (c >= 0x20 && c != 0x7f) {
+                res.append(c);
+            }
+        }
+        return res.toString();
+    }
+
+    /**
+     * Formats a property value as a RFC 8601 pvalue: an RFC 2045 token as is, a quoted-string otherwise.
+     */
+    private static String pvalue(String value) {
+        return isToken(value) ? value : quotedString(value);
+    }
+
+    private static boolean isToken(String value) {
+        if (value.isEmpty()) {
+            return false;
+        }
+        for (int i = 0; i < value.length(); i++) {
+            char c = value.charAt(i);
+            if (c <= 0x20 || c >= 0x7f || TSPECIALS.indexOf(c) >= 0) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static String quotedString(String value) {
+        return "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
     }
 
     /**
