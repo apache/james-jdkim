@@ -53,9 +53,11 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class DKIMVerifier {
     private final List<Result> result = new ArrayList<>();
@@ -171,9 +173,14 @@ public class DKIMVerifier {
         PublicKeyRecord key = null;
         TempFailException lastTempFailure = null;
         PermFailException lastPermFailure = null;
-        for (Iterator<CharSequence> rlm = sign.getRecordLookupMethods().iterator(); key == null
+        // RFC 6376 section 6.1.2: each distinct q= method is queried at most once.
+        Set<String> methods = new LinkedHashSet<>();
+        for (CharSequence method : sign.getRecordLookupMethods()) {
+            methods.add(method.toString());
+        }
+        for (Iterator<String> rlm = methods.iterator(); key == null
                 && rlm.hasNext(); ) {
-            CharSequence method = rlm.next();
+            String method = rlm.next();
             try {
                 PublicKeyRecordRetriever pkrr = getPublicKeyRecordRetriever();
                 List<String> records = pkrr.getRecords(method, sign.getSelector()

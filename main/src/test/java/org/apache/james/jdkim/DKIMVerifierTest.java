@@ -19,8 +19,16 @@
 
 package org.apache.james.jdkim;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import java.util.Collections;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.apache.james.jdkim.api.PublicKeyRecord;
+import org.apache.james.jdkim.api.SignatureRecord;
 import org.apache.james.jdkim.exceptions.PermFailException;
+import org.apache.james.jdkim.exceptions.TempFailException;
 import org.apache.james.jdkim.tagvalue.PublicKeyRecordImpl;
 import org.apache.james.jdkim.tagvalue.SignatureRecordImpl;
 import static org.junit.Assert.fail;
@@ -97,6 +105,20 @@ public class DKIMVerifierTest {
             fail("This hash method is not supported for that publick key");
         } catch (PermFailException e) {
         }
+    }
+
+    @Test
+    public void repeatedLookupMethodsShouldBeQueriedOnce() {
+        AtomicInteger calls = new AtomicInteger();
+        DKIMVerifier verifier = new DKIMVerifier((method, selector, token) -> {
+            calls.incrementAndGet();
+            throw new TempFailException("SERVFAIL");
+        });
+        SignatureRecord sign = verifier.newSignatureRecord(
+                "v=1; a=rsa-sha256; d=example.com; s=s0; h=from; bh=AAAA; b=AAAA; q=" + String.join(":", Collections.nCopies(100, "dns/txt")));
+
+        assertThatThrownBy(() -> verifier.publicRecordLookup(sign)).isInstanceOf(TempFailException.class);
+        assertThat(calls.get()).isEqualTo(1);
     }
 
 }
