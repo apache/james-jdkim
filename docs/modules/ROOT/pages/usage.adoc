@@ -209,6 +209,14 @@ https://datatracker.ietf.org/doc/html/rfc6376#section-3.5[RFC 6376 section 3.5].
 Defaults to 5 minutes; must not be negative. Note this tolerance applies to `t=`
 only -- an expired `x=` is rejected against the local clock with no slack.
 
+`withMaxSignatures(int)`::
+How many DKIM-Signature fields of one message are verified, as allowed by
+https://datatracker.ietf.org/doc/html/rfc6376#section-6.1[RFC 6376 section 6.1].
+Each one costs a key lookup and an RSA verification; the fields beyond the limit
+get a `PERMERROR` result ("Too many DKIM-Signature fields") without any lookup.
+Defaults to the `james.dkim.max-signature.count` system property, or 32 when it
+is unset (e.g. `-Djames.dkim.max-signature.count=32`); must be strictly positive.
+
 `withDnsResolver(Resolver)`::
 A dnsjava `Resolver` to query instead of the system default -- useful to point
 at a specific resolver or to shorten timeouts.

@@ -259,7 +259,15 @@ public class DKIMVerifier {
         // the inputstream only once.
         Map<String, BodyHasherImpl> bodyHashJobs = new HashMap<>();
         Hashtable<String, FailException> signatureExceptions = new Hashtable<>();
+        int processedSignatures = 0;
         for (String signatureField : fields) {
+            // RFC 6376 section 6.1: verifiers MAY limit the number of signatures they try to verify.
+            if (processedSignatures >= options.getMaxSignatures()) {
+                signatureExceptions.put(signatureField, new PermFailException("Too many DKIM-Signature fields: only the first "
+                        + options.getMaxSignatures() + " are verified"));
+                continue;
+            }
+            processedSignatures++;
             try {
                 int pos = signatureField.indexOf(':');
                 if (pos > 0) {

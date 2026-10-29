@@ -102,4 +102,32 @@ public class DKIMVerifierOptionsTest {
         assertEquals("Invalid instance", retr, opt.getPublicKeyRecordRetriever());
         assertTrue("Must be an instance of DNSPublicKeyRecordRetriever", opt.getPublicKeyRecordRetriever() instanceof DNSPublicKeyRecordRetriever);
     }
+
+    @Test
+    public void shouldReturnDefaultMaxSignatures() {
+        VerifierOptions opt = new VerifierOptions.Builder().build();
+        assertEquals(32, opt.getMaxSignatures());
+    }
+
+    @Test
+    public void shouldReadMaxSignaturesFromSystemProperty() {
+        System.setProperty(VerifierOptions.MAX_SIGNATURE_COUNT_PROPERTY, "7");
+        try {
+            VerifierOptions opt = new VerifierOptions.Builder().build();
+            assertEquals(7, opt.getMaxSignatures());
+        } finally {
+            System.clearProperty(VerifierOptions.MAX_SIGNATURE_COUNT_PROPERTY);
+        }
+    }
+
+    @Test
+    public void shouldReturnCorrectMaxSignatures() {
+        VerifierOptions opt = new VerifierOptions.Builder().withMaxSignatures(5).build();
+        assertEquals(5, opt.getMaxSignatures());
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void shouldRejectNonPositiveMaxSignatures() {
+        new VerifierOptions.Builder().withMaxSignatures(0).build();
+    }
 }

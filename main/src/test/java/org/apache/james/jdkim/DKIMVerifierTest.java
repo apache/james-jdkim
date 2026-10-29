@@ -22,11 +22,17 @@ package org.apache.james.jdkim;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.james.jdkim.api.PublicKeyRecord;
+import org.apache.james.jdkim.api.PublicKeyRecordRetriever;
+import org.apache.james.jdkim.api.Result;
 import org.apache.james.jdkim.api.SignatureRecord;
+import org.apache.james.jdkim.api.VerifierOptions;
+import org.apache.james.jdkim.exceptions.FailException;
 import org.apache.james.jdkim.exceptions.PermFailException;
 import org.apache.james.jdkim.exceptions.TempFailException;
 import org.apache.james.jdkim.tagvalue.PublicKeyRecordImpl;
@@ -119,6 +125,28 @@ public class DKIMVerifierTest {
 
         assertThatThrownBy(() -> verifier.publicRecordLookup(sign)).isInstanceOf(TempFailException.class);
         assertThat(calls.get()).isEqualTo(1);
+    }
+
+    @Test
+    public void verifierShouldBoundTheNumberOfSignaturesItVerifies() {
+        AtomicInteger calls = new AtomicInteger();
+        PublicKeyRecordRetriever retriever = (method, selector, token) -> {
+            calls.incrementAndGet();
+            throw new PermFailException("no key");
+        };
+        StringBuilder mail = new StringBuilder();
+        for (int i = 0; i < 200; i++) {
+            mail.append("DKIM-Signature: v=1; a=rsa-sha256; d=example.com; s=s").append(i).append("; h=from; bh=AAAA; b=AAAA\r\n");
+        }
+        mail.append("From: joe@example.com\r\n\r\nbody\r\n");
+        DKIMVerifier verifier = new DKIMVerifier(new VerifierOptions.Builder()
+                .withPublicKeyRecordRetriever(retriever).withMaxSignatures(10).build());
+
+        assertThatThrownBy(() -> verifier.verify(new ByteArrayInputStream(mail.toString().getBytes(StandardCharsets.US_ASCII))))
+                .isInstanceOf(FailException.class);
+        assertThat(calls.get()).isEqualTo(10);
+        assertThat(verifier.getResults()).hasSize(200);
+        assertThat(verifier.getResults().stream().filter(r -> r.getResultType() == Result.Type.PERMERROR)).hasSize(190);
     }
 
 }

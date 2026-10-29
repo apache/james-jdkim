@@ -27,12 +27,20 @@ import org.xbill.DNS.Resolver;
 import java.time.Duration;
 
 public class VerifierOptions {
+    /**
+     * System property holding the default of {@link Builder#withMaxSignatures(int)}.
+     */
+    public static final String MAX_SIGNATURE_COUNT_PROPERTY = "james.dkim.max-signature.count";
+    private static final int DEFAULT_MAX_SIGNATURE_COUNT = 32;
+
     private final Duration clockDriftTolerance;
+    private final int maxSignatures;
     private final PublicKeyRecordRetriever publicKeyRecordRetriever;
     private final Resolver dnsResolver;
 
     public static class Builder {
         private Duration clockDriftTolerance = Duration.ofSeconds(300);
+        private int maxSignatures = Integer.getInteger(MAX_SIGNATURE_COUNT_PROPERTY, DEFAULT_MAX_SIGNATURE_COUNT);
         private Resolver dnsResolver = Lookup.getDefaultResolver();
         private PublicKeyRecordRetriever publicKeyRecordRetriever = new MultiplexingPublicKeyRecordRetriever(
                 "dns", new DNSPublicKeyRecordRetriever(this.dnsResolver));
@@ -60,6 +68,19 @@ public class VerifierOptions {
         }
 
         /**
+         * Sets the maximum number of DKIM-Signature fields verified per message, as allowed by RFC 6376 section 6.1.
+         * The fields beyond it are reported as PERMERROR, without key lookup. Defaults to the
+         * {@value #MAX_SIGNATURE_COUNT_PROPERTY} system property, or 32.
+         *
+         * @param maxSignatures a strictly positive number of signatures
+         * @return {@link Builder}
+         */
+        public Builder withMaxSignatures(int maxSignatures) {
+            this.maxSignatures = maxSignatures;
+            return this;
+        }
+
+        /**
          * A custom dns resolver
          *
          * @param dnsResolver a {@link Resolver}
@@ -83,6 +104,10 @@ public class VerifierOptions {
             throw new IllegalArgumentException("clockDriftTolerance must not be negative");
         }
 
+        if (builder.maxSignatures <= 0) {
+            throw new IllegalArgumentException("maxSignatures must be strictly positive");
+        }
+
         if (builder.publicKeyRecordRetriever == null) {
             throw new IllegalArgumentException("publicKeyRecordRetriever can not be null");
         }
@@ -92,6 +117,7 @@ public class VerifierOptions {
         }
 
         this.clockDriftTolerance = builder.clockDriftTolerance;
+        this.maxSignatures = builder.maxSignatures;
         this.dnsResolver = builder.dnsResolver;
         this.publicKeyRecordRetriever = builder.publicKeyRecordRetriever;
     }
@@ -103,6 +129,15 @@ public class VerifierOptions {
      */
     public Duration getClockDriftTolerance() {
         return clockDriftTolerance;
+    }
+
+    /**
+     * Gets the maximum number of DKIM-Signature fields verified per message
+     *
+     * @return the maximum number of signatures
+     */
+    public int getMaxSignatures() {
+        return maxSignatures;
     }
 
     /**
