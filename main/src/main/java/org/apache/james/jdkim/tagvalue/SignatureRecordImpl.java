@@ -86,6 +86,11 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
         if (!ALL.equals(getValue("l")) && !bodyLengthPattern.matcher(getValue("l")).matches())
             throw new IllegalStateException("Invalid body length (l=): " + getValue("l"));
 
+        // RFC 6376 section 3.5: x= MUST be greater than t= if both are present
+        if (getValue("x") != null && timestampPattern.matcher(getValue("x")).matches() && getValue("t") != null
+                && Long.parseLong(getValue("x").toString()) <= Long.parseLong(getValue("t").toString()))
+            throw new IllegalStateException("Signature expiration (x=) must be greater than its timestamp (t=)");
+
         // when "x=" exists and signature expired then return PERMFAIL
         // (signature expired)
         if (getValue("x") != null) {

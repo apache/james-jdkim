@@ -287,4 +287,17 @@ public class SignatureRecordImplTest {
         assertThat(new SignatureRecordImpl("v=1; b = AA\r\n BB ; a=rsa-sha256; d=example.com; s=s; h=from:b=:x; bh=AA==").toUnsignedString())
                 .isEqualTo("v=1; b =; a=rsa-sha256; d=example.com; s=s; h=from:b=:x; bh=AA==");
     }
+
+    @Test
+    public void expirationNotAfterTimestampShouldBeRejected() {
+        long now = System.currentTimeMillis() / 1000;
+        String base = "v=1; a=rsa-sha256; d=example.com; s=sel; h=from; bh=AA==; b=AA==; ";
+
+        assertThatThrownBy(() -> new SignatureRecordImpl(base + "t=" + (now + 1000) + "; x=" + (now + 500)))
+                .isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> new SignatureRecordImpl(base + "t=" + (now + 1000) + "; x=" + (now + 1000)))
+                .isInstanceOf(IllegalStateException.class);
+        // x= after t= stays valid
+        new SignatureRecordImpl(base + "t=" + now + "; x=" + (now + 1000));
+    }
 }
