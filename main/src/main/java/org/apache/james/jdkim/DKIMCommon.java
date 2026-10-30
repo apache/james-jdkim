@@ -53,7 +53,7 @@ public abstract class DKIMCommon {
         if (relaxed) {
             if (DEEP_DEBUG)
                 System.out
-                        .println("#" + header.toString().toLowerCase() + ":-");
+                        .println("#" + header.toString().toLowerCase(Locale.US) + ":-");
             signature.update(octets(header.toString().toLowerCase(Locale.US)));
             signature.update(octets(":"));
             String headerValue = fv.substring(fv.indexOf(':') + 1);

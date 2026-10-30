@@ -56,6 +56,7 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -149,8 +150,8 @@ public class DKIMVerifier {
             }
 
             if (pkr.isDenySubdomains()) {
-                if (!sign.getIdentity().toString().toLowerCase().endsWith(
-                        ("@" + sign.getDToken()).toLowerCase())) {
+                if (!sign.getIdentity().toString().toLowerCase(Locale.US).endsWith(
+                        ("@" + sign.getDToken()).toLowerCase(Locale.US))) {
                     throw new PermFailException(
                             "AUID in subdomain of SDID is not allowed by the public key record.", sign);
                 }
@@ -529,8 +530,8 @@ public class DKIMVerifier {
             throws PermFailException {
         try {
             Signature signature = Signature.getInstance(sign.getHashMethod()
-                    .toString().toUpperCase()
-                    + "with" + sign.getHashKeyType().toString().toUpperCase());
+                    .toString().toUpperCase(Locale.US)
+                    + "with" + sign.getHashKeyType().toString().toUpperCase(Locale.US));
             PublicKey publicKey;
             try {
                 publicKey = key.getPublicKey();
