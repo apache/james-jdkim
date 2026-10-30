@@ -81,6 +81,10 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
                 ("." + getValue("d")).toLowerCase()))
             throw new IllegalStateException("Identity (i=) domain mismatch: expected [optional]@[optional.]domain-from-d-attribute");
 
+        // RFC 6376 section 3.5: sig-t-tag = %x74 [FWS] "=" [FWS] 1*12DIGIT
+        if (getValue("t") != null && !timestampPattern.matcher(getValue("t")).matches())
+            throw new IllegalStateException("Invalid signature timestamp (t=): " + getValue("t"));
+
         // when "x=" exists and signature expired then return PERMFAIL
         // (signature expired)
         if (getValue("x") != null) {

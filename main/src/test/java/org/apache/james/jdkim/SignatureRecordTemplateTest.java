@@ -165,4 +165,15 @@ public class SignatureRecordTemplateTest {
         assertThatThrownBy(() -> new SignatureRecordTemplate("v=1; a=rsa-sha256; d=example.com; s=s; h=from; x=abc"))
                 .isInstanceOf(IllegalStateException.class);
     }
+
+    @Test
+    public void nonNumericTimestampShouldBeASyntaxError() {
+        assertThatThrownBy(() -> new SignatureRecordTemplate("v=1; a=rsa-sha256; d=example.com; s=s; h=from; t=-"))
+                .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    public void emptyTimestampShouldBeAccepted() {
+        new SignatureRecordTemplate("v=1; a=rsa-sha256; d=example.com; s=s; h=from; t=");
+    }
 }
