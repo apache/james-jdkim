@@ -31,11 +31,23 @@ public class SimpleBodyCanonicalizer extends FilterOutputStream {
 
     private static final boolean DEEP_DEBUG = false;
 
+    private final boolean emptyBodyIsEmpty;
     private boolean lastWasCR;
     private int countCRLF;
+    private boolean hasContent;
 
     public SimpleBodyCanonicalizer(OutputStream arg0) {
+        this(arg0, false);
+    }
+
+    /**
+     * @param emptyBodyIsEmpty true to output nothing for a body made only of
+     *                         CRLFs, as relaxed canonicalization requires (RFC
+     *                         6376 section 3.4.4); simple outputs a single CRLF.
+     */
+    SimpleBodyCanonicalizer(OutputStream arg0, boolean emptyBodyIsEmpty) {
         super(arg0);
+        this.emptyBodyIsEmpty = emptyBodyIsEmpty;
     }
 
     public void write(byte[] b, int off, int len) throws IOException {
@@ -54,6 +66,7 @@ public class SimpleBodyCanonicalizer extends FilterOutputStream {
                 // TODO output the lone \r ? (this condition should never happen
                 // as we expect only CRLF in a compliant 7bit email.
                 out.write('\r');
+                hasContent = true;
                 lastWasCR = false;
             }
         }
@@ -70,6 +83,7 @@ public class SimpleBodyCanonicalizer extends FilterOutputStream {
         if (len > 0) {
             dumpCRLF();
             out.write(b, off, len);
+            hasContent = true;
         }
         countCRLF += newCountCRLF;
         lastWasCR = newLastWasCR;
@@ -86,10 +100,12 @@ public class SimpleBodyCanonicalizer extends FilterOutputStream {
                 lastWasCR = true;
             } else {
                 dumpCRLF();
-                if ('\r' == b)
+                if ('\r' == b) {
                     lastWasCR = true;
-                else
+                } else {
                     out.write(b);
+                    hasContent = true;
+                }
             }
         }
     }
@@ -106,6 +122,9 @@ public class SimpleBodyCanonicalizer extends FilterOutputStream {
             // if the last char was a CR we'll let dumpCRLF
             // to output the missing \n
             lastWasCR = false;
+        }
+        if (emptyBodyIsEmpty && !hasContent) {
+            return;
         }
         countCRLF = 1;
         dumpCRLF();

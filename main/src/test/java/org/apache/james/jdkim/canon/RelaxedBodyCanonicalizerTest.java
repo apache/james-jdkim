@@ -50,4 +50,22 @@ public class RelaxedBodyCanonicalizerTest extends AbstractOutputStreamTestCase {
         chunker(testData, os);
         assertArrayEquals(expectedData, bos.toByteArray());
     }
+
+    public void testEmptyAndBlankBodiesCanonicalizeToNothing() throws IOException {
+        for (String body : new String[] {"", " \r\n", "\r\n\r\n", "\t \r\n \r\n"}) {
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            RelaxedBodyCanonicalizer os = new RelaxedBodyCanonicalizer(bos);
+            os.write(body.getBytes());
+            os.close();
+            assertArrayEquals("[" + body + "]", new byte[0], bos.toByteArray());
+        }
+    }
+
+    public void testNonEmptyBodyGetsAFinalCRLF() throws IOException {
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        RelaxedBodyCanonicalizer os = new RelaxedBodyCanonicalizer(bos);
+        os.write("\r\nx".getBytes());
+        os.close();
+        assertArrayEquals("\r\nx\r\n".getBytes(), bos.toByteArray());
+    }
 }

@@ -32,7 +32,7 @@ public class RelaxedBodyCanonicalizer extends FilterOutputStream {
     private boolean pendingSpaces;
 
     public RelaxedBodyCanonicalizer(OutputStream out) {
-        super(new SimpleBodyCanonicalizer(out));
+        super(new SimpleBodyCanonicalizer(out, true));
         pendingSpaces = false;
     }
 
