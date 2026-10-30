@@ -74,6 +74,18 @@ public abstract class DKIMCommon {
     protected static void signatureCheck(Headers h, SignatureRecord sign,
                                          List<CharSequence> headers, Signature signature)
             throws SignatureException, PermFailException {
+        signatureCheck(h, sign, headers, signature, "DKIM-Signature");
+    }
+
+    /**
+     * @param signatureFieldName the name of the DKIM-Signature field as written in
+     *                           the message, i.e. the text before its colon: simple
+     *                           canonicalization hashes it unchanged.
+     */
+    protected static void signatureCheck(Headers h, SignatureRecord sign,
+                                         List<CharSequence> headers, Signature signature,
+                                         String signatureFieldName)
+            throws SignatureException, PermFailException {
 
         boolean relaxedHeaders = SignatureRecord.RELAXED.equals(sign.getHeaderCanonicalisationMethod());
         if (!relaxedHeaders
@@ -106,7 +118,7 @@ public abstract class DKIMCommon {
             }
         }
 
-        String signatureStub = "DKIM-Signature:" + sign.toUnsignedString();
+        String signatureStub = signatureFieldName + ":" + sign.toUnsignedString();
         updateSignature(signature, relaxedHeaders, "dkim-signature", signatureStub);
     }
 
