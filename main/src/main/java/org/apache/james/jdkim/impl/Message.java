@@ -24,13 +24,10 @@ import org.apache.james.mime4j.MimeException;
 import org.apache.james.mime4j.MimeIOException;
 import org.apache.james.mime4j.dom.MessageBuilder;
 import org.apache.james.mime4j.dom.MessageServiceFactory;
-import org.apache.james.mime4j.dom.MessageWriter;
 import org.apache.james.mime4j.dom.SingleBody;
 import org.apache.james.mime4j.io.EOLConvertingInputStream;
-import org.apache.james.mime4j.stream.Field;
 import org.apache.james.mime4j.stream.MimeConfig;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -47,9 +44,8 @@ import java.util.Map;
 public class Message implements Headers {
 
     private final org.apache.james.mime4j.dom.Message message;
-    private final MessageServiceFactory messageServiceFactory;
-    private List<String> fields;
-    private Map<String, List<String>> fieldsByName;
+    private final List<String> fields;
+    private final Map<String, List<String>> fieldsByName;
 
     /**
      * Creates a new <code>Header</code> from the specified stream.
@@ -59,10 +55,21 @@ public class Message implements Headers {
      * @throws MimeIOException on MIME protocol violations.
      */
     public Message(InputStream is) throws IOException, MimeException {
-        this.messageServiceFactory = newMessageBuilder();
-        MessageBuilder mb = messageServiceFactory.newMessageBuilder();
+        MessageBuilder mb = newMessageBuilder().newMessageBuilder();
 
-        this.message = mb.parseMessage(new EOLConvertingInputStream(is));
+        // mime4j drops the fields whose name it cannot parse and normalizes the
+        // others: the fields are taken from the raw header bytes instead.
+        HeaderCapturingInputStream header = new HeaderCapturingInputStream(new EOLConvertingInputStream(is));
+        this.message = mb.parseMessage(header);
+
+        List<String> all = splitFields(new String(header.getHeader(), StandardCharsets.ISO_8859_1));
+        Map<String, List<String>> byName = new HashMap<>();
+        for (String field : all) {
+            byName.computeIfAbsent(rawName(field), name -> new ArrayList<>()).add(field);
+        }
+        byName.replaceAll((name, list) -> Collections.unmodifiableList(list));
+        this.fields = Collections.unmodifiableList(all);
+        this.fieldsByName = byName;
     }
 
     private MessageServiceFactory newMessageBuilder() throws MimeException {
@@ -79,6 +86,50 @@ public class Message implements Headers {
         return mbf;
     }
 
+    /**
+     * Splits a CRLF-terminated header block into raw fields: a line starting
+     * with WSP continues the previous field. Lines without a colon are skipped.
+     */
+    private static List<String> splitFields(String header) {
+        List<String> all = new ArrayList<>();
+        StringBuilder current = null;
+        int start = 0;
+        while (start < header.length()) {
+            int end = header.indexOf("\r\n", start);
+            if (end == -1) {
+                end = header.length();
+            }
+            String line = header.substring(start, end);
+            start = end + 2;
+            if (line.isEmpty()) {
+                // end of the header block
+                break;
+            }
+            if (current != null && (line.charAt(0) == ' ' || line.charAt(0) == '\t')) {
+                current.append("\r\n").append(line);
+                continue;
+            }
+            addField(all, current);
+            current = new StringBuilder(line);
+        }
+        addField(all, current);
+        return all;
+    }
+
+    private static void addField(List<String> all, StringBuilder field) {
+        if (field != null && field.indexOf(":") != -1) {
+            all.add(field.toString());
+        }
+    }
+
+    /**
+     * The name DKIM matches against h= is the raw text before the colon,
+     * without trailing WSP.
+     */
+    private static String rawName(String field) {
+        return field.substring(0, field.indexOf(':')).replaceAll("[ \t]+$", "").toLowerCase(Locale.US);
+    }
+
     public InputStream getBodyInputStream() {
         try {
             return ((SingleBody) message.getBody()).getInputStream();
@@ -91,45 +142,13 @@ public class Message implements Headers {
      * @see org.apache.james.jdkim.api.Headers#getFields()
      */
     public List<String> getFields() {
-        convertFields();
         return fields;
-    }
-
-    /**
-     * Serializes every field once, so that lookups by name do not convert them again.
-     */
-    private void convertFields() {
-        if (fields != null) {
-            return;
-        }
-        List<String> all = new ArrayList<>();
-        Map<String, List<String>> byName = new HashMap<>();
-        MessageWriter mw = messageServiceFactory.newMessageWriter();
-        ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        for (Field f : message.getHeader().getFields()) {
-            bos.reset();
-            String field = null;
-            try {
-                mw.writeField(f, bos);
-                // writeField always ends with CRLF and we don't want it.
-                // ISO-8859-1 maps each raw octet to one char, losslessly.
-                byte[] fieldbytes = bos.toByteArray();
-                field = new String(fieldbytes, 0, fieldbytes.length - 2, StandardCharsets.ISO_8859_1);
-            } catch (IOException ignored) {
-            }
-            all.add(field);
-            byName.computeIfAbsent(f.getName().toLowerCase(Locale.US), name -> new ArrayList<>()).add(field);
-        }
-        byName.replaceAll((name, list) -> Collections.unmodifiableList(list));
-        fields = Collections.unmodifiableList(all);
-        fieldsByName = byName;
     }
 
     /**
      * @see org.apache.james.jdkim.api.Headers#getFields(java.lang.String)
      */
     public List<String> getFields(final String name) {
-        convertFields();
         return fieldsByName.getOrDefault(name.toLowerCase(Locale.US), Collections.emptyList());
     }
 

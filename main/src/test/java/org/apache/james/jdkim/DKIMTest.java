@@ -318,4 +318,50 @@ public class DKIMTest {
 
         assertThat(verifier.verify(new ByteArrayInputStream(mail.getBytes(StandardCharsets.US_ASCII)))).hasSize(1);
     }
+
+    @Test
+    public void controlCharacterBeforeASignedFieldNameShouldBreakTheSignature() throws Exception {
+        DKIMSigner signer = new DKIMSigner("v=1; a=rsa-sha256; c=relaxed/simple; d=messiah.edu; h=from; s=selector2;", TestKeys.privateKey);
+        byte[] mail = "From: joe@messiah.edu\r\n\r\nbody\r\n".getBytes(StandardCharsets.US_ASCII);
+        byte[] tampered = "\u0000From: joe@messiah.edu\r\n\r\nbody\r\n".getBytes(StandardCharsets.US_ASCII);
+        String field = signer.sign(new ByteArrayInputStream(mail));
+
+        InputStream in = new SequenceInputStream(
+                new ByteArrayInputStream((field + "\r\n").getBytes(StandardCharsets.US_ASCII)), new ByteArrayInputStream(tampered));
+
+        assertThatThrownBy(() -> verifier.verify(in)).isInstanceOf(PermFailException.class);
+    }
+
+    @Test
+    public void fieldsWhoseNameLooksLikeACommentShouldBeSigned() throws Exception {
+        DKIMSigner signer = new DKIMSigner("v=1; a=rsa-sha256; c=relaxed/simple; d=messiah.edu; h=from:(((((; s=selector2;", TestKeys.privateKey);
+        byte[] mail = "From: joe@messiah.edu\r\n(((((:(( signed\r\n\r\nbody\r\n".getBytes(StandardCharsets.US_ASCII);
+        byte[] tampered = "From: joe@messiah.edu\r\n(((((:(( altered\r\n\r\nbody\r\n".getBytes(StandardCharsets.US_ASCII);
+        String field = signer.sign(new ByteArrayInputStream(mail));
+
+        InputStream in = new SequenceInputStream(
+                new ByteArrayInputStream((field + "\r\n").getBytes(StandardCharsets.US_ASCII)), new ByteArrayInputStream(tampered));
+
+        assertThatThrownBy(() -> verifier.verify(in)).isInstanceOf(PermFailException.class);
+    }
+
+    @Test
+    public void messageShouldMatchFieldsOnTheirRawName() throws Exception {
+        Message message = new Message(new ByteArrayInputStream(
+                "\u0000From: a\r\nFrom : b\r\n(c) Subject: c\r\n\r\n".getBytes(StandardCharsets.US_ASCII)));
+
+        assertThat(message.getFields("from")).containsExactly("From : b");
+        assertThat(message.getFields("subject")).isEmpty();
+        assertThat(message.getFields("(c) Subject")).containsExactly("(c) Subject: c");
+    }
+
+    @Test
+    public void messageShouldKeepFoldedFieldsAndHeaderOnlyMessages() throws Exception {
+        Message folded = new Message(new ByteArrayInputStream(
+                "Subject: a\r\n\tb\r\n c\r\nFrom: d\r\n\r\nbody\r\n".getBytes(StandardCharsets.US_ASCII)));
+        Message headerOnly = new Message(new ByteArrayInputStream("From: d\nTo: e".getBytes(StandardCharsets.US_ASCII)));
+
+        assertThat(folded.getFields()).containsExactly("Subject: a\r\n\tb\r\n c", "From: d");
+        assertThat(headerOnly.getFields()).containsExactly("From: d", "To: e");
+    }
 }
