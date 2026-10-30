@@ -46,6 +46,7 @@ public class TagValue {
     private static final Pattern valuePattern = Pattern.compile("^(?:" + tval
             + "(?:(?:(?:\r\n)?[\t ])++" + tval + ")*+)?$");
     private static final Pattern b64PadFixPattern = Pattern.compile("=(\r?\n\\s*)=$");
+    private static final Pattern fwsPattern = Pattern.compile("[ \t\r\n]");
 
     // we may use a TreeMap because we may need to know original order.
     private final Map<String, CharSequence> tagValues;
@@ -228,6 +229,16 @@ public class TagValue {
         return Base64.getMimeDecoder().decode(
                 b64PadFixPattern.matcher(value).replaceAll("$1==")
         );
+    }
+
+    /**
+     * Decodes a base64string (RFC 6376 section 2.8): FWS may appear anywhere,
+     * every other character must belong to the base64 alphabet.
+     *
+     * @throws IllegalArgumentException if the value is not valid base64
+     */
+    protected static byte[] decodeBase64(CharSequence value) {
+        return Base64.getDecoder().decode(fwsPattern.matcher(value).replaceAll(""));
     }
 
     protected void setValue(String tag, String value) {
