@@ -19,6 +19,8 @@
 
 package org.apache.james.jdkim;
 
+import org.apache.james.jdkim.api.BodyHasher;
+import java.util.stream.Collectors;
 import org.apache.james.mime4j.MimeException;
 import java.security.MessageDigest;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -442,5 +444,36 @@ public class DKIMTest {
         verifier.resetResults();
         assertThatThrownBy(() -> verifier.verify(new ByteArrayInputStream(tampered)))
                 .isInstanceOf(CompositeFailException.class);
+    }
+
+    @Test
+    public void headerCharsAboveU00FFShouldNotBeHashedAsQuestionMarks() throws Exception {
+        String template = "v=1; d=messiah.edu; s=selector2; a=rsa-sha256; c=simple/simple; h=from;";
+        DKIMSigner signer = new DKIMSigner(template, TestKeys.privateKey);
+        BodyHasher bodyHasher = signer.newBodyHasher(signer.newSignatureRecordTemplate(template));
+        bodyHasher.getOutputStream().close();
+        // getBytes(ISO_8859_1) used to turn any char above U+00FF into this '?'
+        String signature = signer.sign(headers("From: joe@messiah.edu?"), bodyHasher);
+
+        assertThatThrownBy(() -> signer.sign(headers("From: " + (char) 0xA9C3), bodyHasher))
+                .isInstanceOf(PermFailException.class);
+        assertThatThrownBy(() -> verifier.verify(headers(signature, "From: joe@messiah.edu" + (char) 0x100),
+                new ByteArrayInputStream(new byte[0])))
+                .isInstanceOf(PermFailException.class);
+    }
+
+    private static Headers headers(String... fields) {
+        List<String> all = Arrays.asList(fields);
+        return new Headers() {
+            public List<String> getFields() {
+                return all;
+            }
+
+            public List<String> getFields(String name) {
+                return all.stream()
+                        .filter(f -> f.substring(0, f.indexOf(':')).equalsIgnoreCase(name))
+                        .collect(Collectors.toList());
+            }
+        };
     }
 }
