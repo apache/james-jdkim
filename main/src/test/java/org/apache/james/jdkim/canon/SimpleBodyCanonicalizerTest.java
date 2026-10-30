@@ -88,10 +88,6 @@ public class SimpleBodyCanonicalizerTest extends AbstractOutputStreamTestCase {
 
     public void testWrongCRSequences() throws NoSuchAlgorithmException,
             IOException {
-        // byte[] test = "this is a \r\n canonica\rlizati\r\ron
-        // \ttest\r\n\r\n\r\r".getBytes();
-        // byte[] expected = "this is a \r\n canonica\rlizati\r\ron
-        // \ttest\r\n\r\n\r\r\n".getBytes();
         byte[] test = "this  is a \r\n  canonica\rlizati".getBytes();
         byte[] expected = "this  is a \r\n  canonica\rlizati\r\n".getBytes();
         extensiveChunker(test, expected);
@@ -114,13 +110,10 @@ public class SimpleBodyCanonicalizerTest extends AbstractOutputStreamTestCase {
 
     public void testWrongCRSequencesAdv() throws NoSuchAlgorithmException,
             IOException {
-        // byte[] test = "this is a \r\n canonica\rlizati\r\ron
-        // \ttest\r\n\r\n\r\r".getBytes();
-        // byte[] expected = "this is a \r\n canonica\rlizati\r\ron
-        // \ttest\r\n\r\n\r\r\n".getBytes();
         byte[] test = "this  is a \r\n  canonica\rlizati\r\ron\r\n\r\n\r"
                 .getBytes();
-        byte[] expected = "this  is a \r\n  canonica\rlizati\r\ron\r\n"
+        // the final lone CR is content: the CRLFs before it are not trailing
+        byte[] expected = "this  is a \r\n  canonica\rlizati\r\ron\r\n\r\n\r\r\n"
                 .getBytes();
         extensiveChunker(test, expected);
     }
@@ -129,7 +122,8 @@ public class SimpleBodyCanonicalizerTest extends AbstractOutputStreamTestCase {
             IOException {
         byte[] test = "this  is a \r\n  canonica\rlizati\r\ron\r\n\r\n\r"
                 .getBytes();
-        byte[] expected = "this  is a \r\n  canonica\rlizati\r\ron\r\n"
+        // the final lone CR is content: the CRLFs before it are not trailing
+        byte[] expected = "this  is a \r\n  canonica\rlizati\r\ron\r\n\r\n\r\r\n"
                 .getBytes();
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         SimpleBodyCanonicalizer os = new SimpleBodyCanonicalizer(bos);
@@ -143,7 +137,8 @@ public class SimpleBodyCanonicalizerTest extends AbstractOutputStreamTestCase {
             IOException {
         byte[] test = "this  is a \r\n  canonica\rlizati\r\ron\r\n\r\n\r"
                 .getBytes();
-        byte[] expected = "this  is a \r\n  canonica\rlizati\r\ron\r\n"
+        // the final lone CR is content: the CRLFs before it are not trailing
+        byte[] expected = "this  is a \r\n  canonica\rlizati\r\ron\r\n\r\n\r\r\n"
                 .getBytes();
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         SimpleBodyCanonicalizer os = new SimpleBodyCanonicalizer(bos);
@@ -155,4 +150,9 @@ public class SimpleBodyCanonicalizerTest extends AbstractOutputStreamTestCase {
         assertArrayEquals(expected, bos.toByteArray());
     }
 
+    public void testLoneCRIsKeptInPlace() throws IOException {
+        extensiveChunker("\r".getBytes(), "\r\r\n".getBytes());
+        extensiveChunker("\r\n\r\r".getBytes(), "\r\n\r\r\r\n".getBytes());
+        extensiveChunker("a\r\n\r\nb\r\r\n\r\n".getBytes(), "a\r\n\r\nb\r\r\n".getBytes());
+    }
 }
