@@ -45,7 +45,6 @@ public class TagValue {
     // Use possessive matching to avoid heavy stack usage
     private static final Pattern valuePattern = Pattern.compile("^(?:" + tval
             + "(?:(?:(?:\r\n)?[\t ])++" + tval + ")*+)?$");
-    private static final Pattern b64PadFixPattern = Pattern.compile("=(\r?\n\\s*)=$");
     private static final Pattern fwsPattern = Pattern.compile("[ \t\r\n]");
 
     // we may use a TreeMap because we may need to know original order.
@@ -224,11 +223,7 @@ public class TagValue {
     }
 
     protected byte[] decodeBase64TagValue(String key) {
-        // When a base64 string ends with a newline between two '=', java.util.Base64 fails.
-        String value = getValue(key).toString();
-        return Base64.getMimeDecoder().decode(
-                b64PadFixPattern.matcher(value).replaceAll("$1==")
-        );
+        return decodeBase64(getValue(key));
     }
 
     /**
