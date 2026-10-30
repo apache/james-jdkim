@@ -35,6 +35,7 @@ public class SignatureRecordTemplate extends TagValue implements SignatureRecord
     // TODO ftext is defined as a sequence of at least one in %d33-57 or
     // %d59-126
     private static final Pattern hdrNamePattern = Pattern.compile("^[^: \r\n\t]+$");
+    private static final Pattern timestampPattern = Pattern.compile("^[0-9]{1,12}$");
 
     public SignatureRecordTemplate(String data) {
         super(data);
@@ -91,6 +92,9 @@ public class SignatureRecordTemplate extends TagValue implements SignatureRecord
         // when "x=" exists and signature expired then return PERMFAIL
         // (signature expired)
         if (getValue("x") != null) {
+            // RFC 6376 section 3.5: sig-x-tag = %x78 [FWS] "=" [FWS] 1*12DIGIT
+            if (!timestampPattern.matcher(getValue("x")).matches())
+                throw new IllegalStateException("Invalid expiration (x=): " + getValue("x"));
             long expiration = Long.parseLong(getValue("x").toString());
             long lifetime = (expiration - System.currentTimeMillis() / 1000);
             if (lifetime < 0) {

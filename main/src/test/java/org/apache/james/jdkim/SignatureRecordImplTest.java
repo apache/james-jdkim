@@ -166,4 +166,16 @@ public class SignatureRecordImplTest {
         assertThat(record.getSignature()).isEqualTo(signature);
         assertThat(new SignatureRecordImpl(record.toString()).getSignature()).isEqualTo(signature);
     }
+
+    @Test
+    public void nonNumericExpirationShouldBeASyntaxError() {
+        String base = "v=1; a=rsa-sha256; d=example.com; s=s; h=from; bh=AA==; b=AA==; ";
+
+        assertThatThrownBy(() -> new SignatureRecordImpl(base + "x="))
+                .isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> new SignatureRecordImpl(base + "x=abc"))
+                .isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> new SignatureRecordImpl(base + "x=9999999999999"))
+                .isInstanceOf(IllegalStateException.class);
+    }
 }

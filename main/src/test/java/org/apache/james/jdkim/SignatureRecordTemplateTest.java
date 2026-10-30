@@ -159,4 +159,10 @@ public class SignatureRecordTemplateTest {
         assertThat(signatureRecord.getBodyHash()).isEqualTo(bodyHash);
         assertThat(signatureRecord.getSignature()).isEqualTo(signature);
     }
+
+    @Test
+    public void nonNumericExpirationShouldBeASyntaxError() {
+        assertThatThrownBy(() -> new SignatureRecordTemplate("v=1; a=rsa-sha256; d=example.com; s=s; h=from; x=abc"))
+                .isInstanceOf(IllegalStateException.class);
+    }
 }
