@@ -34,6 +34,7 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
     // %d59-126
     private static final Pattern hdrNamePattern = Pattern.compile("^[^: \r\n\t]+$");
     private static final Pattern timestampPattern = Pattern.compile("^[0-9]{1,12}$");
+    private static final Pattern bodyLengthPattern = Pattern.compile("^[0-9]{1,76}$");
 
     public SignatureRecordImpl(String data) {
         super(data);
@@ -84,6 +85,10 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
         // RFC 6376 section 3.5: sig-t-tag = %x74 [FWS] "=" [FWS] 1*12DIGIT
         if (getValue("t") != null && !timestampPattern.matcher(getValue("t")).matches())
             throw new IllegalStateException("Invalid signature timestamp (t=): " + getValue("t"));
+
+        // RFC 6376 section 3.5: sig-l-tag = %x6c [FWS] "=" [FWS] 1*76DIGIT
+        if (!ALL.equals(getValue("l")) && !bodyLengthPattern.matcher(getValue("l")).matches())
+            throw new IllegalStateException("Invalid body length (l=): " + getValue("l"));
 
         // when "x=" exists and signature expired then return PERMFAIL
         // (signature expired)
@@ -239,7 +244,18 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
         if (ALL.equals(limit))
             return -1;
         else
-            return Integer.parseInt(limit);
+            return parseBodyHashLimit(limit);
+    }
+
+    /**
+     * Parses a validated l= value. Values beyond Integer.MAX_VALUE exceed any
+     * body we can hash and are clamped.
+     */
+    static int parseBodyHashLimit(String limit) {
+        String digits = limit.replaceFirst("^0+(?=.)", "");
+        if (digits.length() > 10)
+            return Integer.MAX_VALUE;
+        return (int) Math.min(Long.parseLong(digits), Integer.MAX_VALUE);
     }
 
     public Long getSignatureTimestamp() {
