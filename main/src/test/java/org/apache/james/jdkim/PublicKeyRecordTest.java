@@ -19,6 +19,7 @@
 
 package org.apache.james.jdkim;
 
+import java.security.KeyPairGenerator;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.util.Base64;
 import org.apache.james.jdkim.api.PublicKeyRecord;
@@ -275,5 +276,16 @@ public class PublicKeyRecordTest {
         String folded = key.substring(0, 10) + "\r\n " + key.substring(10, key.length() - 1) + " " + key.substring(key.length() - 1);
 
         assertEquals(TestKeys.publicKey, new PublicKeyRecordImpl("v=DKIM1; k=rsa; p=" + folded).getPublicKey());
+    }
+
+    @Test
+    public void nonRsaKeyShouldThrowIllegalStateException() throws Exception {
+        String ec = Base64.getEncoder().encodeToString(
+                KeyPairGenerator.getInstance("EC").generateKeyPair().getPublic().getEncoded());
+
+        assertThatThrownBy(new PublicKeyRecordImpl("v=DKIM1; k=EC; p=" + ec)::getPublicKey)
+                .isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(new PublicKeyRecordImpl("v=DKIM1; k=rsa; p=" + ec)::getPublicKey)
+                .isInstanceOf(IllegalStateException.class);
     }
 }

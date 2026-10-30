@@ -176,13 +176,16 @@ public class PublicKeyRecordImpl extends TagValue implements PublicKeyRecord {
      */
     public PublicKey getPublicKey() {
         try {
+            // only rsa-* signatures are implemented: never let DNS data pick the KeyFactory
+            if (!"rsa".equalsIgnoreCase(getValue("k").toString()))
+                throw new IllegalStateException("Unsupported key type: " + getValue("k"));
             byte[] key = decodeBase64(getValue("p"));
-            KeyFactory keyFactory;
-            keyFactory = KeyFactory.getInstance(getValue("k").toString());
+            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
             X509EncodedKeySpec pubSpec = new X509EncodedKeySpec(key);
-            RSAPublicKey rsaKey;
-            rsaKey = (RSAPublicKey) keyFactory.generatePublic(pubSpec);
-            return rsaKey;
+            PublicKey publicKey = keyFactory.generatePublic(pubSpec);
+            if (!(publicKey instanceof RSAPublicKey))
+                throw new IllegalStateException("Not an RSA key: " + publicKey.getAlgorithm());
+            return publicKey;
         } catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException("Unknown algorithm: "
                     + e.getMessage());
