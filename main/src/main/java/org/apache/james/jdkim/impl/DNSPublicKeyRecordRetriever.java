@@ -19,6 +19,7 @@
 
 package org.apache.james.jdkim.impl;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -28,6 +29,7 @@ import org.apache.james.jdkim.api.PublicKeyRecordRetriever;
 import org.apache.james.jdkim.exceptions.PermFailException;
 import org.apache.james.jdkim.exceptions.TempFailException;
 import org.xbill.DNS.Lookup;
+import org.xbill.DNS.Name;
 import org.xbill.DNS.Record;
 import org.xbill.DNS.Resolver;
 import org.xbill.DNS.TXTRecord;
@@ -58,7 +60,8 @@ public class DNSPublicKeyRecordRetriever implements PublicKeyRecordRetriever {
                     + methodAndOptions + " options unsupported.");
         Lookup query;
         try {
-            query = new Lookup(selector + "._domainkey." + token, Type.TXT);
+            // RFC 6376 section 3.6.2.1: only the absolute name, never a search-list expansion
+            query = new Lookup(Name.fromString(selector + "._domainkey." + token, Name.root), Type.TXT);
         } catch (TextParseException e) {
             throw new PermFailException("Invalid dns record", e);
         }
@@ -82,7 +85,10 @@ public class DNSPublicKeyRecordRetriever implements PublicKeyRecordRetriever {
 
         return Arrays.stream(rr)
                 .filter(r -> r.getType() == Type.TXT)
-                .map(r -> String.join("", ((TXTRecord) r).getStrings()))
+                // getStrings() returns the escaped presentation form: join the raw character-strings
+                .map(r -> ((TXTRecord) r).getStringsAsByteArrays().stream()
+                        .map(bytes -> new String(bytes, StandardCharsets.ISO_8859_1))
+                        .collect(Collectors.joining()))
                 .collect(Collectors.toList());
     }
 }
