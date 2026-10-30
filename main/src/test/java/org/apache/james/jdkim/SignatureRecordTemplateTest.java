@@ -182,4 +182,10 @@ public class SignatureRecordTemplateTest {
         assertThatThrownBy(() -> new SignatureRecordTemplate("v=1; a=rsa-sha256; d=example.com; s=s; h=from; l=-1"))
                 .isInstanceOf(IllegalStateException.class);
     }
+
+    @Test
+    public void identityWithoutAtShouldBeRejected() {
+        assertThatThrownBy(() -> new SignatureRecordTemplate("v=1; a=rsa-sha256; d=example.com; s=s; h=from; i=.example.com"))
+                .isInstanceOf(IllegalStateException.class);
+    }
 }

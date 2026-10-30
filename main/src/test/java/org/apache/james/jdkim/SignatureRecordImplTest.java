@@ -218,4 +218,24 @@ public class SignatureRecordImplTest {
         assertThat(new SignatureRecordImpl(base + "l=0000000000000000042").getBodyHashLimit()).isEqualTo(42);
         assertThat(new SignatureRecordImpl(base + "l=0").getBodyHashLimit()).isEqualTo(0);
     }
+
+    @Test
+    public void identityWithoutExactlyOneAtShouldBeRejected() {
+        String base = "v=1; a=rsa-sha256; d=example.com; s=s; h=from; bh=AA==; b=AA==; ";
+
+        assertThatThrownBy(() -> new SignatureRecordImpl(base + "i=.example.com"))
+                .isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> new SignatureRecordImpl(base + "i==40@example.com"))
+                .isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> new SignatureRecordImpl(base + "i=joe@badexample.com"))
+                .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    public void identityInDomainOrSubdomainShouldBeAccepted() {
+        String base = "v=1; a=rsa-sha256; d=example.com; s=s; h=from; bh=AA==; b=AA==; ";
+
+        assertThat(new SignatureRecordImpl(base + "i=joe@Example.COM").getIdentityLocalPart()).isEqualTo("joe");
+        assertThat(new SignatureRecordImpl(base + "i=@mail.example.com").getIdentityLocalPart()).isEqualTo("");
+    }
 }
