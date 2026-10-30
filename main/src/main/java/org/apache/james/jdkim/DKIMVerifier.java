@@ -316,7 +316,7 @@ public class DKIMVerifier {
                         signatureRecord.getBodyHash();
                         byte[] decoded = signatureRecord.getSignature();
                         signatureVerify(messageHeaders, signatureRecord, decoded,
-                                publicKeyRecord, signedHeadersList);
+                                publicKeyRecord, signedHeadersList, signatureField.substring(0, pos));
                     } catch (IllegalArgumentException e) {
                         throw new PermFailException("Invalid signature record: " + e.getMessage(), signatureRecord, e);
                     }
@@ -525,10 +525,12 @@ public class DKIMVerifier {
      * @param decoded the expected signature hash
      * @param key     the DKIM public key record
      * @param headers the list of signed headers
+     * @param signatureFieldName the name of the verified field, as written
      * @throws PermFailException If signature or public key validation fails
      */
     private void signatureVerify(Headers h, SignatureRecord sign,
-                                 byte[] decoded, PublicKeyRecord key, List<CharSequence> headers)
+                                 byte[] decoded, PublicKeyRecord key, List<CharSequence> headers,
+                                 String signatureFieldName)
             throws PermFailException {
         try {
             Signature signature = Signature.getInstance(sign.getHashMethod()
@@ -542,7 +544,7 @@ public class DKIMVerifier {
             }
             signature.initVerify(publicKey);
 
-            signatureCheck(h, sign, headers, signature);
+            signatureCheck(h, sign, headers, signature, signatureFieldName);
 
             if (!signature.verify(decoded))
                 throw new PermFailException("Header signature does not verify", sign);

@@ -19,6 +19,7 @@
 
 package org.apache.james.jdkim;
 
+import java.security.MessageDigest;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertEquals;
@@ -300,5 +301,21 @@ public class DKIMTest {
                 new ByteArrayInputStream((field + "\r\n").getBytes(StandardCharsets.US_ASCII)), new ByteArrayInputStream(mail)));
 
         assertThat(verified).hasSize(1);
+    }
+
+    @Test
+    public void simpleCanonicalizationShouldKeepTheSignatureFieldNameAsWritten() throws Exception {
+        String body = "body\r\n";
+        String bh = Base64.getEncoder().encodeToString(
+                MessageDigest.getInstance("SHA-256").digest(body.getBytes(StandardCharsets.US_ASCII)));
+        String tags = " b=; v=1; a=rsa-sha256; c=simple/simple; d=messiah.edu; s=selector2; h=from; bh=" + bh;
+        String from = "From: joe@messiah.edu";
+        Signature rsa = Signature.getInstance("SHA256withRSA");
+        rsa.initSign(TestKeys.privateKey);
+        rsa.update((from + "\r\n" + "dkim-signature:" + tags).getBytes(StandardCharsets.US_ASCII));
+        String b = Base64.getEncoder().encodeToString(rsa.sign());
+        String mail = "dkim-signature:" + tags.replace("b=;", "b=" + b + ";") + "\r\n" + from + "\r\n\r\n" + body;
+
+        assertThat(verifier.verify(new ByteArrayInputStream(mail.getBytes(StandardCharsets.US_ASCII)))).hasSize(1);
     }
 }
