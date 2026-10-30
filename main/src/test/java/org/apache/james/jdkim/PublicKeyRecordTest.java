@@ -19,6 +19,8 @@
 
 package org.apache.james.jdkim;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import java.util.Base64;
 import org.apache.james.jdkim.api.PublicKeyRecord;
 import org.apache.james.jdkim.tagvalue.PublicKeyRecordImpl;
 import org.junit.Assert;
@@ -260,4 +262,18 @@ public class PublicKeyRecordTest {
         assertFalse(pkr.isDenySubdomains());
     }
 
+    @Test
+    public void malformedKeyShouldThrowIllegalStateException() {
+        PublicKeyRecordImpl record = new PublicKeyRecordImpl("v=DKIM1; k=rsa; p=AAAAA");
+
+        assertThatThrownBy(record::getPublicKey).isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    public void foldedKeyShouldDecode() throws Exception {
+        String key = Base64.getEncoder().encodeToString(TestKeys.publicKey.getEncoded());
+        String folded = key.substring(0, 10) + "\r\n " + key.substring(10, key.length() - 1) + " " + key.substring(key.length() - 1);
+
+        assertEquals(TestKeys.publicKey, new PublicKeyRecordImpl("v=DKIM1; k=rsa; p=" + folded).getPublicKey());
+    }
 }

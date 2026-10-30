@@ -28,7 +28,6 @@ import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -177,8 +176,7 @@ public class PublicKeyRecordImpl extends TagValue implements PublicKeyRecord {
      */
     public PublicKey getPublicKey() {
         try {
-            String p = getValue("p").toString();
-            byte[] key = Base64.getMimeDecoder().decode(p.getBytes());
+            byte[] key = decodeBase64(getValue("p"));
             KeyFactory keyFactory;
             keyFactory = KeyFactory.getInstance(getValue("k").toString());
             X509EncodedKeySpec pubSpec = new X509EncodedKeySpec(key);
@@ -190,6 +188,9 @@ public class PublicKeyRecordImpl extends TagValue implements PublicKeyRecord {
                     + e.getMessage());
         } catch (InvalidKeySpecException e) {
             throw new IllegalStateException("Invalid key spec: "
+                    + e.getMessage());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalStateException("Invalid key encoding: "
                     + e.getMessage());
         }
     }
