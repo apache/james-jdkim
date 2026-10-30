@@ -312,6 +312,8 @@ public class DKIMVerifier {
                     List<CharSequence> signedHeadersList = signatureRecord.getHeaders();
 
                     try {
+                        // decoded now so that verify(CompoundBodyHasher) cannot fail on it
+                        signatureRecord.getBodyHash();
                         byte[] decoded = signatureRecord.getSignature();
                         signatureVerify(messageHeaders, signatureRecord, decoded,
                                 publicKeyRecord, signedHeadersList);
