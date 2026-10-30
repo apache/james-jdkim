@@ -50,14 +50,11 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Set;
 
 public class DKIMVerifier {
@@ -258,13 +255,15 @@ public class DKIMVerifier {
         // For each DKIM-signature we prepare an hashjob.
         // We calculate all hashes concurrently so to read
         // the inputstream only once.
-        Map<String, BodyHasherImpl> bodyHashJobs = new HashMap<>();
-        Hashtable<String, FailException> signatureExceptions = new Hashtable<>();
+        // One job per field, even for byte-identical fields: each one gets its own result.
+        List<CompoundBodyHasher.Job> jobs = new ArrayList<>();
         int processedSignatures = 0;
         for (String signatureField : fields) {
+            CompoundBodyHasher.Job job = new CompoundBodyHasher.Job(signatureField);
+            jobs.add(job);
             // RFC 6376 section 6.1: verifiers MAY limit the number of signatures they try to verify.
             if (processedSignatures >= options.getMaxSignatures()) {
-                signatureExceptions.put(signatureField, new PermFailException("Too many DKIM-Signature fields: only the first "
+                job.setFailure(new PermFailException("Too many DKIM-Signature fields: only the first "
                         + options.getMaxSignatures() + " are verified"));
                 continue;
             }
@@ -326,21 +325,21 @@ public class DKIMVerifier {
                     // stream run.
                     BodyHasherImpl bhj = newBodyHasher(signatureRecord);
 
-                    bodyHashJobs.put(signatureField, bhj);
+                    job.setBodyHasher(bhj);
 
                 } else {
                     throw new PermFailException(
                             "unexpected bad signature field");
                 }
             } catch (TempFailException | PermFailException e) {
-                signatureExceptions.put(signatureField, e);
+                job.setFailure(e);
             } catch (RuntimeException e) {
-                signatureExceptions.put(signatureField, new PermFailException(
+                job.setFailure(new PermFailException(
                         "Unexpected exception processing signature", e));
             }
         }
 
-        return new CompoundBodyHasher(bodyHashJobs, signatureExceptions);
+        return new CompoundBodyHasher(jobs);
     }
 
     /**
@@ -413,28 +412,28 @@ public class DKIMVerifier {
     private List<SignatureRecord> verify(CompoundBodyHasher compoundBodyHasher)
             throws FailException {
         List<SignatureRecord> verifiedSignatures = new LinkedList<>();
-        for (BodyHasherImpl bhj : compoundBodyHasher.getBodyHashJobs().values()) {
-            byte[] computedHash = bhj.getDigest();
-            byte[] expectedBodyHash = bhj.getSignatureRecord().getBodyHash();
+        List<FailException> failures = new ArrayList<>();
+        for (CompoundBodyHasher.Job job : compoundBodyHasher.getJobs()) {
+            BodyHasherImpl bhj = job.getBodyHasher();
+            if (bhj != null) {
+                byte[] computedHash = bhj.getDigest();
+                byte[] expectedBodyHash = bhj.getSignatureRecord().getBodyHash();
 
-            if (!Arrays.equals(expectedBodyHash, computedHash)) {
-                compoundBodyHasher.getSignatureExceptions()
-                        .put(
-                                "DKIM-Signature:" + bhj.getSignatureRecord().toString(),
-                                new PermFailException(
-                                        "Computed bodyhash is different from the expected one", bhj.getSignatureRecord()));
-            } else {
-                verifiedSignatures.add(bhj.getSignatureRecord());
+                if (!Arrays.equals(expectedBodyHash, computedHash)) {
+                    job.setFailure(new PermFailException(
+                            "Computed bodyhash is different from the expected one", bhj.getSignatureRecord()));
+                } else {
+                    verifiedSignatures.add(bhj.getSignatureRecord());
+                    result.add(new Result(bhj.getSignatureRecord()));
+                    continue;
+                }
             }
+            failures.add(job.getFailure());
+            result.add(resultFromException(job.getSignatureField(), job.getFailure()));
         }
-
-        for(SignatureRecord s: verifiedSignatures) {
-            result.add(new Result(s));
-        }
-        result.addAll(resultsFromExceptions(compoundBodyHasher.getSignatureExceptions()));
 
         if (verifiedSignatures.isEmpty()) {
-            throw prepareException(compoundBodyHasher.getSignatureExceptions());
+            throw prepareException(failures);
         } else {
             return verifiedSignatures;
         }
@@ -474,45 +473,39 @@ public class DKIMVerifier {
         result.clear();
     }
 
-    private List<Result> resultsFromExceptions(Map<String, FailException> exceptions) {
-        List<Result> results = new ArrayList<>();
-        for (Map.Entry<String, FailException> e : exceptions.entrySet()) {
-            SignatureRecord rec = e.getValue().getRelatedRecord();
-            if (rec == null) {
-                rec = new SignatureRecordTemplate("v=1; d=invalid; h=from; s=invalid; b=invalidsig");
-            }
-
-            Result.Type resultType = Result.Type.NONE;
-            if (e.getValue() instanceof TempFailException) {
-                resultType = Result.Type.TEMPERROR;
-            } else if (e.getValue() instanceof PermFailException) {
-                if (e.getValue().getRelatedRecord() == null) {
-                    //FailException without the SignatureRecord
-                    resultType = Result.Type.PERMERROR;
-                } else {
-                    resultType = Result.Type.FAIL;
-                }
-            }
-            results.add(new Result(e.getValue().getMessage(), e.getKey() != null ? e.getKey() : "", rec, resultType));
+    private Result resultFromException(String signatureField, FailException e) {
+        SignatureRecord rec = e.getRelatedRecord();
+        if (rec == null) {
+            rec = new SignatureRecordTemplate("v=1; d=invalid; h=from; s=invalid; b=invalidsig");
         }
 
-        return results;
+        Result.Type resultType = Result.Type.NONE;
+        if (e instanceof TempFailException) {
+            resultType = Result.Type.TEMPERROR;
+        } else if (e instanceof PermFailException) {
+            if (e.getRelatedRecord() == null) {
+                //FailException without the SignatureRecord
+                resultType = Result.Type.PERMERROR;
+            } else {
+                resultType = Result.Type.FAIL;
+            }
+        }
+        return new Result(e.getMessage(), signatureField != null ? signatureField : "", rec, resultType);
     }
 
     /**
-     * Given a map of exceptions prepares a human readable exception.
+     * Given a list of exceptions prepares a human readable exception.
      * This simply return the exception if it is only one, otherwise returns
      * a cumulative exception
      *
      * @param signatureExceptions input exceptions
      * @return the resulting "compact" exception
      */
-    private FailException prepareException(Map<String, FailException> signatureExceptions) {
+    private FailException prepareException(List<FailException> signatureExceptions) {
         if (signatureExceptions.size() == 1) {
-            return signatureExceptions.values().iterator()
-                    .next();
+            return signatureExceptions.get(0);
         } else {
-            return new CompositeFailException(signatureExceptions.values(), "found " + signatureExceptions.size()
+            return new CompositeFailException(signatureExceptions, "found " + signatureExceptions.size()
                     + " invalid signatures");
         }
     }
