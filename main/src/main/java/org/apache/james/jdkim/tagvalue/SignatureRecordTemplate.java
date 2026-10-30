@@ -36,6 +36,7 @@ public class SignatureRecordTemplate extends TagValue implements SignatureRecord
     // %d59-126
     private static final Pattern hdrNamePattern = Pattern.compile("^[^: \r\n\t]+$");
     private static final Pattern timestampPattern = Pattern.compile("^[0-9]{1,12}$");
+    private static final Pattern bodyLengthPattern = Pattern.compile("^[0-9]{1,76}$");
 
     public SignatureRecordTemplate(String data) {
         super(data);
@@ -93,6 +94,10 @@ public class SignatureRecordTemplate extends TagValue implements SignatureRecord
         if (getValue("t") != null && getValue("t").length() > 0
                 && !timestampPattern.matcher(getValue("t")).matches())
             throw new IllegalStateException("Invalid signature timestamp (t=): " + getValue("t"));
+
+        // RFC 6376 section 3.5: sig-l-tag = %x6c [FWS] "=" [FWS] 1*76DIGIT
+        if (!ALL.equals(getValue("l")) && !bodyLengthPattern.matcher(getValue("l")).matches())
+            throw new IllegalStateException("Invalid body length (l=): " + getValue("l"));
 
         // when "x=" exists and signature expired then return PERMFAIL
         // (signature expired)
@@ -248,7 +253,7 @@ public class SignatureRecordTemplate extends TagValue implements SignatureRecord
         if (ALL.equals(limit))
             return -1;
         else
-            return Integer.parseInt(limit);
+            return SignatureRecordImpl.parseBodyHashLimit(limit);
     }
 
     public Long getSignatureTimestamp() {

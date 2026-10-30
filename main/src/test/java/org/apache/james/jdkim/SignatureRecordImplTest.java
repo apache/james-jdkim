@@ -189,4 +189,33 @@ public class SignatureRecordImplTest {
                 .isInstanceOf(IllegalStateException.class);
         assertThat(new SignatureRecordImpl(base + "t=1234567890").getSignatureTimestamp()).isEqualTo(1234567890L);
     }
+
+    @Test
+    public void nonNumericBodyLengthShouldBeASyntaxError() {
+        String base = "v=1; a=rsa-sha256; d=example.com; s=s; h=from; bh=AA==; b=AA==; ";
+
+        assertThatThrownBy(() -> new SignatureRecordImpl(base + "l="))
+                .isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> new SignatureRecordImpl(base + "l=a"))
+                .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    public void signedBodyLengthShouldBeASyntaxError() {
+        String base = "v=1; a=rsa-sha256; d=example.com; s=s; h=from; bh=AA==; b=AA==; ";
+
+        assertThatThrownBy(() -> new SignatureRecordImpl(base + "l=-1")).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> new SignatureRecordImpl(base + "l=-5")).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> new SignatureRecordImpl(base + "l=+5")).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> new SignatureRecordImpl(base + "l=-0")).isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    public void bodyLengthBeyondIntegerRangeShouldBeClamped() {
+        String base = "v=1; a=rsa-sha256; d=example.com; s=s; h=from; bh=AA==; b=AA==; ";
+
+        assertThat(new SignatureRecordImpl(base + "l=99999999999").getBodyHashLimit()).isEqualTo(Integer.MAX_VALUE);
+        assertThat(new SignatureRecordImpl(base + "l=0000000000000000042").getBodyHashLimit()).isEqualTo(42);
+        assertThat(new SignatureRecordImpl(base + "l=0").getBodyHashLimit()).isEqualTo(0);
+    }
 }

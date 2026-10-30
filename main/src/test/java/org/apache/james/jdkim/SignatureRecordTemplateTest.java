@@ -176,4 +176,10 @@ public class SignatureRecordTemplateTest {
     public void emptyTimestampShouldBeAccepted() {
         new SignatureRecordTemplate("v=1; a=rsa-sha256; d=example.com; s=s; h=from; t=");
     }
+
+    @Test
+    public void signedBodyLengthShouldBeASyntaxError() {
+        assertThatThrownBy(() -> new SignatureRecordTemplate("v=1; a=rsa-sha256; d=example.com; s=s; h=from; l=-1"))
+                .isInstanceOf(IllegalStateException.class);
+    }
 }
