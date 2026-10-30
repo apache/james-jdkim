@@ -279,4 +279,12 @@ public class SignatureRecordImplTest {
         assertThat(record.getBodyHash()).hasSize(32);
         assertThat(record.getSignature()).containsExactly(0);
     }
+
+    @Test
+    public void toUnsignedStringShouldEmptyOnlyTheBTag() {
+        assertThat(new SignatureRecordImpl("v=1; a=rsa-sha256; d=example.com; s=s; h=from; bh=AA==; xb=1; b=AA==").toUnsignedString())
+                .isEqualTo("v=1; a=rsa-sha256; d=example.com; s=s; h=from; bh=AA==; xb=1; b=");
+        assertThat(new SignatureRecordImpl("v=1; b = AA\r\n BB ; a=rsa-sha256; d=example.com; s=s; h=from:b=:x; bh=AA==").toUnsignedString())
+                .isEqualTo("v=1; b =; a=rsa-sha256; d=example.com; s=s; h=from:b=:x; bh=AA==");
+    }
 }
