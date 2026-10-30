@@ -19,6 +19,7 @@
 
 package org.apache.james.jdkim;
 
+import org.apache.james.mime4j.MimeException;
 import java.security.MessageDigest;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -363,5 +364,27 @@ public class DKIMTest {
 
         assertThat(folded.getFields()).containsExactly("Subject: a\r\n\tb\r\n c", "From: d");
         assertThat(headerOnly.getFields()).containsExactly("From: d", "To: e");
+    }
+
+    @Test
+    public void headerLineWithoutColonShouldMakeVerificationFail() throws Exception {
+        byte[] mail = "From: joe@messiah.edu\r\n\r\nbody\r\n".getBytes(StandardCharsets.US_ASCII);
+        String field = new DKIMSigner("v=1; a=rsa-sha256; c=simple; d=messiah.edu; h=from; s=selector2;", TestKeys.privateKey)
+                .sign(new ByteArrayInputStream(mail));
+        byte[] tampered = (field + "\r\nReply-To joe@evil.example\r\nFrom: joe@messiah.edu\r\n\r\nbody\r\n")
+                .getBytes(StandardCharsets.US_ASCII);
+
+        assertThatThrownBy(() -> verifier.verify(new ByteArrayInputStream(tampered)))
+                .isInstanceOf(PermFailException.class)
+                .hasMessageContaining("Mime parsing exception");
+    }
+
+    @Test
+    public void malformedHeaderBlocksShouldBeRejected() {
+        for (String header : Arrays.asList("j\t\r\n", "From: a\r\nD(*\r\n", " x: y\r\nFrom: a\r\n")) {
+            assertThatThrownBy(() -> new Message(new ByteArrayInputStream((header + "\r\nbody\r\n").getBytes(StandardCharsets.US_ASCII))))
+                    .as(header)
+                    .isInstanceOf(MimeException.class);
+        }
     }
 }

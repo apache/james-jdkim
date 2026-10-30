@@ -88,9 +88,13 @@ public class Message implements Headers {
 
     /**
      * Splits a CRLF-terminated header block into raw fields: a line starting
-     * with WSP continues the previous field. Lines without a colon are skipped.
+     * with WSP continues the previous field.
+     *
+     * @throws MimeException on a line that is neither a field nor a
+     *                       continuation: DKIM cannot vouch for a header block
+     *                       it does not see whole.
      */
-    private static List<String> splitFields(String header) {
+    private static List<String> splitFields(String header) throws MimeException {
         List<String> all = new ArrayList<>();
         StringBuilder current = null;
         int start = 0;
@@ -116,10 +120,14 @@ public class Message implements Headers {
         return all;
     }
 
-    private static void addField(List<String> all, StringBuilder field) {
-        if (field != null && field.indexOf(":") != -1) {
-            all.add(field.toString());
+    private static void addField(List<String> all, StringBuilder field) throws MimeException {
+        if (field == null) {
+            return;
         }
+        if (field.indexOf(":") == -1 || field.charAt(0) == ' ' || field.charAt(0) == '\t') {
+            throw new MimeException("Malformed header field: " + field);
+        }
+        all.add(field.toString());
     }
 
     /**
