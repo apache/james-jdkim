@@ -237,6 +237,26 @@ public class TagValue {
         return Base64.getDecoder().decode(fwsPattern.matcher(value).replaceAll(""));
     }
 
+    /**
+     * Deletes the value of a tag, with the whitespace around it, and leaves the
+     * rest of the tag-list as is (RFC 6376 section 3.7 for b=).
+     */
+    protected static String emptyTagValue(String tagList, String tag) {
+        int start = 0;
+        while (start <= tagList.length()) {
+            int end = tagList.indexOf(';', start);
+            if (end == -1)
+                end = tagList.length();
+            int equal = tagList.indexOf('=', start);
+            if (equal != -1 && equal < end
+                    && tag.equals(fwsPattern.matcher(tagList.subSequence(start, equal)).replaceAll(""))) {
+                return tagList.substring(0, equal + 1) + tagList.substring(end);
+            }
+            start = end + 1;
+        }
+        return tagList;
+    }
+
     protected void setValue(String tag, String value) {
         stringRepresentation = null;
         tagValues.put(tag, value);

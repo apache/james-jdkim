@@ -289,4 +289,16 @@ public class DKIMTest {
 
         assertThat(verifier.verify(in)).hasSize(1);
     }
+
+    @Test
+    public void signatureWithATagNameEndingInBShouldVerify() throws Exception {
+        DKIMSigner signer = new DKIMSigner("v=1; a=rsa-sha256; c=simple; d=messiah.edu; h=from; s=selector2; ab=x;", TestKeys.privateKey);
+        byte[] mail = "From: joe@messiah.edu\r\n\r\nbody\r\n".getBytes(StandardCharsets.US_ASCII);
+        String field = signer.sign(new ByteArrayInputStream(mail));
+
+        List<SignatureRecord> verified = verifier.verify(new SequenceInputStream(
+                new ByteArrayInputStream((field + "\r\n").getBytes(StandardCharsets.US_ASCII)), new ByteArrayInputStream(mail)));
+
+        assertThat(verified).hasSize(1);
+    }
 }

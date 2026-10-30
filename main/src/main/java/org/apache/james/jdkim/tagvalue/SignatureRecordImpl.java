@@ -336,6 +336,6 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
     }
 
     public String toUnsignedString() {
-        return toString().replaceFirst("b=[^;]*", "b=");
+        return emptyTagValue(toString(), "b");
     }
 }
