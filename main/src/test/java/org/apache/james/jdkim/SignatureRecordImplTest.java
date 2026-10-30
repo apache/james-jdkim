@@ -254,4 +254,29 @@ public class SignatureRecordImplTest {
             Locale.setDefault(saved);
         }
     }
+
+    @Test
+    public void signatureWithCharactersOutsideTheBase64AlphabetShouldNotDecode() {
+        SignatureRecordImpl record = new SignatureRecordImpl(
+                "v=1; a=rsa-sha256; d=example.com; s=s; h=from; bh=AA==; b=AAÿAA");
+
+        assertThatThrownBy(record::getSignature).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    public void bodyHashWithDataAfterThePaddingShouldNotDecode() {
+        SignatureRecordImpl record = new SignatureRecordImpl(
+                "v=1; a=rsa-sha256; d=example.com; s=s; h=from; bh= AA== === ; b=AA==");
+
+        assertThatThrownBy(record::getBodyHash).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    public void base64FoldedBetweenThePaddingCharactersShouldDecode() {
+        SignatureRecordImpl record = new SignatureRecordImpl(
+                "v=1; a=rsa-sha256; d=example.com; s=s; h=from; bh=47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU\r\n =; b=AA= =");
+
+        assertThat(record.getBodyHash()).hasSize(32);
+        assertThat(record.getSignature()).containsExactly(0);
+    }
 }
