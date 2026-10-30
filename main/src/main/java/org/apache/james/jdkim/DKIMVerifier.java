@@ -258,7 +258,8 @@ public class DKIMVerifier {
         // One job per field, even for byte-identical fields: each one gets its own result.
         List<CompoundBodyHasher.Job> jobs = new ArrayList<>();
         int processedSignatures = 0;
-        for (String signatureField : fields) {
+        for (int signatureIndex = 0; signatureIndex < fields.size(); signatureIndex++) {
+            String signatureField = fields.get(signatureIndex);
             CompoundBodyHasher.Job job = new CompoundBodyHasher.Job(signatureField);
             jobs.add(job);
             // RFC 6376 section 6.1: verifiers MAY limit the number of signatures they try to verify.
@@ -314,7 +315,7 @@ public class DKIMVerifier {
                         // decoded now so that verify(CompoundBodyHasher) cannot fail on it
                         signatureRecord.getBodyHash();
                         byte[] decoded = signatureRecord.getSignature();
-                        signatureVerify(messageHeaders, signatureRecord, decoded,
+                        signatureVerify(withoutSignature(messageHeaders, signatureIndex), signatureRecord, decoded,
                                 publicKeyRecord, signedHeadersList, signatureField.substring(0, pos));
                     } catch (IllegalArgumentException e) {
                         throw new PermFailException("Invalid signature record: " + e.getMessage(), signatureRecord, e);
@@ -340,6 +341,33 @@ public class DKIMVerifier {
         }
 
         return new CompoundBodyHasher(jobs);
+    }
+
+    /**
+     * The field being verified is hashed implicitly, as the last field (RFC 6376
+     * section 3.5): like the signer, which did not have it yet, a DKIM-Signature
+     * entry of h= only selects the other DKIM-Signature fields.
+     *
+     * @param headers        the message headers
+     * @param signatureIndex the position of the verified field among the
+     *                       DKIM-Signature fields
+     */
+    private static Headers withoutSignature(Headers headers, int signatureIndex) {
+        return new Headers() {
+            public List<String> getFields() {
+                return headers.getFields();
+            }
+
+            public List<String> getFields(String name) {
+                List<String> fields = headers.getFields(name);
+                if (!"DKIM-Signature".equalsIgnoreCase(name) || signatureIndex >= fields.size()) {
+                    return fields;
+                }
+                List<String> others = new ArrayList<>(fields);
+                others.remove(signatureIndex);
+                return others;
+            }
+        };
     }
 
     /**

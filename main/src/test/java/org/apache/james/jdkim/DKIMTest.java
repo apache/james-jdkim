@@ -412,4 +412,35 @@ public class DKIMTest {
 
         assertThat(verifier.getResults()).extracting(Result::isSuccess).containsExactly(false, true, false);
     }
+
+    @Test
+    public void signatureListingDkimSignatureInHShouldVerify() throws Exception {
+        DKIMSigner signer = new DKIMSigner("v=1; a=rsa-sha256; c=simple; d=messiah.edu; h=from:DKIM-Signature; s=selector2;", TestKeys.privateKey);
+        byte[] mail = "From: joe@messiah.edu\r\n\r\nbody\r\n".getBytes(StandardCharsets.US_ASCII);
+        String field = signer.sign(new ByteArrayInputStream(mail));
+
+        List<SignatureRecord> verified = verifier.verify(new SequenceInputStream(
+                new ByteArrayInputStream((field + "\r\n").getBytes(StandardCharsets.US_ASCII)), new ByteArrayInputStream(mail)));
+
+        assertThat(verified).hasSize(1);
+    }
+
+    @Test
+    public void signatureOverAnEarlierSignatureShouldVerify() throws Exception {
+        byte[] mail = "From: joe@messiah.edu\r\n\r\nbody\r\n".getBytes(StandardCharsets.US_ASCII);
+        String first = dkimSigner.sign(new ByteArrayInputStream(mail));
+        byte[] signedOnce = (first + "\r\n" + new String(mail, StandardCharsets.US_ASCII)).getBytes(StandardCharsets.US_ASCII);
+        String second = new DKIMSigner("v=1; a=rsa-sha256; c=relaxed; d=messiah.edu; h=from:DKIM-Signature:DKIM-Signature; s=selector3;", TestKeys.privateKey_2)
+                .sign(new ByteArrayInputStream(signedOnce));
+        byte[] tampered = (second + "\r\n" + first.replace("h=", "h=to:") + "\r\n" + new String(mail, StandardCharsets.US_ASCII))
+                .getBytes(StandardCharsets.US_ASCII);
+
+        List<SignatureRecord> verified = verifier.verify(new SequenceInputStream(
+                new ByteArrayInputStream((second + "\r\n").getBytes(StandardCharsets.US_ASCII)), new ByteArrayInputStream(signedOnce)));
+        assertThat(verified).hasSize(2);
+
+        verifier.resetResults();
+        assertThatThrownBy(() -> verifier.verify(new ByteArrayInputStream(tampered)))
+                .isInstanceOf(CompositeFailException.class);
+    }
 }
