@@ -22,7 +22,10 @@ package org.apache.james.jdkim;
 import org.apache.james.jdkim.api.SignatureRecord;
 import org.apache.james.jdkim.tagvalue.SignatureRecordImpl;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import java.util.Arrays;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -147,5 +150,20 @@ public class SignatureRecordImplTest {
         SignatureRecordImpl signatureRecord = new SignatureRecordImpl(signature);
         Assert.assertTrue(signatureRecord.getSignature().length > 0);
         Assert.assertTrue(signatureRecord.getBodyHash().length > 0);
+    }
+
+    @Test
+    public void settersShouldRoundTripRawBytes() {
+        SignatureRecordImpl record = new SignatureRecordImpl("v=1; a=rsa-sha256; d=example.com; s=s; h=from; bh=AA==; b=AA==");
+        byte[] digest = new byte[32];
+        byte[] signature = {0, 1, 2, (byte) 0xff, 0x3d};
+        Arrays.fill(digest, (byte) 0x08);
+
+        record.setBodyHash(digest);
+        record.setSignature(signature);
+
+        assertThat(record.getBodyHash()).isEqualTo(digest);
+        assertThat(record.getSignature()).isEqualTo(signature);
+        assertThat(new SignatureRecordImpl(record.toString()).getSignature()).isEqualTo(signature);
     }
 }
