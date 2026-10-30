@@ -19,6 +19,7 @@
 
 package org.apache.james.jdkim.canon;
 
+import java.io.OutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
@@ -67,5 +68,27 @@ public class RelaxedBodyCanonicalizerTest extends AbstractOutputStreamTestCase {
         os.write("\r\nx".getBytes());
         os.close();
         assertArrayEquals("\r\nx\r\n".getBytes(), bos.toByteArray());
+    }
+
+    protected OutputStream newInstance(ByteArrayOutputStream bos) {
+        return new RelaxedBodyCanonicalizer(bos);
+    }
+
+    public void testLoneCRDoesNotEndTheLine() throws IOException {
+        extensiveChunker("\r".getBytes(), "\r\r\n".getBytes());
+        extensiveChunker("a \t\rb\r\n".getBytes(), "a \rb\r\n".getBytes());
+        extensiveChunker("\t\r\n \r \r\t".getBytes(), "\r\n \r \r \r\n".getBytes());
+        extensiveChunker("a \r  \r\n".getBytes(), "a \r\r\n".getBytes());
+    }
+
+    public void testSingleBytesAndChunksAgree() throws IOException {
+        byte[] body = "x  \r\r\n\r \t\r\ny\t".getBytes();
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        OutputStream os = newInstance(bytes);
+        for (byte b : body) {
+            os.write(b);
+        }
+        os.close();
+        extensiveChunker(body, bytes.toByteArray());
     }
 }
