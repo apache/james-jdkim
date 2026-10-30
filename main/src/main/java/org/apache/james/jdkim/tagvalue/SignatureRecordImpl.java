@@ -76,11 +76,7 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
             throw new IllegalStateException("Identity (i=) declaration cannot be parsed. Probably due to missing quoted printable encoding", e);
         }
 
-        if (!identity.toString().toLowerCase().endsWith(
-                ("@" + getValue("d")).toLowerCase())
-                && !getIdentity().toString().toLowerCase().endsWith(
-                ("." + getValue("d")).toLowerCase()))
-            throw new IllegalStateException("Identity (i=) domain mismatch: expected [optional]@[optional.]domain-from-d-attribute");
+        checkIdentity(identity.toString(), getValue("d").toString());
 
         // RFC 6376 section 3.5: sig-t-tag = %x74 [FWS] "=" [FWS] 1*12DIGIT
         if (getValue("t") != null && !timestampPattern.matcher(getValue("t")).matches())
@@ -110,6 +106,31 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
             throw new IllegalStateException("From field not signed");
         // TODO support ignoring signature for certain d values (externally to
         // this class).
+    }
+
+    /**
+     * RFC 6376 section 3.5: sig-i-tag = [ Local-part ] "@" domain-name, the
+     * domain being d= or one of its subdomains.
+     */
+    static void checkIdentity(String identity, String d) {
+        String domain = identity.substring(identityAt(identity) + 1);
+        // regionMatches compares case-insensitively without the default locale
+        boolean sameDomain = domain.length() == d.length() && domain.regionMatches(true, 0, d, 0, d.length());
+        boolean subDomain = domain.length() > d.length()
+                && domain.charAt(domain.length() - d.length() - 1) == '.'
+                && domain.regionMatches(true, domain.length() - d.length(), d, 0, d.length());
+        if (!sameDomain && !subDomain)
+            throw new IllegalStateException("Identity (i=) domain mismatch: expected [optional]@[optional.]domain-from-d-attribute");
+    }
+
+    /**
+     * @return the position of the single '@' of the identity
+     */
+    static int identityAt(String identity) {
+        int pAt = identity.indexOf('@');
+        if (pAt == -1 || identity.indexOf('@', pAt + 1) != -1)
+            throw new IllegalStateException("Identity (i=) must contain exactly one '@': " + identity);
+        return pAt;
     }
 
     private String getTimeMeasure(long lifetime) {
@@ -159,8 +180,7 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
      */
     public CharSequence getIdentityLocalPart() {
         String identity = getIdentity().toString();
-        int pAt = identity.indexOf('@');
-        return identity.subSequence(0, pAt);
+        return identity.substring(0, identityAt(identity));
     }
 
     /**

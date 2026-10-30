@@ -84,11 +84,7 @@ public class SignatureRecordTemplate extends TagValue implements SignatureRecord
             throw new IllegalStateException("Identity (i=) declaration cannot be parsed. Probably due to missing quoted printable encoding", e);
         }
 
-        if (!identity.toString().toLowerCase().endsWith(
-                ("@" + getValue("d")).toLowerCase())
-                && !getIdentity().toString().toLowerCase().endsWith(
-                ("." + getValue("d")).toLowerCase()))
-            throw new IllegalStateException("Identity (i=) domain mismatch: expected [optional]@[optional.]domain-from-d-attribute");
+        SignatureRecordImpl.checkIdentity(identity.toString(), getValue("d").toString());
 
         // An empty t= asks the signer to fill in the signing time.
         if (getValue("t") != null && getValue("t").length() > 0
@@ -168,8 +164,7 @@ public class SignatureRecordTemplate extends TagValue implements SignatureRecord
      */
     public CharSequence getIdentityLocalPart() {
         String identity = getIdentity().toString();
-        int pAt = identity.indexOf('@');
-        return identity.subSequence(0, pAt);
+        return identity.substring(0, SignatureRecordImpl.identityAt(identity));
     }
 
     /**
