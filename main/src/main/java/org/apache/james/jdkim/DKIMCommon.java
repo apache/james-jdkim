@@ -59,7 +59,8 @@ public abstract class DKIMCommon {
             String headerValue = fv.substring(fv.indexOf(':') + 1);
             headerValue = headerValue.replaceAll("\r\n[\t ]", " ");
             headerValue = headerValue.replaceAll("[\t ]+", " ");
-            headerValue = headerValue.trim();
+            // RFC 6376 section 3.4.2 only deletes WSP: String#trim would also drop control characters
+            headerValue = headerValue.replaceAll("^ | $", "");
             signature.update(octets(headerValue));
             if (DEEP_DEBUG)
                 System.out.println("#" + headerValue + "#");

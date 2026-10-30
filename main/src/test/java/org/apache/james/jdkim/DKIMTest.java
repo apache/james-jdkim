@@ -263,4 +263,30 @@ public class DKIMTest {
         assertThat(message.getFields("missing")).isEmpty();
     }
 
+    @Test
+    public void controlCharacterAddedToARelaxedHeaderValueShouldBreakTheSignature() throws Exception {
+        DKIMSigner signer = new DKIMSigner("v=1; a=rsa-sha256; c=relaxed/simple; d=messiah.edu; h=from; s=selector2;", TestKeys.privateKey);
+        byte[] mail = "From: joe@messiah.edu\r\n\r\nbody\r\n".getBytes(StandardCharsets.US_ASCII);
+        String field = signer.sign(new ByteArrayInputStream(mail));
+
+        for (String tampered : Arrays.asList("From: joe@messiah.edu\u0001", "From: \u0000joe@messiah.edu", "From:\u0016 joe@messiah.edu")) {
+            InputStream in = new SequenceInputStream(new ByteArrayInputStream((field + "\r\n").getBytes(StandardCharsets.US_ASCII)),
+                    new ByteArrayInputStream((tampered + "\r\n\r\nbody\r\n").getBytes(StandardCharsets.US_ASCII)));
+
+            assertThatThrownBy(() -> verifier.verify(in)).as(tampered).isInstanceOf(PermFailException.class);
+        }
+    }
+
+    @Test
+    public void relaxedHeaderCanonicalizationShouldIgnoreWhitespaceAroundTheValue() throws Exception {
+        DKIMSigner signer = new DKIMSigner("v=1; a=rsa-sha256; c=relaxed/simple; d=messiah.edu; h=from; s=selector2;", TestKeys.privateKey);
+        byte[] mail = "From: joe@messiah.edu\r\n\r\nbody\r\n".getBytes(StandardCharsets.US_ASCII);
+        byte[] reformatted = "From:\t joe@messiah.edu \t\r\n\r\nbody\r\n".getBytes(StandardCharsets.US_ASCII);
+        String field = signer.sign(new ByteArrayInputStream(mail));
+
+        InputStream in = new SequenceInputStream(
+                new ByteArrayInputStream((field + "\r\n").getBytes(StandardCharsets.US_ASCII)), new ByteArrayInputStream(reformatted));
+
+        assertThat(verifier.verify(in)).hasSize(1);
+    }
 }
