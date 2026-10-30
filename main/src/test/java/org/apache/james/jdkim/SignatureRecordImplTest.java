@@ -178,4 +178,15 @@ public class SignatureRecordImplTest {
         assertThatThrownBy(() -> new SignatureRecordImpl(base + "x=9999999999999"))
                 .isInstanceOf(IllegalStateException.class);
     }
+
+    @Test
+    public void nonNumericTimestampShouldBeASyntaxError() {
+        String base = "v=1; a=rsa-sha256; d=example.com; s=s; h=from; bh=AA==; b=AA==; ";
+
+        assertThatThrownBy(() -> new SignatureRecordImpl(base + "t="))
+                .isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> new SignatureRecordImpl(base + "t=-"))
+                .isInstanceOf(IllegalStateException.class);
+        assertThat(new SignatureRecordImpl(base + "t=1234567890").getSignatureTimestamp()).isEqualTo(1234567890L);
+    }
 }

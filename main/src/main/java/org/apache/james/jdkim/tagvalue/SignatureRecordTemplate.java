@@ -89,6 +89,11 @@ public class SignatureRecordTemplate extends TagValue implements SignatureRecord
                 ("." + getValue("d")).toLowerCase()))
             throw new IllegalStateException("Identity (i=) domain mismatch: expected [optional]@[optional.]domain-from-d-attribute");
 
+        // An empty t= asks the signer to fill in the signing time.
+        if (getValue("t") != null && getValue("t").length() > 0
+                && !timestampPattern.matcher(getValue("t")).matches())
+            throw new IllegalStateException("Invalid signature timestamp (t=): " + getValue("t"));
+
         // when "x=" exists and signature expired then return PERMFAIL
         // (signature expired)
         if (getValue("x") != null) {
