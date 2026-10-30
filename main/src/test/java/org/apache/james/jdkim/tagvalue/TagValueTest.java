@@ -19,6 +19,7 @@
 
 package org.apache.james.jdkim.tagvalue;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import org.junit.Assert;
 import static org.junit.Assert.assertTrue;
 import org.junit.Test;
@@ -193,4 +194,24 @@ public class TagValueTest {
         return eq;
     }
 
+    @Test
+    public void valuesOutsideValcharShouldBeRejected() {
+        assertThatThrownBy(() -> new TagValue("a=\u000b")).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> new TagValue("a=\u0090")).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> new TagValue("a=b\u0000c")).isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    public void trailingWhitespaceThatIsNotFwsShouldBeRejected() {
+        assertThatThrownBy(() -> new TagValue("a=b;\r\n\r\n\t")).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> new TagValue("\r\n\r\n\r\n\t")).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> new TagValue("a=b;\r\n")).isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    public void trailingFwsShouldBeAccepted() {
+        new TagValue("a=b; ");
+        new TagValue("a=b; \r\n\t");
+        new TagValue("a=b;\r\n ");
+    }
 }

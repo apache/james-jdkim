@@ -258,7 +258,7 @@ public class SignatureRecordImplTest {
     @Test
     public void signatureWithCharactersOutsideTheBase64AlphabetShouldNotDecode() {
         SignatureRecordImpl record = new SignatureRecordImpl(
-                "v=1; a=rsa-sha256; d=example.com; s=s; h=from; bh=AA==; b=AAÿAA");
+                "v=1; a=rsa-sha256; d=example.com; s=s; h=from; bh=AA==; b=AA.AA");
 
         assertThatThrownBy(record::getSignature).isInstanceOf(IllegalArgumentException.class);
     }

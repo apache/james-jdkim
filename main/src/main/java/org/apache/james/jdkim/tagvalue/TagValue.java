@@ -39,13 +39,16 @@ public class TagValue {
 
     private static final Pattern tagPattern = Pattern
             .compile("^[A-Za-z][A-Za-z0-9_]*$");
+    // RFC 6376 section 3.2: tval = 1*VALCHAR, VALCHAR = %x21-3A / %x3C-7E
     // Use possessive matching to avoid heavy stack usage
-    private static final String tval = "[^; \t\r\n]++";
+    private static final String tval = "[\\x21-\\x3a\\x3c-\\x7e]++";
     // validate value chars
     // Use possessive matching to avoid heavy stack usage
     private static final Pattern valuePattern = Pattern.compile("^(?:" + tval
             + "(?:(?:(?:\r\n)?[\t ])++" + tval + ")*+)?$");
     private static final Pattern fwsPattern = Pattern.compile("[ \t\r\n]");
+    // FWS = [*WSP CRLF] 1*WSP
+    private static final Pattern trailingFWSPattern = Pattern.compile("^(?:(?:[ \t]*\r\n)?[ \t]+)?$");
 
     // we may use a TreeMap because we may need to know original order.
     private final Map<String, CharSequence> tagValues;
@@ -143,11 +146,9 @@ public class TagValue {
         for (int i = 0; i < data.length(); i++) {
             int equal = data.indexOf('=', i);
             if (equal == -1) {
-                // TODO check whether this is correct or not
-                // this allow FWS/WSP after the final ";"
+                // only FWS may follow the final ";"
                 String rest = data.substring(i);
-                if (!rest.isEmpty()
-                        && trimFWS(rest, 0, rest.length() - 1, true).length() > 0) {
+                if (!trailingFWSPattern.matcher(rest).matches()) {
                     throw new IllegalStateException(
                             "Unexpected termination at position " + i + ": "
                                     + data + " | [" + rest + "]");
