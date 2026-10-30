@@ -19,6 +19,16 @@
 
 package org.apache.james.jdkim;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import java.util.List;
+import java.util.Arrays;
+import org.xbill.DNS.Name;
+import org.xbill.DNS.Lookup;
+import org.xbill.DNS.Rcode;
+import org.xbill.DNS.DClass;
+import org.xbill.DNS.TXTRecord;
+import org.xbill.DNS.Section;
+import org.xbill.DNS.Flags;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import org.xbill.DNS.SimpleResolver;
 import org.xbill.DNS.Resolver;
@@ -133,5 +143,54 @@ public class DNSPublicKeyRetrieverTest {
 
         assertThatThrownBy(() -> new DNSPublicKeyRecordRetriever(resolver).getRecords("dns/txt", "sel", "example.com"))
                 .isInstanceOf(TempFailException.class);
+    }
+
+    @Test
+    public void txtStringsShouldBeReturnedRaw() throws Exception {
+        TXTRecord[] answer = new TXTRecord[1];
+        Resolver resolver = new SimpleResolver("127.0.0.1") {
+            @Override
+            public Message send(Message query) {
+                Message response = new Message(query.getHeader().getID());
+                response.getHeader().setFlag(Flags.QR);
+                response.addRecord(query.getQuestion(), Section.QUESTION);
+                answer[0] = new TXTRecord(query.getQuestion().getName(), DClass.IN, 3600,
+                        Arrays.asList("v=DKIM1; n=\\\"quoted\\\" \\\\ note \\147;", " p=AAAA"));
+                response.addRecord(answer[0], Section.ANSWER);
+                return response;
+            }
+        };
+
+        Lookup.getDefaultCache(DClass.IN).clearCache();
+
+        assertThat(new DNSPublicKeyRecordRetriever(resolver).getRecords("dns/txt", "raw", "example.com"))
+                .containsExactly("v=DKIM1; n=\"quoted\" \\ note \u0093; p=AAAA");
+    }
+
+    @Test
+    public void keyRecordsShouldOnlyBeLookedUpAtTheAbsoluteName() throws Exception {
+        Resolver resolver = new SimpleResolver("127.0.0.1") {
+            @Override
+            public Message send(Message query) {
+                Message response = new Message(query.getHeader().getID());
+                response.getHeader().setFlag(Flags.QR);
+                response.addRecord(query.getQuestion(), Section.QUESTION);
+                Name name = query.getQuestion().getName();
+                if (name.toString().equals("search._domainkey.example.com.search.invalid.")) {
+                    response.addRecord(new TXTRecord(name, DClass.IN, 3600, "v=DKIM1; p=AAAA"), Section.ANSWER);
+                } else {
+                    response.getHeader().setRcode(Rcode.NXDOMAIN);
+                }
+                return response;
+            }
+        };
+        Lookup.getDefaultCache(DClass.IN).clearCache();
+        List<Name> savedSearchPath = Lookup.getDefaultSearchPath();
+        Lookup.setDefaultSearchPath(Name.fromString("search.invalid."));
+        try {
+            assertThat(new DNSPublicKeyRecordRetriever(resolver).getRecords("dns/txt", "search", "example.com")).isEmpty();
+        } finally {
+            Lookup.setDefaultSearchPath(savedSearchPath);
+        }
     }
 }
