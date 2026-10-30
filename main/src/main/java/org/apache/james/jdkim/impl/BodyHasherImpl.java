@@ -49,6 +49,9 @@ public class BodyHasherImpl implements BodyHasher {
         }
 
         int limit = sign.getBodyHashLimit();
+        if (limit < -1) {
+            throw new PermFailException("Invalid body length limit: " + limit, sign);
+        }
 
         // TODO enhance this to use a lookup service.
         boolean relaxedBody = SignatureRecord.RELAXED.equals(sign

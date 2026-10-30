@@ -19,6 +19,7 @@
 
 package org.apache.james.jdkim.canon;
 
+import java.io.OutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
@@ -49,5 +50,45 @@ public class RelaxedBodyCanonicalizerTest extends AbstractOutputStreamTestCase {
         RelaxedBodyCanonicalizer os = new RelaxedBodyCanonicalizer(bos);
         chunker(testData, os);
         assertArrayEquals(expectedData, bos.toByteArray());
+    }
+
+    public void testEmptyAndBlankBodiesCanonicalizeToNothing() throws IOException {
+        for (String body : new String[] {"", " \r\n", "\r\n\r\n", "\t \r\n \r\n"}) {
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            RelaxedBodyCanonicalizer os = new RelaxedBodyCanonicalizer(bos);
+            os.write(body.getBytes());
+            os.close();
+            assertArrayEquals("[" + body + "]", new byte[0], bos.toByteArray());
+        }
+    }
+
+    public void testNonEmptyBodyGetsAFinalCRLF() throws IOException {
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        RelaxedBodyCanonicalizer os = new RelaxedBodyCanonicalizer(bos);
+        os.write("\r\nx".getBytes());
+        os.close();
+        assertArrayEquals("\r\nx\r\n".getBytes(), bos.toByteArray());
+    }
+
+    protected OutputStream newInstance(ByteArrayOutputStream bos) {
+        return new RelaxedBodyCanonicalizer(bos);
+    }
+
+    public void testLoneCRDoesNotEndTheLine() throws IOException {
+        extensiveChunker("\r".getBytes(), "\r\r\n".getBytes());
+        extensiveChunker("a \t\rb\r\n".getBytes(), "a \rb\r\n".getBytes());
+        extensiveChunker("\t\r\n \r \r\t".getBytes(), "\r\n \r \r \r\n".getBytes());
+        extensiveChunker("a \r  \r\n".getBytes(), "a \r\r\n".getBytes());
+    }
+
+    public void testSingleBytesAndChunksAgree() throws IOException {
+        byte[] body = "x  \r\r\n\r \t\r\ny\t".getBytes();
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        OutputStream os = newInstance(bytes);
+        for (byte b : body) {
+            os.write(b);
+        }
+        os.close();
+        extensiveChunker(body, bytes.toByteArray());
     }
 }

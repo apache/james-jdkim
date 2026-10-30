@@ -19,10 +19,16 @@
 
 package org.apache.james.jdkim;
 
+import org.apache.james.jdkim.tagvalue.PublicKeyRecordImpl;
+import org.apache.james.jdkim.tagvalue.SignatureRecordTemplate;
+import java.util.Locale;
 import org.apache.james.jdkim.api.SignatureRecord;
 import org.apache.james.jdkim.tagvalue.SignatureRecordImpl;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import java.util.Arrays;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -147,5 +153,151 @@ public class SignatureRecordImplTest {
         SignatureRecordImpl signatureRecord = new SignatureRecordImpl(signature);
         Assert.assertTrue(signatureRecord.getSignature().length > 0);
         Assert.assertTrue(signatureRecord.getBodyHash().length > 0);
+    }
+
+    @Test
+    public void settersShouldRoundTripRawBytes() {
+        SignatureRecordImpl record = new SignatureRecordImpl("v=1; a=rsa-sha256; d=example.com; s=s; h=from; bh=AA==; b=AA==");
+        byte[] digest = new byte[32];
+        byte[] signature = {0, 1, 2, (byte) 0xff, 0x3d};
+        Arrays.fill(digest, (byte) 0x08);
+
+        record.setBodyHash(digest);
+        record.setSignature(signature);
+
+        assertThat(record.getBodyHash()).isEqualTo(digest);
+        assertThat(record.getSignature()).isEqualTo(signature);
+        assertThat(new SignatureRecordImpl(record.toString()).getSignature()).isEqualTo(signature);
+    }
+
+    @Test
+    public void nonNumericExpirationShouldBeASyntaxError() {
+        String base = "v=1; a=rsa-sha256; d=example.com; s=s; h=from; bh=AA==; b=AA==; ";
+
+        assertThatThrownBy(() -> new SignatureRecordImpl(base + "x="))
+                .isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> new SignatureRecordImpl(base + "x=abc"))
+                .isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> new SignatureRecordImpl(base + "x=9999999999999"))
+                .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    public void nonNumericTimestampShouldBeASyntaxError() {
+        String base = "v=1; a=rsa-sha256; d=example.com; s=s; h=from; bh=AA==; b=AA==; ";
+
+        assertThatThrownBy(() -> new SignatureRecordImpl(base + "t="))
+                .isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> new SignatureRecordImpl(base + "t=-"))
+                .isInstanceOf(IllegalStateException.class);
+        assertThat(new SignatureRecordImpl(base + "t=1234567890").getSignatureTimestamp()).isEqualTo(1234567890L);
+    }
+
+    @Test
+    public void nonNumericBodyLengthShouldBeASyntaxError() {
+        String base = "v=1; a=rsa-sha256; d=example.com; s=s; h=from; bh=AA==; b=AA==; ";
+
+        assertThatThrownBy(() -> new SignatureRecordImpl(base + "l="))
+                .isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> new SignatureRecordImpl(base + "l=a"))
+                .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    public void signedBodyLengthShouldBeASyntaxError() {
+        String base = "v=1; a=rsa-sha256; d=example.com; s=s; h=from; bh=AA==; b=AA==; ";
+
+        assertThatThrownBy(() -> new SignatureRecordImpl(base + "l=-1")).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> new SignatureRecordImpl(base + "l=-5")).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> new SignatureRecordImpl(base + "l=+5")).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> new SignatureRecordImpl(base + "l=-0")).isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    public void bodyLengthBeyondIntegerRangeShouldBeClamped() {
+        String base = "v=1; a=rsa-sha256; d=example.com; s=s; h=from; bh=AA==; b=AA==; ";
+
+        assertThat(new SignatureRecordImpl(base + "l=99999999999").getBodyHashLimit()).isEqualTo(Integer.MAX_VALUE);
+        assertThat(new SignatureRecordImpl(base + "l=0000000000000000042").getBodyHashLimit()).isEqualTo(42);
+        assertThat(new SignatureRecordImpl(base + "l=0").getBodyHashLimit()).isEqualTo(0);
+    }
+
+    @Test
+    public void identityWithoutExactlyOneAtShouldBeRejected() {
+        String base = "v=1; a=rsa-sha256; d=example.com; s=s; h=from; bh=AA==; b=AA==; ";
+
+        assertThatThrownBy(() -> new SignatureRecordImpl(base + "i=.example.com"))
+                .isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> new SignatureRecordImpl(base + "i==40@example.com"))
+                .isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> new SignatureRecordImpl(base + "i=joe@badexample.com"))
+                .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    public void identityInDomainOrSubdomainShouldBeAccepted() {
+        String base = "v=1; a=rsa-sha256; d=example.com; s=s; h=from; bh=AA==; b=AA==; ";
+
+        assertThat(new SignatureRecordImpl(base + "i=joe@Example.COM").getIdentityLocalPart()).isEqualTo("joe");
+        assertThat(new SignatureRecordImpl(base + "i=@mail.example.com").getIdentityLocalPart()).isEqualTo("");
+    }
+
+    @Test
+    public void identityCheckShouldNotDependOnTheDefaultLocale() throws Exception {
+        Locale saved = Locale.getDefault();
+        Locale.setDefault(Locale.forLanguageTag("tr-TR"));
+        try {
+            new SignatureRecordTemplate("v=1; s=sel; d=Mail.Example.Com; a=rsa-sha256; h=from; i=@MAIL.EXAMPLE.COM");
+            SignatureRecordImpl sign = new SignatureRecordImpl("v=1; s=sel; d=Mail.Example.Com; a=rsa-sha256; h=from; bh=AA==; b=AA==; i=@MAIL.EXAMPLE.COM");
+            DKIMVerifier.apply(new PublicKeyRecordImpl("v=DKIM1; k=rsa; t=s; p=AAAA"), sign);
+        } finally {
+            Locale.setDefault(saved);
+        }
+    }
+
+    @Test
+    public void signatureWithCharactersOutsideTheBase64AlphabetShouldNotDecode() {
+        SignatureRecordImpl record = new SignatureRecordImpl(
+                "v=1; a=rsa-sha256; d=example.com; s=s; h=from; bh=AA==; b=AA.AA");
+
+        assertThatThrownBy(record::getSignature).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    public void bodyHashWithDataAfterThePaddingShouldNotDecode() {
+        SignatureRecordImpl record = new SignatureRecordImpl(
+                "v=1; a=rsa-sha256; d=example.com; s=s; h=from; bh= AA== === ; b=AA==");
+
+        assertThatThrownBy(record::getBodyHash).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    public void base64FoldedBetweenThePaddingCharactersShouldDecode() {
+        SignatureRecordImpl record = new SignatureRecordImpl(
+                "v=1; a=rsa-sha256; d=example.com; s=s; h=from; bh=47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU\r\n =; b=AA= =");
+
+        assertThat(record.getBodyHash()).hasSize(32);
+        assertThat(record.getSignature()).containsExactly(0);
+    }
+
+    @Test
+    public void toUnsignedStringShouldEmptyOnlyTheBTag() {
+        assertThat(new SignatureRecordImpl("v=1; a=rsa-sha256; d=example.com; s=s; h=from; bh=AA==; xb=1; b=AA==").toUnsignedString())
+                .isEqualTo("v=1; a=rsa-sha256; d=example.com; s=s; h=from; bh=AA==; xb=1; b=");
+        assertThat(new SignatureRecordImpl("v=1; b = AA\r\n BB ; a=rsa-sha256; d=example.com; s=s; h=from:b=:x; bh=AA==").toUnsignedString())
+                .isEqualTo("v=1; b =; a=rsa-sha256; d=example.com; s=s; h=from:b=:x; bh=AA==");
+    }
+
+    @Test
+    public void expirationNotAfterTimestampShouldBeRejected() {
+        long now = System.currentTimeMillis() / 1000;
+        String base = "v=1; a=rsa-sha256; d=example.com; s=sel; h=from; bh=AA==; b=AA==; ";
+
+        assertThatThrownBy(() -> new SignatureRecordImpl(base + "t=" + (now + 1000) + "; x=" + (now + 500)))
+                .isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> new SignatureRecordImpl(base + "t=" + (now + 1000) + "; x=" + (now + 1000)))
+                .isInstanceOf(IllegalStateException.class);
+        // x= after t= stays valid
+        new SignatureRecordImpl(base + "t=" + now + "; x=" + (now + 1000));
     }
 }

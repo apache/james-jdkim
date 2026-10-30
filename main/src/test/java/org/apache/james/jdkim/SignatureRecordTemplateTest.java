@@ -159,4 +159,43 @@ public class SignatureRecordTemplateTest {
         assertThat(signatureRecord.getBodyHash()).isEqualTo(bodyHash);
         assertThat(signatureRecord.getSignature()).isEqualTo(signature);
     }
+
+    @Test
+    public void nonNumericExpirationShouldBeASyntaxError() {
+        assertThatThrownBy(() -> new SignatureRecordTemplate("v=1; a=rsa-sha256; d=example.com; s=s; h=from; x=abc"))
+                .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    public void nonNumericTimestampShouldBeASyntaxError() {
+        assertThatThrownBy(() -> new SignatureRecordTemplate("v=1; a=rsa-sha256; d=example.com; s=s; h=from; t=-"))
+                .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    public void emptyTimestampShouldBeAccepted() {
+        new SignatureRecordTemplate("v=1; a=rsa-sha256; d=example.com; s=s; h=from; t=");
+    }
+
+    @Test
+    public void signedBodyLengthShouldBeASyntaxError() {
+        assertThatThrownBy(() -> new SignatureRecordTemplate("v=1; a=rsa-sha256; d=example.com; s=s; h=from; l=-1"))
+                .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    public void identityWithoutAtShouldBeRejected() {
+        assertThatThrownBy(() -> new SignatureRecordTemplate("v=1; a=rsa-sha256; d=example.com; s=s; h=from; i=.example.com"))
+                .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    public void expirationNotAfterTimestampShouldBeRejected() {
+        long now = System.currentTimeMillis() / 1000;
+
+        assertThatThrownBy(() -> new SignatureRecordTemplate("v=1; a=rsa-sha256; d=example.com; s=s; h=from; t=" + (now + 1000) + "; x=" + (now + 1000)))
+                .isInstanceOf(IllegalStateException.class);
+        // an empty t= is filled in when signing
+        new SignatureRecordTemplate("v=1; a=rsa-sha256; d=example.com; s=s; h=from; t=; x=" + (now + 1000));
+    }
 }

@@ -30,57 +30,59 @@ import java.io.OutputStream;
 public class RelaxedBodyCanonicalizer extends FilterOutputStream {
 
     private boolean pendingSpaces;
+    // a CR was read: WSP before it is dropped only if it ends the line
+    private boolean pendingCR;
 
     public RelaxedBodyCanonicalizer(OutputStream out) {
-        super(new SimpleBodyCanonicalizer(out));
+        super(new SimpleBodyCanonicalizer(out, true));
         pendingSpaces = false;
     }
 
     public void write(byte[] buffer, int off, int len) throws IOException {
-        int start = off;
-        int end = len + off;
-        for (int k = off; k < end; k++) {
-            if (pendingSpaces) {
-                if (buffer[k] != ' ' && buffer[k] != '\t') {
-                    if (buffer[k] != '\r')
-                        out.write(' ');
-                    pendingSpaces = false;
-                    len = len - k + start;
-                    start = k;
-                }
-            } else {
-                if (buffer[k] == ' ' || buffer[k] == '\t') {
-                    if (k + 1 < end && buffer[k] == ' ' && buffer[k + 1] != ' '
-                            && buffer[k + 1] != '\t' && buffer[k + 1] != '\r') {
-                        // optimization: we skip single spaces
-                        // make sure we optimize only when we are on a space.
-                    } else {
-                        // compute everything from start to end;
-                        out.write(buffer, start, k - start);
-                        pendingSpaces = true;
-                    }
-                }
+        int end = off + len;
+        int k = off;
+        while (k < end) {
+            if (pendingSpaces || pendingCR) {
+                write(buffer[k]);
+                k++;
+                continue;
             }
-        }
-        if (!pendingSpaces) {
-            out.write(buffer, start, len);
+            // nothing is pending: copy everything up to the next WSP or CR as is
+            int next = k;
+            while (next < end && buffer[next] != ' ' && buffer[next] != '\t' && buffer[next] != '\r') {
+                next++;
+            }
+            if (next == k) {
+                write(buffer[k]);
+                k++;
+            } else {
+                out.write(buffer, k, next - k);
+                k = next;
+            }
         }
     }
 
     public void write(int b) throws IOException {
-        if (pendingSpaces) {
-            if (b != ' ' && b != '\t') {
-                if (b != '\r')
-                    out.write(' ');
+        if (pendingCR) {
+            pendingCR = false;
+            if (b == '\n') {
+                // whitespace at the end of a line is ignored
                 pendingSpaces = false;
-                out.write(b);
+                out.write('\r');
+                out.write('\n');
+                return;
             }
+            // a lone CR does not end the line
+            flushSpaces();
+            out.write('\r');
+        }
+        if (b == ' ' || b == '\t') {
+            pendingSpaces = true;
+        } else if (b == '\r') {
+            pendingCR = true;
         } else {
-            if (b == ' ' || b == '\t') {
-                pendingSpaces = true;
-            } else {
-                out.write(b);
-            }
+            flushSpaces();
+            out.write(b);
         }
     }
 
@@ -93,8 +95,18 @@ public class RelaxedBodyCanonicalizer extends FilterOutputStream {
      * Called internally to make sure we output the buffered whitespace if any.
      */
     private void complete() throws IOException {
-        if (pendingSpaces)
+        flushSpaces();
+        if (pendingCR) {
+            pendingCR = false;
+            out.write('\r');
+        }
+    }
+
+    private void flushSpaces() throws IOException {
+        if (pendingSpaces) {
             out.write(' ');
+            pendingSpaces = false;
+        }
     }
 
 }

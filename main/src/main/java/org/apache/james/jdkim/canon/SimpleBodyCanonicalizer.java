@@ -31,66 +31,66 @@ public class SimpleBodyCanonicalizer extends FilterOutputStream {
 
     private static final boolean DEEP_DEBUG = false;
 
+    private final boolean emptyBodyIsEmpty;
+    // a CR was read and the next byte tells whether it ends a line
     private boolean lastWasCR;
+    // CRLFs read but not written yet: only the trailing ones are dropped
     private int countCRLF;
+    private boolean hasContent;
 
     public SimpleBodyCanonicalizer(OutputStream arg0) {
+        this(arg0, false);
+    }
+
+    /**
+     * @param emptyBodyIsEmpty true to output nothing for a body made only of
+     *                         CRLFs, as relaxed canonicalization requires (RFC
+     *                         6376 section 3.4.4); simple outputs a single CRLF.
+     */
+    SimpleBodyCanonicalizer(OutputStream arg0, boolean emptyBodyIsEmpty) {
         super(arg0);
+        this.emptyBodyIsEmpty = emptyBodyIsEmpty;
     }
 
     public void write(byte[] b, int off, int len) throws IOException {
-        if (len <= 0)
-            return;
         if (DEEP_DEBUG)
             System.out.println("I:(" + lastWasCR + "|" + countCRLF + ") ["
                     + new String(b, off, len) + "]");
-        if (lastWasCR) {
-            if (b[off] == '\n') {
-                countCRLF++;
-                lastWasCR = false;
-                off++;
-                len--;
-            } else {
-                // TODO output the lone \r ? (this condition should never happen
-                // as we expect only CRLF in a compliant 7bit email.
-                out.write('\r');
-                lastWasCR = false;
+        int end = off + len;
+        int i = off;
+        while (i < end) {
+            if (lastWasCR || countCRLF > 0 || b[i] == '\r') {
+                write(b[i]);
+                i++;
+                continue;
             }
+            // nothing is pending: copy everything up to the next CR as is
+            int next = i;
+            while (next < end && b[next] != '\r') {
+                next++;
+            }
+            out.write(b, i, next - i);
+            hasContent = true;
+            i = next;
         }
-        int newCountCRLF = 0;
-        boolean newLastWasCR = false;
-        if (len >= 1 && b[off + len - 1] == '\r') {
-            newLastWasCR = true;
-            len--;
-        }
-        while (len >= 2 && b[off + len - 1] == '\n' && b[off + len - 2] == '\r') {
-            len -= 2;
-            newCountCRLF++;
-        }
-        if (len > 0) {
-            dumpCRLF();
-            out.write(b, off, len);
-        }
-        countCRLF += newCountCRLF;
-        lastWasCR = newLastWasCR;
     }
 
     public void write(int b) throws IOException {
         if (DEEP_DEBUG)
             System.out.println("B:(" + lastWasCR + "|" + countCRLF + ") [" + (char) b + "]");
-        if (lastWasCR && '\n' == b) {
+        if (lastWasCR) {
             lastWasCR = false;
-            countCRLF++;
-        } else {
-            if (!lastWasCR && '\r' == b) {
-                lastWasCR = true;
-            } else {
-                dumpCRLF();
-                if ('\r' == b)
-                    lastWasCR = true;
-                else
-                    out.write(b);
+            if ('\n' == b) {
+                countCRLF++;
+                return;
             }
+            // a lone CR is ordinary content (RFC 6376 section 3.4.3)
+            writeContent('\r');
+        }
+        if ('\r' == b) {
+            lastWasCR = true;
+        } else {
+            writeContent(b);
         }
     }
 
@@ -103,21 +103,24 @@ public class SimpleBodyCanonicalizer extends FilterOutputStream {
         if (DEEP_DEBUG)
             System.out.println("C:(" + lastWasCR + "|" + countCRLF + ")");
         if (lastWasCR) {
-            // if the last char was a CR we'll let dumpCRLF
-            // to output the missing \n
             lastWasCR = false;
+            writeContent('\r');
         }
-        countCRLF = 1;
+        if (emptyBodyIsEmpty && !hasContent) {
+            return;
+        }
+        out.write("\r\n".getBytes());
+    }
+
+    private void writeContent(int b) throws IOException {
         dumpCRLF();
+        out.write(b);
+        hasContent = true;
     }
 
     private void dumpCRLF() throws IOException {
         if (DEEP_DEBUG)
             System.out.println("D:(" + lastWasCR + "|" + countCRLF + ")");
-        if (lastWasCR) {
-            out.write('\r');
-            lastWasCR = false;
-        }
         while (countCRLF > 0) {
             out.write("\r\n".getBytes());
             countCRLF--;

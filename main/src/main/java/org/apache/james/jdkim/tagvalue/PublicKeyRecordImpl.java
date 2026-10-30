@@ -28,7 +28,6 @@ import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -142,14 +141,12 @@ public class PublicKeyRecordImpl extends TagValue implements PublicKeyRecord {
                 throw new IllegalStateException(
                         "Invalid granularity using more than one wildcard: "
                                 + g);
-            String pattern = "^\\Q" + g.subSequence(0, pStar).toString()
-                    + "\\E.*\\Q"
-                    + g.subSequence(pStar + 1, g.length()).toString() + "\\E$";
-            return Pattern.compile(pattern);
+            // DOTALL: the wildcard matches any local part, line terminators included
+            String pattern = "^" + Pattern.quote(g.substring(0, pStar))
+                    + ".*" + Pattern.quote(g.substring(pStar + 1)) + "$";
+            return Pattern.compile(pattern, Pattern.DOTALL);
         } else {
-            // TODO we need some escaping. On Java 5 we have Pattern.quote that
-            // is better
-            return Pattern.compile("^\\Q" + g + "\\E$");
+            return Pattern.compile("^" + Pattern.quote(g) + "$");
         }
     }
 
@@ -177,19 +174,24 @@ public class PublicKeyRecordImpl extends TagValue implements PublicKeyRecord {
      */
     public PublicKey getPublicKey() {
         try {
-            String p = getValue("p").toString();
-            byte[] key = Base64.getMimeDecoder().decode(p.getBytes());
-            KeyFactory keyFactory;
-            keyFactory = KeyFactory.getInstance(getValue("k").toString());
+            // only rsa-* signatures are implemented: never let DNS data pick the KeyFactory
+            if (!"rsa".equalsIgnoreCase(getValue("k").toString()))
+                throw new IllegalStateException("Unsupported key type: " + getValue("k"));
+            byte[] key = decodeBase64(getValue("p"));
+            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
             X509EncodedKeySpec pubSpec = new X509EncodedKeySpec(key);
-            RSAPublicKey rsaKey;
-            rsaKey = (RSAPublicKey) keyFactory.generatePublic(pubSpec);
-            return rsaKey;
+            PublicKey publicKey = keyFactory.generatePublic(pubSpec);
+            if (!(publicKey instanceof RSAPublicKey))
+                throw new IllegalStateException("Not an RSA key: " + publicKey.getAlgorithm());
+            return publicKey;
         } catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException("Unknown algorithm: "
                     + e.getMessage());
         } catch (InvalidKeySpecException e) {
             throw new IllegalStateException("Invalid key spec: "
+                    + e.getMessage());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalStateException("Invalid key encoding: "
                     + e.getMessage());
         }
     }

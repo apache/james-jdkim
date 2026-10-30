@@ -39,13 +39,16 @@ public class TagValue {
 
     private static final Pattern tagPattern = Pattern
             .compile("^[A-Za-z][A-Za-z0-9_]*$");
+    // RFC 6376 section 3.2: tval = 1*VALCHAR, VALCHAR = %x21-3A / %x3C-7E
     // Use possessive matching to avoid heavy stack usage
-    private static final String tval = "[^; \t\r\n]++";
+    private static final String tval = "[\\x21-\\x3a\\x3c-\\x7e]++";
     // validate value chars
     // Use possessive matching to avoid heavy stack usage
     private static final Pattern valuePattern = Pattern.compile("^(?:" + tval
             + "(?:(?:(?:\r\n)?[\t ])++" + tval + ")*+)?$");
-    private static final Pattern b64PadFixPattern = Pattern.compile("=(\r?\n\\s*)=$");
+    private static final Pattern fwsPattern = Pattern.compile("[ \t\r\n]");
+    // FWS = [*WSP CRLF] 1*WSP
+    private static final Pattern trailingFWSPattern = Pattern.compile("^(?:(?:[ \t]*\r\n)?[ \t]+)?$");
 
     // we may use a TreeMap because we may need to know original order.
     private final Map<String, CharSequence> tagValues;
@@ -143,11 +146,9 @@ public class TagValue {
         for (int i = 0; i < data.length(); i++) {
             int equal = data.indexOf('=', i);
             if (equal == -1) {
-                // TODO check whether this is correct or not
-                // this allow FWS/WSP after the final ";"
+                // only FWS may follow the final ";"
                 String rest = data.substring(i);
-                if (!rest.isEmpty()
-                        && trimFWS(rest, 0, rest.length() - 1, true).length() > 0) {
+                if (!trailingFWSPattern.matcher(rest).matches()) {
                     throw new IllegalStateException(
                             "Unexpected termination at position " + i + ": "
                                     + data + " | [" + rest + "]");
@@ -223,11 +224,37 @@ public class TagValue {
     }
 
     protected byte[] decodeBase64TagValue(String key) {
-        // When a base64 string ends with a newline between two '=', java.util.Base64 fails.
-        String value = getValue(key).toString();
-        return Base64.getMimeDecoder().decode(
-                b64PadFixPattern.matcher(value).replaceAll("$1==")
-        );
+        return decodeBase64(getValue(key));
+    }
+
+    /**
+     * Decodes a base64string (RFC 6376 section 2.8): FWS may appear anywhere,
+     * every other character must belong to the base64 alphabet.
+     *
+     * @throws IllegalArgumentException if the value is not valid base64
+     */
+    protected static byte[] decodeBase64(CharSequence value) {
+        return Base64.getDecoder().decode(fwsPattern.matcher(value).replaceAll(""));
+    }
+
+    /**
+     * Deletes the value of a tag, with the whitespace around it, and leaves the
+     * rest of the tag-list as is (RFC 6376 section 3.7 for b=).
+     */
+    protected static String emptyTagValue(String tagList, String tag) {
+        int start = 0;
+        while (start <= tagList.length()) {
+            int end = tagList.indexOf(';', start);
+            if (end == -1)
+                end = tagList.length();
+            int equal = tagList.indexOf('=', start);
+            if (equal != -1 && equal < end
+                    && tag.equals(fwsPattern.matcher(tagList.subSequence(start, equal)).replaceAll(""))) {
+                return tagList.substring(0, equal + 1) + tagList.substring(end);
+            }
+            start = end + 1;
+        }
+        return tagList;
     }
 
     protected void setValue(String tag, String value) {

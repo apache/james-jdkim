@@ -41,8 +41,17 @@ public abstract class DKIMCommon {
     /**
      * Header fields are carried as Strings where each char is one raw octet
      * (see {@link Headers}): ISO-8859-1 gives them back unchanged.
+     *
+     * @throws IllegalArgumentException on a char above U+00FF, which getBytes
+     *                                  would silently turn into '?'
      */
     private static byte[] octets(String s) {
+        for (int i = 0; i < s.length(); i++) {
+            if (s.charAt(i) > 0xFF) {
+                throw new IllegalArgumentException("Header field holds a char above U+00FF at " + i
+                        + ": header fields must carry one octet per char");
+            }
+        }
         return s.getBytes(StandardCharsets.ISO_8859_1);
     }
 
@@ -53,13 +62,14 @@ public abstract class DKIMCommon {
         if (relaxed) {
             if (DEEP_DEBUG)
                 System.out
-                        .println("#" + header.toString().toLowerCase() + ":-");
+                        .println("#" + header.toString().toLowerCase(Locale.US) + ":-");
             signature.update(octets(header.toString().toLowerCase(Locale.US)));
             signature.update(octets(":"));
             String headerValue = fv.substring(fv.indexOf(':') + 1);
             headerValue = headerValue.replaceAll("\r\n[\t ]", " ");
             headerValue = headerValue.replaceAll("[\t ]+", " ");
-            headerValue = headerValue.trim();
+            // RFC 6376 section 3.4.2 only deletes WSP: String#trim would also drop control characters
+            headerValue = headerValue.replaceAll("^ | $", "");
             signature.update(octets(headerValue));
             if (DEEP_DEBUG)
                 System.out.println("#" + headerValue + "#");
@@ -72,6 +82,29 @@ public abstract class DKIMCommon {
 
     protected static void signatureCheck(Headers h, SignatureRecord sign,
                                          List<CharSequence> headers, Signature signature)
+            throws SignatureException, PermFailException {
+        signatureCheck(h, sign, headers, signature, "DKIM-Signature");
+    }
+
+    /**
+     * @param signatureFieldName the name of the DKIM-Signature field as written in
+     *                           the message, i.e. the text before its colon: simple
+     *                           canonicalization hashes it unchanged.
+     */
+    protected static void signatureCheck(Headers h, SignatureRecord sign,
+                                         List<CharSequence> headers, Signature signature,
+                                         String signatureFieldName)
+            throws SignatureException, PermFailException {
+        try {
+            hashHeaders(h, sign, headers, signature, signatureFieldName);
+        } catch (IllegalArgumentException e) {
+            throw new PermFailException(e.getMessage(), sign, e);
+        }
+    }
+
+    private static void hashHeaders(Headers h, SignatureRecord sign,
+                                    List<CharSequence> headers, Signature signature,
+                                    String signatureFieldName)
             throws SignatureException, PermFailException {
 
         boolean relaxedHeaders = SignatureRecord.RELAXED.equals(sign.getHeaderCanonicalisationMethod());
@@ -105,7 +138,7 @@ public abstract class DKIMCommon {
             }
         }
 
-        String signatureStub = "DKIM-Signature:" + sign.toUnsignedString();
+        String signatureStub = signatureFieldName + ":" + sign.toUnsignedString();
         updateSignature(signature, relaxedHeaders, "dkim-signature", signatureStub);
     }
 

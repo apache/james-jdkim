@@ -42,6 +42,7 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.Base64;
 import java.util.List;
+import java.util.Locale;
 
 public class DKIMSigner {
 
@@ -137,8 +138,8 @@ public class DKIMSigner {
             SignatureException, PermFailException {
 
         Signature signature = Signature.getInstance(sign.getHashMethod()
-                .toString().toUpperCase()
-                + "with" + sign.getHashKeyType().toString().toUpperCase());
+                .toString().toUpperCase(Locale.US)
+                + "with" + sign.getHashKeyType().toString().toUpperCase(Locale.US));
         signature.initSign(key);
 
         signatureCheck(h, sign, headers, signature);

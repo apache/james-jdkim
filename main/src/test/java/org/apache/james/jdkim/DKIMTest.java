@@ -19,6 +19,10 @@
 
 package org.apache.james.jdkim;
 
+import org.apache.james.jdkim.api.BodyHasher;
+import java.util.stream.Collectors;
+import org.apache.james.mime4j.MimeException;
+import java.security.MessageDigest;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertEquals;
@@ -45,6 +49,7 @@ import org.apache.james.jdkim.api.Headers;
 import org.apache.james.jdkim.api.Result;
 import org.apache.james.jdkim.api.SignatureRecord;
 import org.apache.james.jdkim.api.VerifierOptions;
+import org.apache.james.jdkim.exceptions.CompositeFailException;
 import org.apache.james.jdkim.exceptions.PermFailException;
 import org.apache.james.jdkim.impl.Message;
 import org.apache.james.jdkim.tagvalue.SignatureRecordImpl;
@@ -263,4 +268,212 @@ public class DKIMTest {
         assertThat(message.getFields("missing")).isEmpty();
     }
 
+    @Test
+    public void controlCharacterAddedToARelaxedHeaderValueShouldBreakTheSignature() throws Exception {
+        DKIMSigner signer = new DKIMSigner("v=1; a=rsa-sha256; c=relaxed/simple; d=messiah.edu; h=from; s=selector2;", TestKeys.privateKey);
+        byte[] mail = "From: joe@messiah.edu\r\n\r\nbody\r\n".getBytes(StandardCharsets.US_ASCII);
+        String field = signer.sign(new ByteArrayInputStream(mail));
+
+        for (String tampered : Arrays.asList("From: joe@messiah.edu\u0001", "From: \u0000joe@messiah.edu", "From:\u0016 joe@messiah.edu")) {
+            InputStream in = new SequenceInputStream(new ByteArrayInputStream((field + "\r\n").getBytes(StandardCharsets.US_ASCII)),
+                    new ByteArrayInputStream((tampered + "\r\n\r\nbody\r\n").getBytes(StandardCharsets.US_ASCII)));
+
+            assertThatThrownBy(() -> verifier.verify(in)).as(tampered).isInstanceOf(PermFailException.class);
+        }
+    }
+
+    @Test
+    public void relaxedHeaderCanonicalizationShouldIgnoreWhitespaceAroundTheValue() throws Exception {
+        DKIMSigner signer = new DKIMSigner("v=1; a=rsa-sha256; c=relaxed/simple; d=messiah.edu; h=from; s=selector2;", TestKeys.privateKey);
+        byte[] mail = "From: joe@messiah.edu\r\n\r\nbody\r\n".getBytes(StandardCharsets.US_ASCII);
+        byte[] reformatted = "From:\t joe@messiah.edu \t\r\n\r\nbody\r\n".getBytes(StandardCharsets.US_ASCII);
+        String field = signer.sign(new ByteArrayInputStream(mail));
+
+        InputStream in = new SequenceInputStream(
+                new ByteArrayInputStream((field + "\r\n").getBytes(StandardCharsets.US_ASCII)), new ByteArrayInputStream(reformatted));
+
+        assertThat(verifier.verify(in)).hasSize(1);
+    }
+
+    @Test
+    public void signatureWithATagNameEndingInBShouldVerify() throws Exception {
+        DKIMSigner signer = new DKIMSigner("v=1; a=rsa-sha256; c=simple; d=messiah.edu; h=from; s=selector2; ab=x;", TestKeys.privateKey);
+        byte[] mail = "From: joe@messiah.edu\r\n\r\nbody\r\n".getBytes(StandardCharsets.US_ASCII);
+        String field = signer.sign(new ByteArrayInputStream(mail));
+
+        List<SignatureRecord> verified = verifier.verify(new SequenceInputStream(
+                new ByteArrayInputStream((field + "\r\n").getBytes(StandardCharsets.US_ASCII)), new ByteArrayInputStream(mail)));
+
+        assertThat(verified).hasSize(1);
+    }
+
+    @Test
+    public void simpleCanonicalizationShouldKeepTheSignatureFieldNameAsWritten() throws Exception {
+        String body = "body\r\n";
+        String bh = Base64.getEncoder().encodeToString(
+                MessageDigest.getInstance("SHA-256").digest(body.getBytes(StandardCharsets.US_ASCII)));
+        String tags = " b=; v=1; a=rsa-sha256; c=simple/simple; d=messiah.edu; s=selector2; h=from; bh=" + bh;
+        String from = "From: joe@messiah.edu";
+        Signature rsa = Signature.getInstance("SHA256withRSA");
+        rsa.initSign(TestKeys.privateKey);
+        rsa.update((from + "\r\n" + "dkim-signature:" + tags).getBytes(StandardCharsets.US_ASCII));
+        String b = Base64.getEncoder().encodeToString(rsa.sign());
+        String mail = "dkim-signature:" + tags.replace("b=;", "b=" + b + ";") + "\r\n" + from + "\r\n\r\n" + body;
+
+        assertThat(verifier.verify(new ByteArrayInputStream(mail.getBytes(StandardCharsets.US_ASCII)))).hasSize(1);
+    }
+
+    @Test
+    public void controlCharacterBeforeASignedFieldNameShouldBreakTheSignature() throws Exception {
+        DKIMSigner signer = new DKIMSigner("v=1; a=rsa-sha256; c=relaxed/simple; d=messiah.edu; h=from; s=selector2;", TestKeys.privateKey);
+        byte[] mail = "From: joe@messiah.edu\r\n\r\nbody\r\n".getBytes(StandardCharsets.US_ASCII);
+        byte[] tampered = "\u0000From: joe@messiah.edu\r\n\r\nbody\r\n".getBytes(StandardCharsets.US_ASCII);
+        String field = signer.sign(new ByteArrayInputStream(mail));
+
+        InputStream in = new SequenceInputStream(
+                new ByteArrayInputStream((field + "\r\n").getBytes(StandardCharsets.US_ASCII)), new ByteArrayInputStream(tampered));
+
+        assertThatThrownBy(() -> verifier.verify(in)).isInstanceOf(PermFailException.class);
+    }
+
+    @Test
+    public void fieldsWhoseNameLooksLikeACommentShouldBeSigned() throws Exception {
+        DKIMSigner signer = new DKIMSigner("v=1; a=rsa-sha256; c=relaxed/simple; d=messiah.edu; h=from:(((((; s=selector2;", TestKeys.privateKey);
+        byte[] mail = "From: joe@messiah.edu\r\n(((((:(( signed\r\n\r\nbody\r\n".getBytes(StandardCharsets.US_ASCII);
+        byte[] tampered = "From: joe@messiah.edu\r\n(((((:(( altered\r\n\r\nbody\r\n".getBytes(StandardCharsets.US_ASCII);
+        String field = signer.sign(new ByteArrayInputStream(mail));
+
+        InputStream in = new SequenceInputStream(
+                new ByteArrayInputStream((field + "\r\n").getBytes(StandardCharsets.US_ASCII)), new ByteArrayInputStream(tampered));
+
+        assertThatThrownBy(() -> verifier.verify(in)).isInstanceOf(PermFailException.class);
+    }
+
+    @Test
+    public void messageShouldMatchFieldsOnTheirRawName() throws Exception {
+        Message message = new Message(new ByteArrayInputStream(
+                "\u0000From: a\r\nFrom : b\r\n(c) Subject: c\r\n\r\n".getBytes(StandardCharsets.US_ASCII)));
+
+        assertThat(message.getFields("from")).containsExactly("From : b");
+        assertThat(message.getFields("subject")).isEmpty();
+        assertThat(message.getFields("(c) Subject")).containsExactly("(c) Subject: c");
+    }
+
+    @Test
+    public void messageShouldKeepFoldedFieldsAndHeaderOnlyMessages() throws Exception {
+        Message folded = new Message(new ByteArrayInputStream(
+                "Subject: a\r\n\tb\r\n c\r\nFrom: d\r\n\r\nbody\r\n".getBytes(StandardCharsets.US_ASCII)));
+        Message headerOnly = new Message(new ByteArrayInputStream("From: d\nTo: e".getBytes(StandardCharsets.US_ASCII)));
+
+        assertThat(folded.getFields()).containsExactly("Subject: a\r\n\tb\r\n c", "From: d");
+        assertThat(headerOnly.getFields()).containsExactly("From: d", "To: e");
+    }
+
+    @Test
+    public void headerLineWithoutColonShouldMakeVerificationFail() throws Exception {
+        byte[] mail = "From: joe@messiah.edu\r\n\r\nbody\r\n".getBytes(StandardCharsets.US_ASCII);
+        String field = new DKIMSigner("v=1; a=rsa-sha256; c=simple; d=messiah.edu; h=from; s=selector2;", TestKeys.privateKey)
+                .sign(new ByteArrayInputStream(mail));
+        byte[] tampered = (field + "\r\nReply-To joe@evil.example\r\nFrom: joe@messiah.edu\r\n\r\nbody\r\n")
+                .getBytes(StandardCharsets.US_ASCII);
+
+        assertThatThrownBy(() -> verifier.verify(new ByteArrayInputStream(tampered)))
+                .isInstanceOf(PermFailException.class)
+                .hasMessageContaining("Mime parsing exception");
+    }
+
+    @Test
+    public void malformedHeaderBlocksShouldBeRejected() {
+        for (String header : Arrays.asList("j\t\r\n", "From: a\r\nD(*\r\n", " x: y\r\nFrom: a\r\n")) {
+            assertThatThrownBy(() -> new Message(new ByteArrayInputStream((header + "\r\nbody\r\n").getBytes(StandardCharsets.US_ASCII))))
+                    .as(header)
+                    .isInstanceOf(MimeException.class);
+        }
+    }
+
+    @Test
+    public void duplicateSignatureFieldsShouldEachHaveAResult() throws Exception {
+        String field = "DKIM-Signature: v=1; a=rsa-sha256; d=messiah.edu; s=selector2; h=from; bh=AAAA; b=AAAA\r\n";
+        String mail = field + field + "From: joe@messiah.edu\r\n\r\nbody\r\n";
+
+        assertThatThrownBy(() -> verifier.verify(new ByteArrayInputStream(mail.getBytes(StandardCharsets.US_ASCII))))
+                .isInstanceOf(CompositeFailException.class);
+
+        assertThat(verifier.getResults()).hasSize(2);
+    }
+
+    @Test
+    public void resultsShouldFollowTheFieldOrder() throws Exception {
+        byte[] mail = "From: joe@messiah.edu\r\n\r\nbody\r\n".getBytes(StandardCharsets.US_ASCII);
+        String valid = dkimSigner.sign(new ByteArrayInputStream(mail));
+        String invalid = "DKIM-Signature: v=1; a=rsa-sha256; d=messiah.edu; s=selector3; h=from; bh=AAAA; b=AAAA";
+        String signed = invalid + "\r\n" + valid + "\r\n" + invalid + "\r\n";
+
+        verifier.verify(new SequenceInputStream(
+                new ByteArrayInputStream(signed.getBytes(StandardCharsets.US_ASCII)), new ByteArrayInputStream(mail)));
+
+        assertThat(verifier.getResults()).extracting(Result::isSuccess).containsExactly(false, true, false);
+    }
+
+    @Test
+    public void signatureListingDkimSignatureInHShouldVerify() throws Exception {
+        DKIMSigner signer = new DKIMSigner("v=1; a=rsa-sha256; c=simple; d=messiah.edu; h=from:DKIM-Signature; s=selector2;", TestKeys.privateKey);
+        byte[] mail = "From: joe@messiah.edu\r\n\r\nbody\r\n".getBytes(StandardCharsets.US_ASCII);
+        String field = signer.sign(new ByteArrayInputStream(mail));
+
+        List<SignatureRecord> verified = verifier.verify(new SequenceInputStream(
+                new ByteArrayInputStream((field + "\r\n").getBytes(StandardCharsets.US_ASCII)), new ByteArrayInputStream(mail)));
+
+        assertThat(verified).hasSize(1);
+    }
+
+    @Test
+    public void signatureOverAnEarlierSignatureShouldVerify() throws Exception {
+        byte[] mail = "From: joe@messiah.edu\r\n\r\nbody\r\n".getBytes(StandardCharsets.US_ASCII);
+        String first = dkimSigner.sign(new ByteArrayInputStream(mail));
+        byte[] signedOnce = (first + "\r\n" + new String(mail, StandardCharsets.US_ASCII)).getBytes(StandardCharsets.US_ASCII);
+        String second = new DKIMSigner("v=1; a=rsa-sha256; c=relaxed; d=messiah.edu; h=from:DKIM-Signature:DKIM-Signature; s=selector3;", TestKeys.privateKey_2)
+                .sign(new ByteArrayInputStream(signedOnce));
+        byte[] tampered = (second + "\r\n" + first.replace("h=", "h=to:") + "\r\n" + new String(mail, StandardCharsets.US_ASCII))
+                .getBytes(StandardCharsets.US_ASCII);
+
+        List<SignatureRecord> verified = verifier.verify(new SequenceInputStream(
+                new ByteArrayInputStream((second + "\r\n").getBytes(StandardCharsets.US_ASCII)), new ByteArrayInputStream(signedOnce)));
+        assertThat(verified).hasSize(2);
+
+        verifier.resetResults();
+        assertThatThrownBy(() -> verifier.verify(new ByteArrayInputStream(tampered)))
+                .isInstanceOf(CompositeFailException.class);
+    }
+
+    @Test
+    public void headerCharsAboveU00FFShouldNotBeHashedAsQuestionMarks() throws Exception {
+        String template = "v=1; d=messiah.edu; s=selector2; a=rsa-sha256; c=simple/simple; h=from;";
+        DKIMSigner signer = new DKIMSigner(template, TestKeys.privateKey);
+        BodyHasher bodyHasher = signer.newBodyHasher(signer.newSignatureRecordTemplate(template));
+        bodyHasher.getOutputStream().close();
+        // getBytes(ISO_8859_1) used to turn any char above U+00FF into this '?'
+        String signature = signer.sign(headers("From: joe@messiah.edu?"), bodyHasher);
+
+        assertThatThrownBy(() -> signer.sign(headers("From: " + (char) 0xA9C3), bodyHasher))
+                .isInstanceOf(PermFailException.class);
+        assertThatThrownBy(() -> verifier.verify(headers(signature, "From: joe@messiah.edu" + (char) 0x100),
+                new ByteArrayInputStream(new byte[0])))
+                .isInstanceOf(PermFailException.class);
+    }
+
+    private static Headers headers(String... fields) {
+        List<String> all = Arrays.asList(fields);
+        return new Headers() {
+            public List<String> getFields() {
+                return all;
+            }
+
+            public List<String> getFields(String name) {
+                return all.stream()
+                        .filter(f -> f.substring(0, f.indexOf(':')).equalsIgnoreCase(name))
+                        .collect(Collectors.toList());
+            }
+        };
+    }
 }

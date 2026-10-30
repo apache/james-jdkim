@@ -35,6 +35,8 @@ public class SignatureRecordTemplate extends TagValue implements SignatureRecord
     // TODO ftext is defined as a sequence of at least one in %d33-57 or
     // %d59-126
     private static final Pattern hdrNamePattern = Pattern.compile("^[^: \r\n\t]+$");
+    private static final Pattern timestampPattern = Pattern.compile("^[0-9]{1,12}$");
+    private static final Pattern bodyLengthPattern = Pattern.compile("^[0-9]{1,76}$");
 
     public SignatureRecordTemplate(String data) {
         super(data);
@@ -82,15 +84,28 @@ public class SignatureRecordTemplate extends TagValue implements SignatureRecord
             throw new IllegalStateException("Identity (i=) declaration cannot be parsed. Probably due to missing quoted printable encoding", e);
         }
 
-        if (!identity.toString().toLowerCase().endsWith(
-                ("@" + getValue("d")).toLowerCase())
-                && !getIdentity().toString().toLowerCase().endsWith(
-                ("." + getValue("d")).toLowerCase()))
-            throw new IllegalStateException("Identity (i=) domain mismatch: expected [optional]@[optional.]domain-from-d-attribute");
+        SignatureRecordImpl.checkIdentity(identity.toString(), getValue("d").toString());
+
+        // An empty t= asks the signer to fill in the signing time.
+        if (getValue("t") != null && getValue("t").length() > 0
+                && !timestampPattern.matcher(getValue("t")).matches())
+            throw new IllegalStateException("Invalid signature timestamp (t=): " + getValue("t"));
+
+        // RFC 6376 section 3.5: sig-l-tag = %x6c [FWS] "=" [FWS] 1*76DIGIT
+        if (!ALL.equals(getValue("l")) && !bodyLengthPattern.matcher(getValue("l")).matches())
+            throw new IllegalStateException("Invalid body length (l=): " + getValue("l"));
+
+        // RFC 6376 section 3.5: x= MUST be greater than t= if both are present
+        if (getValue("x") != null && timestampPattern.matcher(getValue("x")).matches() && getValue("t") != null && getValue("t").length() > 0
+                && Long.parseLong(getValue("x").toString()) <= Long.parseLong(getValue("t").toString()))
+            throw new IllegalStateException("Signature expiration (x=) must be greater than its timestamp (t=)");
 
         // when "x=" exists and signature expired then return PERMFAIL
         // (signature expired)
         if (getValue("x") != null) {
+            // RFC 6376 section 3.5: sig-x-tag = %x78 [FWS] "=" [FWS] 1*12DIGIT
+            if (!timestampPattern.matcher(getValue("x")).matches())
+                throw new IllegalStateException("Invalid expiration (x=): " + getValue("x"));
             long expiration = Long.parseLong(getValue("x").toString());
             long lifetime = (expiration - System.currentTimeMillis() / 1000);
             if (lifetime < 0) {
@@ -154,8 +169,7 @@ public class SignatureRecordTemplate extends TagValue implements SignatureRecord
      */
     public CharSequence getIdentityLocalPart() {
         String identity = getIdentity().toString();
-        int pAt = identity.indexOf('@');
-        return identity.subSequence(0, pAt);
+        return identity.substring(0, SignatureRecordImpl.identityAt(identity));
     }
 
     /**
@@ -165,6 +179,9 @@ public class SignatureRecordTemplate extends TagValue implements SignatureRecord
      * @see SignatureRecord#getIdentity()
      */
     public CharSequence getIdentity() {
+        // the default identity is built from d=, it is not DKIM-Quoted-Printable
+        if (!containsTag("i"))
+            return getValue("i");
         return DKIMQuotedPrintable.dkimQuotedPrintableDecode(getValue("i"));
     }
 
@@ -239,7 +256,7 @@ public class SignatureRecordTemplate extends TagValue implements SignatureRecord
         if (ALL.equals(limit))
             return -1;
         else
-            return Integer.parseInt(limit);
+            return SignatureRecordImpl.parseBodyHashLimit(limit);
     }
 
     public Long getSignatureTimestamp() {
@@ -313,6 +330,6 @@ public class SignatureRecordTemplate extends TagValue implements SignatureRecord
     }
 
     public String toUnsignedString() {
-        return toString().replaceFirst("b=[^;]*", "b=");
+        return emptyTagValue(toString(), "b");
     }
 }
