@@ -19,6 +19,10 @@
 
 package org.apache.james.jdkim;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import org.xbill.DNS.SimpleResolver;
+import org.xbill.DNS.Resolver;
+import org.xbill.DNS.Message;
 import org.apache.james.jdkim.api.PublicKeyRecord;
 import org.apache.james.jdkim.api.PublicKeyRecordRetriever;
 import org.apache.james.jdkim.api.VerifierOptions;
@@ -118,4 +122,16 @@ public class DNSPublicKeyRetrieverTest {
 
     }
 
+    @Test
+    public void runtimeExceptionFromTheResolverShouldBeATempFail() throws Exception {
+        Resolver resolver = new SimpleResolver("127.0.0.1") {
+            @Override
+            public Message send(Message query) {
+                throw new IndexOutOfBoundsException("malformed answer");
+            }
+        };
+
+        assertThatThrownBy(() -> new DNSPublicKeyRecordRetriever(resolver).getRecords("dns/txt", "sel", "example.com"))
+                .isInstanceOf(TempFailException.class);
+    }
 }

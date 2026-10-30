@@ -64,7 +64,13 @@ public class DNSPublicKeyRecordRetriever implements PublicKeyRecordRetriever {
         }
         query.setResolver(resolver);
 
-        Record[] rr = query.run();
+        Record[] rr;
+        try {
+            rr = query.run();
+        } catch (RuntimeException e) {
+            // dnsjava may fail this way on a malformed answer: treat it as a DNS error
+            throw new TempFailException("DNS lookup failed: " + e.getMessage());
+        }
 
         if (query.getResult() == Lookup.TRY_AGAIN) {
             throw new TempFailException(query.getErrorString());
