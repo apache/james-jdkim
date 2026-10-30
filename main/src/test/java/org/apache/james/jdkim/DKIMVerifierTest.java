@@ -19,6 +19,7 @@
 
 package org.apache.james.jdkim;
 
+import static org.assertj.core.api.Assertions.assertThatCode;
 import org.apache.james.jdkim.impl.Message;
 import java.util.Base64;
 import java.security.Signature;
@@ -171,5 +172,22 @@ public class DKIMVerifierTest {
                 .isInstanceOf(PermFailException.class);
         assertThat(verifier.hasAnyValidSignature()).isFalse();
         assertThat(verifier.getResults()).hasSize(1);
+    }
+
+    @Test
+    public void defaultGranularityShouldMatchAnyLocalPart() throws Exception {
+        PublicKeyRecordImpl key = new PublicKeyRecordImpl("v=DKIM1; k=rsa; p=AAAA");
+        SignatureRecordImpl sign = new SignatureRecordImpl(
+                "v=1; a=rsa-sha256; d=example.com; s=sel; h=from; bh=AA==; b=AA==; i==C3=85sa@example.com");
+
+        assertThatCode(() -> DKIMVerifier.apply(key, sign)).doesNotThrowAnyException();
+    }
+
+    @Test
+    public void granularityWildcardShouldMatchLineTerminators() throws Exception {
+        PublicKeyRecordImpl key = new PublicKeyRecordImpl("v=DKIM1; k=rsa; g=a*b; p=AAAA");
+
+        assertThat(key.getGranularityPattern().matcher("a\r\nb").matches()).isTrue();
+        assertThat(key.getGranularityPattern().matcher("ab\n").matches()).isFalse();
     }
 }
