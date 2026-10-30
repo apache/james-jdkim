@@ -174,6 +174,9 @@ public class SignatureRecordTemplate extends TagValue implements SignatureRecord
      * @see SignatureRecord#getIdentity()
      */
     public CharSequence getIdentity() {
+        // the default identity is built from d=, it is not DKIM-Quoted-Printable
+        if (!containsTag("i"))
+            return getValue("i");
         return DKIMQuotedPrintable.dkimQuotedPrintableDecode(getValue("i"));
     }
 

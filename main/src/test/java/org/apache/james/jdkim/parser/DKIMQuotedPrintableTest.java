@@ -100,4 +100,22 @@ public class DKIMQuotedPrintableTest {
     }
 
     // TODO UTF-8 see https://datatracker.ietf.org/doc/html/rfc6376#section-3.2
+
+    @Test
+    public void unsafeCharactersAndBareLineBreaksShouldBeRejected() {
+        assertThatThrownBy(() -> DKIMQuotedPrintable.dkimQuotedPrintableDecode("\u001d"))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> DKIMQuotedPrintable.dkimQuotedPrintableDecode("\u00e9"))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> DKIMQuotedPrintable.dkimQuotedPrintableDecode("a\n b"))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> DKIMQuotedPrintable.dkimQuotedPrintableDecode("\n "))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> DKIMQuotedPrintable.dkimQuotedPrintableDecode("a\r b"))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> DKIMQuotedPrintable.dkimQuotedPrintableDecode("a\r\n"))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> DKIMQuotedPrintable.dkimQuotedPrintableDecode("a;b"))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
 }

@@ -190,6 +190,9 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
      * @see org.apache.james.jdkim.api.SignatureRecord#getIdentity()
      */
     public CharSequence getIdentity() {
+        // the default identity is built from d=, it is not DKIM-Quoted-Printable
+        if (!containsTag("i"))
+            return getValue("i");
         return dkimQuotedPrintableDecode(getValue("i"));
     }
 
