@@ -56,8 +56,24 @@ public class ResultTest {
 
     @Test
     public void headerTextShouldDropControlCharactersAndFolding() {
+        // the tag-list parser rejects control characters: other SignatureRecord implementations may not
         SignatureRecord record = new SignatureRecordImpl(
-                "v=1; a=rsa-sha256; d=(\u0001.example; s=se\r\n l\u007f; h=from; bh=AAAA; b=AAAA\r\n BBBB\r\n\tCCCC\u0001DDDD");
+                "v=1; a=rsa-sha256; d=x.example; s=sel; h=from; bh=AAAA; b=AAAA") {
+            @Override
+            public CharSequence getDToken() {
+                return "(\u0001.example";
+            }
+
+            @Override
+            public CharSequence getSelector() {
+                return "se\r\n l\u007f";
+            }
+
+            @Override
+            public CharSequence getRawSignature() {
+                return "AAAA\r\n BBBB\r\n\tCCCC\u0001DDDD";
+            }
+        };
         Result result = new Result("bad \\ value\r\n \u007f\"", "", record, Result.Type.FAIL);
 
         assertThat(result.getHeaderTextWithReason()).isEqualTo(
