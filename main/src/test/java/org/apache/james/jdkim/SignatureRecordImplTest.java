@@ -19,6 +19,9 @@
 
 package org.apache.james.jdkim;
 
+import org.apache.james.jdkim.tagvalue.PublicKeyRecordImpl;
+import org.apache.james.jdkim.tagvalue.SignatureRecordTemplate;
+import java.util.Locale;
 import org.apache.james.jdkim.api.SignatureRecord;
 import org.apache.james.jdkim.tagvalue.SignatureRecordImpl;
 
@@ -237,5 +240,18 @@ public class SignatureRecordImplTest {
 
         assertThat(new SignatureRecordImpl(base + "i=joe@Example.COM").getIdentityLocalPart()).isEqualTo("joe");
         assertThat(new SignatureRecordImpl(base + "i=@mail.example.com").getIdentityLocalPart()).isEqualTo("");
+    }
+
+    @Test
+    public void identityCheckShouldNotDependOnTheDefaultLocale() throws Exception {
+        Locale saved = Locale.getDefault();
+        Locale.setDefault(Locale.forLanguageTag("tr-TR"));
+        try {
+            new SignatureRecordTemplate("v=1; s=sel; d=Mail.Example.Com; a=rsa-sha256; h=from; i=@MAIL.EXAMPLE.COM");
+            SignatureRecordImpl sign = new SignatureRecordImpl("v=1; s=sel; d=Mail.Example.Com; a=rsa-sha256; h=from; bh=AA==; b=AA==; i=@MAIL.EXAMPLE.COM");
+            DKIMVerifier.apply(new PublicKeyRecordImpl("v=DKIM1; k=rsa; t=s; p=AAAA"), sign);
+        } finally {
+            Locale.setDefault(saved);
+        }
     }
 }

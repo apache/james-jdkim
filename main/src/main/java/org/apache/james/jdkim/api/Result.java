@@ -19,6 +19,8 @@
 
 package org.apache.james.jdkim.api;
 
+import java.util.Locale;
+
 /**
  * Class to hold results of DKIMVerifier
  */
@@ -122,7 +124,7 @@ public class Result {
         }
 
         return String.format("dkim=%s header.d=%s header.s=%s%s%s",
-                type.toString().toLowerCase(), pvalue(sanitize(record.getDToken())), pvalue(sanitize(record.getSelector())),
+                type.toString().toLowerCase(Locale.US), pvalue(sanitize(record.getDToken())), pvalue(sanitize(record.getSelector())),
                 partialSig, reasonProp);
     }
 
