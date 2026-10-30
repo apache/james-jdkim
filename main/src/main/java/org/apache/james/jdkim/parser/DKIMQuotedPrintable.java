@@ -25,9 +25,8 @@ public class DKIMQuotedPrintable {
     public static String dkimQuotedPrintableDecode(CharSequence input)
             throws IllegalArgumentException {
         StringBuilder sb = new StringBuilder(input.length());
-        // TODO should we fail on WSP that is not part of FWS?
-        // the specification in 2.6 DKIM-Quoted-Printable is not
-        // clear
+        // RFC 6376 section 2.11:
+        // dkim-quoted-printable = *(FWS / hex-octet / dkim-safe-char)
         int state = 0;
         int start = 0;
         int d = 0;
@@ -41,20 +40,33 @@ public class DKIMQuotedPrintable {
             switch (state) {
                 case 0:
                     switch (input.charAt(i)) {
+                        case '\r':
+                            if (i + 1 >= input.length() || input.charAt(i + 1) != '\n')
+                                throw new IllegalArgumentException(
+                                        "Unexpected CR not part of an FWS");
+                            // fall through
                         case ' ':
                         case '\t':
-                        case '\r':
-                        case '\n':
-                            if ('\n' == input.charAt(i))
-                                lastWasNL = true;
                             sb.append(input.subSequence(start, i));
                             start = i + 1;
                             // ignoring whitespace by now.
+                            break;
+                        case '\n':
+                            if (i == 0 || input.charAt(i - 1) != '\r')
+                                throw new IllegalArgumentException(
+                                        "Unexpected LF not part of an FWS");
+                            lastWasNL = true;
+                            sb.append(input.subSequence(start, i));
+                            start = i + 1;
                             break;
                         case '=':
                             sb.append(input.subSequence(start, i));
                             state = 1;
                             break;
+                        default:
+                            if (!isDkimSafeChar(input.charAt(i)))
+                                throw new IllegalArgumentException(
+                                        "Invalid character at " + i);
                     }
                     break;
                 case 1:
@@ -78,11 +90,20 @@ public class DKIMQuotedPrintable {
                     }
             }
         }
+        if (lastWasNL) {
+            throw new IllegalArgumentException(
+                    "Unexpected LF not part of an FWS");
+        }
         if (state != 0) {
             throw new IllegalArgumentException(
                     "Invalid quoted printable termination");
         }
         sb.append(input.subSequence(start, input.length()));
         return sb.toString();
+    }
+
+    // dkim-safe-char = %x21-3A / %x3C / %x3E-7E
+    private static boolean isDkimSafeChar(char c) {
+        return c >= 0x21 && c <= 0x7E && c != ';' && c != '=';
     }
 }
