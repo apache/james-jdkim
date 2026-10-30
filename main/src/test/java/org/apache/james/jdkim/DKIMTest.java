@@ -47,6 +47,7 @@ import org.apache.james.jdkim.api.Headers;
 import org.apache.james.jdkim.api.Result;
 import org.apache.james.jdkim.api.SignatureRecord;
 import org.apache.james.jdkim.api.VerifierOptions;
+import org.apache.james.jdkim.exceptions.CompositeFailException;
 import org.apache.james.jdkim.exceptions.PermFailException;
 import org.apache.james.jdkim.impl.Message;
 import org.apache.james.jdkim.tagvalue.SignatureRecordImpl;
@@ -386,5 +387,29 @@ public class DKIMTest {
                     .as(header)
                     .isInstanceOf(MimeException.class);
         }
+    }
+
+    @Test
+    public void duplicateSignatureFieldsShouldEachHaveAResult() throws Exception {
+        String field = "DKIM-Signature: v=1; a=rsa-sha256; d=messiah.edu; s=selector2; h=from; bh=AAAA; b=AAAA\r\n";
+        String mail = field + field + "From: joe@messiah.edu\r\n\r\nbody\r\n";
+
+        assertThatThrownBy(() -> verifier.verify(new ByteArrayInputStream(mail.getBytes(StandardCharsets.US_ASCII))))
+                .isInstanceOf(CompositeFailException.class);
+
+        assertThat(verifier.getResults()).hasSize(2);
+    }
+
+    @Test
+    public void resultsShouldFollowTheFieldOrder() throws Exception {
+        byte[] mail = "From: joe@messiah.edu\r\n\r\nbody\r\n".getBytes(StandardCharsets.US_ASCII);
+        String valid = dkimSigner.sign(new ByteArrayInputStream(mail));
+        String invalid = "DKIM-Signature: v=1; a=rsa-sha256; d=messiah.edu; s=selector3; h=from; bh=AAAA; b=AAAA";
+        String signed = invalid + "\r\n" + valid + "\r\n" + invalid + "\r\n";
+
+        verifier.verify(new SequenceInputStream(
+                new ByteArrayInputStream(signed.getBytes(StandardCharsets.US_ASCII)), new ByteArrayInputStream(mail)));
+
+        assertThat(verifier.getResults()).extracting(Result::isSuccess).containsExactly(false, true, false);
     }
 }
