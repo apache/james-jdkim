@@ -72,6 +72,7 @@ public class SignatureRecordTemplate extends TagValue implements SignatureRecord
             SignatureRecordImpl.checkAlgorithm(getValue("a"));
         }
         SignatureRecordImpl.checkSdidAndSelector(getValue("d"), getValue("s"));
+        getRecordLookupMethods();
         // TODO: what about v=0.5 and no v= at all?
         // do specs allow parsing? what should we check?
         if (!"1".equals(getValue("v")))
@@ -293,13 +294,17 @@ public class SignatureRecordTemplate extends TagValue implements SignatureRecord
 
     public List<CharSequence> getRecordLookupMethods() {
         String flags = getValue("q").toString();
-        String[] flagsStrings = flags.split(":");
+        boolean strict = isStrictValidation();
+        // -1 keeps the trailing empty entries, to reject them
+        String[] flagsStrings = flags.split(":", strict ? -1 : 0);
         List<CharSequence> res = new LinkedList<>();
         for (String flagsString : flagsStrings) {
-            // TODO add validation method[/option]
-            // if (VALIDATION)
-            res.add(trimFWS(flagsString, 0, flagsString.length() - 1,
-                    true));
+            CharSequence method = trimFWS(flagsString, 0, flagsString.length() - 1, true);
+            if (strict && !SignatureRecordImpl.QUERY_METHOD.matcher(method).matches()) {
+                throw new IllegalStateException("Invalid q= [" + flags + "]: entry [" + method
+                        + "] is not type [\"/\" qp-hdr-value] (RFC 6376 section 3.5)");
+            }
+            res.add(method);
         }
         return res;
     }

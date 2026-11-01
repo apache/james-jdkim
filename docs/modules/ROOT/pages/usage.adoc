@@ -278,8 +278,8 @@ jDKIM rejects, as a syntax error (RFC 6376 sections 3.5, 3.6.1 and 6.1), tag
 values that do not follow the RFC grammar, such as an empty entry or a
 trailing `:` in the `h=`, `k=`, `s=` or `t=` lists of a key record, an empty
 `t=`, a DKIM-Signature `d=` or `s=` that is not a domain name (a `_`, an
-empty label, a label over 63 octets), or an `i=` whose local part or domain is
-malformed. A verifier stricter than the others may however reject real-world,
+empty label, a label over 63 octets), an `i=` whose local part or domain is
+malformed, or a `q=` with an empty or malformed entry. A verifier stricter than the others may however reject real-world,
 slightly malformed signatures or keys. Start the JVM with
 `-Djames.jdkim.strict.validation=false` to disable these syntax checks. Checks
 with a semantic effect -- a key for another service (`s=chat`), an expired

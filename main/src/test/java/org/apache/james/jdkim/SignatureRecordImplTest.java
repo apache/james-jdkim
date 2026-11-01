@@ -386,4 +386,36 @@ public class SignatureRecordImplTest {
             System.clearProperty(TagValue.STRICT_VALIDATION_PROPERTY);
         }
     }
+
+    private static SignatureRecordImpl recordWithQuery(String q) {
+        return new SignatureRecordImpl("v=1; a=rsa-sha256; c=relaxed/relaxed; d=example.com; s=sel;"
+                + " h=from:subject; q=" + q + "; bh=AAAA; b=AAAA");
+    }
+
+    @Test
+    public void malformedQueryMethodsAreASyntaxError() {
+        for (String q : new String[] {"-x/y:dns/txt", ":dns/txt", "dns/txt:", "dns/txt::dns/txt", "/txt", "x-/y:dns/txt", "dns/t|xt"}) {
+            assertThatThrownBy(() -> recordWithQuery(q)).as("q=%s", q)
+                    .isInstanceOf(IllegalStateException.class);
+        }
+    }
+
+    @Test
+    public void wellFormedQueryMethodsAreAccepted() {
+        recordWithQuery("dns/txt");
+        recordWithQuery("dns");
+        recordWithQuery("x-foo/bar:dns/txt");
+        recordWithQuery("dns/txt : x-other");
+        recordWithQuery("dns/txt:\r\n x-other");
+    }
+
+    @Test
+    public void malformedQueryMethodsAreAcceptedWithoutStrictValidation() {
+        System.setProperty(TagValue.STRICT_VALIDATION_PROPERTY, "false");
+        try {
+            Assert.assertEquals(2, recordWithQuery("dns/txt:-x/y:").getRecordLookupMethods().size());
+        } finally {
+            System.clearProperty(TagValue.STRICT_VALIDATION_PROPERTY);
+        }
+    }
 }

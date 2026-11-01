@@ -137,6 +137,11 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
         checkDomainName("i= domain", value.substring(at + 1), 2);
     }
 
+    // SPEC: sig-q-tag-method = "dns/txt" / x-sig-q-tag-type ["/" x-sig-q-tag-args], the type a
+    // hyphenated-word and the args a qp-hdr-value (dkim-safe-char but "|", or "=" HEX HEX)
+    static final Pattern QUERY_METHOD = Pattern.compile(
+            "[A-Za-z](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:/(?:[\\x21-\\x3A\\x3C\\x3E-\\x7B\\x7D\\x7E]|=[0-9A-F]{2})*)?");
+
     /**
      * Checks the a= value of a signature record, see {@link #checkAlgorithm(CharSequence)}.
      *
@@ -188,6 +193,7 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
 
         checkAlgorithm(getValue("a"));
         checkSdidAndSelector(getValue("d"), getValue("s"));
+        getRecordLookupMethods();
 
         CharSequence identity;
         try {
@@ -436,13 +442,17 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
 
     public List<CharSequence> getRecordLookupMethods() {
         String flags = getValue("q").toString();
-        String[] flagsStrings = flags.split(":");
+        boolean strict = isStrictValidation();
+        // -1 keeps the trailing empty entries, to reject them
+        String[] flagsStrings = flags.split(":", strict ? -1 : 0);
         List<CharSequence> res = new LinkedList<>();
         for (String flagsString : flagsStrings) {
-            // TODO add validation method[/option]
-            // if (VALIDATION)
-            res.add(trimFWS(flagsString, 0, flagsString.length() - 1,
-                    true));
+            CharSequence method = trimFWS(flagsString, 0, flagsString.length() - 1, true);
+            if (strict && !QUERY_METHOD.matcher(method).matches()) {
+                throw new IllegalStateException("Invalid q= [" + flags + "]: entry [" + method
+                        + "] is not type [\"/\" qp-hdr-value] (RFC 6376 section 3.5)");
+            }
+            res.add(method);
         }
         return res;
     }
