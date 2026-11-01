@@ -314,6 +314,26 @@ public class DKIMVerifier {
                         }
                     }
 
+                    // RFC 6376 section 6.1.1 before 6.1.2: what needs no key is checked before the key lookup,
+                    // so that such a signature never costs a DNS query nor gets a TEMPERROR.
+                    byte[] decoded;
+                    BodyHasherImpl bhj;
+                    try {
+                        DKIMCommon.jcaSignatureAlgorithm(signatureRecord);
+                        CharSequence headerCanonicalisation = signatureRecord.getHeaderCanonicalisationMethod();
+                        if (!SignatureRecord.SIMPLE.equals(headerCanonicalisation)
+                                && !SignatureRecord.RELAXED.equals(headerCanonicalisation)) {
+                            throw new PermFailException("Unsupported canonicalization algorythm: "
+                                    + headerCanonicalisation, signatureRecord);
+                        }
+                        decoded = signatureRecord.getSignature();
+                        signatureRecord.getBodyHash();
+                        // checks the hash, the body canonicalization and l=
+                        bhj = newBodyHasher(signatureRecord);
+                    } catch (IllegalArgumentException | IllegalStateException e) {
+                        throw new PermFailException("Invalid signature record: " + e.getMessage(), signatureRecord, e);
+                    }
+
                     // RFC 8301 section 3.1: rsa-sha1 MUST NOT be used for verifying.
                     if (!options.isRsaSha1Allowed()
                             && SignatureRecordImpl.checkAlgorithm(signatureRecord) == HashMethod.SHA1) {
@@ -329,18 +349,11 @@ public class DKIMVerifier {
                         }
                     }
 
-                    // TODO here we could check more parameters for
-                    // validation before running a network operation like the
-                    // dns lookup.
-                    // e.g: the canonicalization method could be checked now.
                     PublicKeyRecord publicKeyRecord = publicRecordLookup(signatureRecord);
 
                     List<CharSequence> signedHeadersList = signatureRecord.getHeaders();
 
                     try {
-                        // decoded now so that verify(CompoundBodyHasher) cannot fail on it
-                        signatureRecord.getBodyHash();
-                        byte[] decoded = signatureRecord.getSignature();
                         signatureVerify(withoutSignature(messageHeaders, signatureIndex), signatureRecord, decoded,
                                 publicKeyRecord, signedHeadersList, signatureField.substring(0, pos));
                     } catch (IllegalArgumentException e) {
@@ -350,8 +363,6 @@ public class DKIMVerifier {
                     // we track all canonicalizations+limit+bodyHash we
                     // see so to be able to check all of them in a single
                     // stream run.
-                    BodyHasherImpl bhj = newBodyHasher(signatureRecord);
-
                     job.setBodyHasher(bhj);
 
                 } else {

@@ -129,7 +129,7 @@ public abstract class DKIMCommon {
         if (!relaxedHeaders
                 && !SignatureRecord.SIMPLE.equals(sign.getHeaderCanonicalisationMethod())) {
             throw new PermFailException("Unsupported canonicalization algorythm: "
-                    + sign.getHeaderCanonicalisationMethod());
+                    + sign.getHeaderCanonicalisationMethod(), sign);
         }
 
         // NOTE: this could be improved by using iterators.

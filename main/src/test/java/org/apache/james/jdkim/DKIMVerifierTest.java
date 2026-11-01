@@ -275,4 +275,44 @@ public class DKIMVerifierTest {
 
         assertThat(verifier.verify(new ByteArrayInputStream(mail.toString().getBytes(StandardCharsets.US_ASCII)))).hasSize(1);
     }
+
+    @Test
+    public void signaturesBrokenOnTheirOwnShouldBeRejectedWithoutKeyLookup() {
+        AtomicInteger calls = new AtomicInteger();
+        PublicKeyRecordRetriever retriever = (method, selector, token) -> {
+            calls.incrementAndGet();
+            throw new TempFailException("DNS timeout");
+        };
+        String valid = "bh=frcCV1k9oG9oKj3dpUqdJg1PxRT2RSN/XKdLCPjaYaY=; b=AAAA";
+        String mail =
+                "DKIM-Signature: v=1; a=rsa-sha256; c=foo; d=example.com; s=s0; h=from; " + valid + "\r\n"
+                        + "DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/foo; d=example.com; s=s1; h=from; " + valid + "\r\n"
+                        + "DKIM-Signature: v=1; a=rsa-sha999; d=example.com; s=s2; h=from; " + valid + "\r\n"
+                        + "DKIM-Signature: v=1; a=rsa-sha256; d=example.com; s=s3; h=from; bh=frcCV1k9oG9oKj3dpUqdJg1PxRT2RSN/XKdLCPjaYaY=; b=A\r\n"
+                        + "DKIM-Signature: v=1; a=rsa-sha256; d=example.com; s=s4; h=from; bh=A; b=AAAA\r\n"
+                        + "DKIM-Signature: v=1; a=rsa-sha256; d=example.com; s=s5; h=from; l=x; " + valid + "\r\n"
+                        + "From: joe@example.com\r\n\r\nbody\r\n";
+        DKIMVerifier verifier = new DKIMVerifier(retriever);
+
+        assertThatThrownBy(() -> verifier.verify(new ByteArrayInputStream(mail.getBytes(StandardCharsets.US_ASCII))))
+                .isInstanceOf(FailException.class);
+        assertThat(calls.get()).isZero();
+        assertThat(verifier.getResults()).hasSize(6)
+                .allMatch(r -> r.getResultType() == Result.Type.PERMERROR);
+    }
+
+    @Test
+    public void wellFormedSignatureShouldStillGetATemperrorWhenTheLookupFails() {
+        PublicKeyRecordRetriever retriever = (method, selector, token) -> {
+            throw new TempFailException("DNS timeout");
+        };
+        String mail = "DKIM-Signature: v=1; a=rsa-sha256; d=example.com; s=s0; h=from; "
+                + "bh=frcCV1k9oG9oKj3dpUqdJg1PxRT2RSN/XKdLCPjaYaY=; b=AAAA\r\n"
+                + "From: joe@example.com\r\n\r\nbody\r\n";
+        DKIMVerifier verifier = new DKIMVerifier(retriever);
+
+        assertThatThrownBy(() -> verifier.verify(new ByteArrayInputStream(mail.getBytes(StandardCharsets.US_ASCII))))
+                .isInstanceOf(TempFailException.class);
+        assertThat(verifier.getResults()).extracting(Result::getResultType).containsExactly(Result.Type.TEMPERROR);
+    }
 }
