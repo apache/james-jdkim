@@ -196,14 +196,23 @@ public class DKIMVerifierTest {
     }
 
     private static DKIMVerifier signAndVerify(int keyBits, VerifierOptions.Builder options, StringBuilder mailOut) throws Exception {
+        return signAndVerify(keyBits, "rsa-sha256", options, mailOut, new AtomicInteger());
+    }
+
+    private static DKIMVerifier signAndVerify(int keyBits, String algorithm, VerifierOptions.Builder options, StringBuilder mailOut,
+                                              AtomicInteger lookups) throws Exception {
         KeyPairGenerator gen = KeyPairGenerator.getInstance("RSA");
         gen.initialize(keyBits);
         KeyPair pair = gen.generateKeyPair();
-        MockPublicKeyRecordRetriever retriever = new MockPublicKeyRecordRetriever();
-        retriever.addRecord("sel", "example.com",
+        MockPublicKeyRecordRetriever records = new MockPublicKeyRecordRetriever();
+        records.addRecord("sel", "example.com",
                 "v=DKIM1; p=" + Base64.getEncoder().encodeToString(pair.getPublic().getEncoded()));
+        PublicKeyRecordRetriever retriever = (method, selector, token) -> {
+            lookups.incrementAndGet();
+            return records.getRecords(method, selector, token);
+        };
         String message = "From: joe@example.com\r\nSubject: test\r\n\r\nbody\r\n";
-        String field = new DKIMSigner("v=1; a=rsa-sha256; d=example.com; s=sel; h=from:subject; bh=; b=;", pair.getPrivate())
+        String field = new DKIMSigner("v=1; a=" + algorithm + "; d=example.com; s=sel; h=from:subject; bh=; b=;", pair.getPrivate())
                 .sign(new ByteArrayInputStream(message.getBytes(StandardCharsets.US_ASCII)));
         mailOut.append(field).append("\r\n").append(message);
         return new DKIMVerifier(options.withPublicKeyRecordRetriever(retriever).build());
@@ -234,6 +243,35 @@ public class DKIMVerifierTest {
     public void rsaKeysOfTheMinimumLengthShouldPass() throws Exception {
         StringBuilder mail = new StringBuilder();
         DKIMVerifier verifier = signAndVerify(1024, new VerifierOptions.Builder(), mail);
+
+        assertThat(verifier.verify(new ByteArrayInputStream(mail.toString().getBytes(StandardCharsets.US_ASCII)))).hasSize(1);
+    }
+
+    @Test
+    public void rsaSha1ShouldBeRefusedWhenDisallowed() throws Exception {
+        StringBuilder mail = new StringBuilder();
+        AtomicInteger lookups = new AtomicInteger();
+        DKIMVerifier verifier = signAndVerify(2048, "rsa-sha1", new VerifierOptions.Builder().withRsaSha1Allowed(false), mail, lookups);
+
+        assertThatThrownBy(() -> verifier.verify(new ByteArrayInputStream(mail.toString().getBytes(StandardCharsets.US_ASCII))))
+                .isInstanceOf(PermFailException.class)
+                .hasMessageContaining("rsa-sha1 is not accepted");
+        assertThat(verifier.getResults()).extracting(Result::getResultType).containsExactly(Result.Type.PERMERROR);
+        assertThat(lookups.get()).isZero();
+    }
+
+    @Test
+    public void rsaSha1ShouldPassByDefault() throws Exception {
+        StringBuilder mail = new StringBuilder();
+        DKIMVerifier verifier = signAndVerify(2048, "rsa-sha1", new VerifierOptions.Builder(), mail, new AtomicInteger());
+
+        assertThat(verifier.verify(new ByteArrayInputStream(mail.toString().getBytes(StandardCharsets.US_ASCII)))).hasSize(1);
+    }
+
+    @Test
+    public void rsaSha256ShouldPassWhenRsaSha1IsDisallowed() throws Exception {
+        StringBuilder mail = new StringBuilder();
+        DKIMVerifier verifier = signAndVerify(2048, "rsa-sha256", new VerifierOptions.Builder().withRsaSha1Allowed(false), mail, new AtomicInteger());
 
         assertThat(verifier.verify(new ByteArrayInputStream(mail.toString().getBytes(StandardCharsets.US_ASCII)))).hasSize(1);
     }

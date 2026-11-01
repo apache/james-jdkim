@@ -44,6 +44,10 @@ public class VerifierOptions {
     public static final String MIN_RSA_KEY_BITS_PROPERTY = "james.dkim.min-rsa-key-bits";
     private static final int DEFAULT_MIN_RSA_KEY_BITS = 1024;
     /**
+     * System property holding the default of {@link Builder#withRsaSha1Allowed(boolean)}.
+     */
+    public static final String RSA_SHA1_ALLOWED_PROPERTY = "james.dkim.rsa-sha1.allowed";
+    /**
      * System property holding the default of {@link Builder#withUnsignedDuplicateFieldPolicy(UnsignedDuplicateFieldPolicy)}.
      */
     public static final String UNSIGNED_DUPLICATE_FIELD_POLICY_PROPERTY = "james.dkim.unsigned-duplicate-field.policy";
@@ -57,6 +61,7 @@ public class VerifierOptions {
     private final Duration clockDriftTolerance;
     private final int maxSignatures;
     private final int minimumRsaKeyBits;
+    private final boolean rsaSha1Allowed;
     private final UnsignedDuplicateFieldPolicy unsignedDuplicateFieldPolicy;
     private final Set<String> singleInstanceFields;
     private final PublicKeyRecordRetriever publicKeyRecordRetriever;
@@ -66,6 +71,7 @@ public class VerifierOptions {
         private Duration clockDriftTolerance = Duration.ofSeconds(300);
         private int maxSignatures = Integer.getInteger(MAX_SIGNATURE_COUNT_PROPERTY, DEFAULT_MAX_SIGNATURE_COUNT);
         private int minimumRsaKeyBits = Integer.getInteger(MIN_RSA_KEY_BITS_PROPERTY, DEFAULT_MIN_RSA_KEY_BITS);
+        private boolean rsaSha1Allowed = !"false".equalsIgnoreCase(System.getProperty(RSA_SHA1_ALLOWED_PROPERTY, "true").trim());
         private UnsignedDuplicateFieldPolicy unsignedDuplicateFieldPolicy = defaultUnsignedDuplicateFieldPolicy();
         private Set<String> singleInstanceFields = DEFAULT_SINGLE_INSTANCE_FIELDS;
         private Resolver dnsResolver = Lookup.getDefaultResolver();
@@ -118,6 +124,20 @@ public class VerifierOptions {
          */
         public Builder withMinimumRsaKeyBits(int minimumRsaKeyBits) {
             this.minimumRsaKeyBits = minimumRsaKeyBits;
+            return this;
+        }
+
+        /**
+         * Sets whether a=rsa-sha1 signatures are accepted. RFC 8301 section 3.1: "rsa-sha1 MUST NOT be used
+         * for signing or verifying", yet much legitimate mail is still signed with it. When refused, such
+         * signatures get a PERMERROR result, without key lookup. Defaults to the
+         * {@value #RSA_SHA1_ALLOWED_PROPERTY} system property, or true.
+         *
+         * @param rsaSha1Allowed false to follow RFC 8301
+         * @return {@link Builder}
+         */
+        public Builder withRsaSha1Allowed(boolean rsaSha1Allowed) {
+            this.rsaSha1Allowed = rsaSha1Allowed;
             return this;
         }
 
@@ -213,6 +233,7 @@ public class VerifierOptions {
         this.clockDriftTolerance = builder.clockDriftTolerance;
         this.maxSignatures = builder.maxSignatures;
         this.minimumRsaKeyBits = builder.minimumRsaKeyBits;
+        this.rsaSha1Allowed = builder.rsaSha1Allowed;
         this.unsignedDuplicateFieldPolicy = builder.unsignedDuplicateFieldPolicy;
         this.singleInstanceFields = builder.singleInstanceFields;
         this.dnsResolver = builder.dnsResolver;
@@ -244,6 +265,15 @@ public class VerifierOptions {
      */
     public int getMinimumRsaKeyBits() {
         return minimumRsaKeyBits;
+    }
+
+    /**
+     * Gets whether a=rsa-sha1 signatures are accepted
+     *
+     * @return true if they are
+     */
+    public boolean isRsaSha1Allowed() {
+        return rsaSha1Allowed;
     }
 
     /**

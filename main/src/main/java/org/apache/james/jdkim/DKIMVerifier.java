@@ -22,6 +22,7 @@ package org.apache.james.jdkim;
 import static org.apache.james.jdkim.DKIMCommon.signatureCheck;
 
 import org.apache.james.jdkim.api.BodyHasher;
+import org.apache.james.jdkim.api.HashMethod;
 import org.apache.james.jdkim.api.Headers;
 import org.apache.james.jdkim.api.PublicKeyRecord;
 import org.apache.james.jdkim.api.PublicKeyRecordRetriever;
@@ -311,6 +312,12 @@ public class DKIMVerifier {
                             throw new PermFailException("Signature date is more than "
                                     + diffText + " in the future.", signatureRecord);
                         }
+                    }
+
+                    // RFC 8301 section 3.1: rsa-sha1 MUST NOT be used for verifying.
+                    if (!options.isRsaSha1Allowed()
+                            && SignatureRecordImpl.checkAlgorithm(signatureRecord) == HashMethod.SHA1) {
+                        throw new PermFailException("rsa-sha1 is not accepted (RFC 8301)", signatureRecord);
                     }
 
                     String unsignedInstance = unsignedSingleInstanceField(messageHeaders, signatureRecord);

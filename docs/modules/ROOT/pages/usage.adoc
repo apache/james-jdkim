@@ -229,6 +229,14 @@ https://datatracker.ietf.org/doc/html/rfc8301#section-3.2[RFC 8301 section 3.2]
 allows. Defaults to the `james.dkim.min-rsa-key-bits` system property, or 1024
 when it is unset; 0 accepts any key.
 
+`withRsaSha1Allowed(boolean)`::
+Whether `a=rsa-sha1` signatures are accepted.
+https://datatracker.ietf.org/doc/html/rfc8301#section-3.1[RFC 8301 section 3.1]
+says rsa-sha1 MUST NOT be used for verifying, yet much legitimate mail still
+uses it. When refused, such signatures get a `PERMERROR` result without key
+lookup. Defaults to the `james.dkim.rsa-sha1.allowed` system property, or `true`
+when it is unset.
+
 `withUnsignedDuplicateFieldPolicy(UnsignedDuplicateFieldPolicy)`::
 What happens to a signature when the message holds more instances of a
 single-instance field listed in its `h=` than `h=` lists, and more than one in

@@ -36,6 +36,7 @@ import java.util.Arrays;
 import java.util.LinkedHashSet;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -193,5 +194,20 @@ public class DKIMVerifierOptionsTest {
     @Test(expected = IllegalArgumentException.class)
     public void shouldRejectNegativeMinimumRsaKeyBits() {
         new VerifierOptions.Builder().withMinimumRsaKeyBits(-1).build();
+    }
+
+    @Test
+    public void shouldAllowRsaSha1ByDefault() {
+        assertTrue(new VerifierOptions.Builder().build().isRsaSha1Allowed());
+    }
+
+    @Test
+    public void shouldReadRsaSha1AllowedFromSystemProperty() {
+        System.setProperty(VerifierOptions.RSA_SHA1_ALLOWED_PROPERTY, "false");
+        try {
+            assertFalse(new VerifierOptions.Builder().build().isRsaSha1Allowed());
+        } finally {
+            System.clearProperty(VerifierOptions.RSA_SHA1_ALLOWED_PROPERTY);
+        }
     }
 }
