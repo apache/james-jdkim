@@ -52,7 +52,7 @@ public class Message implements Headers {
      *
      * @param is the stream to read the header from.
      * @throws IOException     on I/O errors.
-     * @throws MimeIOException on MIME protocol violations.
+     * @throws MimeException  on MIME protocol violations, or when a parsing limit is exceeded.
      */
     public Message(InputStream is) throws IOException, MimeException {
         MessageBuilder mb = newMessageBuilder().newMessageBuilder();
@@ -60,7 +60,12 @@ public class Message implements Headers {
         // mime4j drops the fields whose name it cannot parse and normalizes the
         // others: the fields are taken from the raw header bytes instead.
         HeaderCapturingInputStream header = new HeaderCapturingInputStream(new EOLConvertingInputStream(is));
-        this.message = mb.parseMessage(header);
+        try {
+            this.message = mb.parseMessage(header);
+        } catch (MimeIOException e) {
+            // a parsing limit or a MIME violation, not an I/O error: callers report it as a permanent error
+            throw e.getCause() != null ? e.getCause() : new MimeException(e);
+        }
 
         List<String> all = splitFields(new String(header.getHeader(), StandardCharsets.ISO_8859_1));
         Map<String, List<String>> byName = new HashMap<>();
@@ -73,10 +78,10 @@ public class Message implements Headers {
     }
 
     private MessageServiceFactory newMessageBuilder() throws MimeException {
-        MimeConfig mec = MimeConfig.custom()
-                .setMaxLineLen(10000)
-                .setMaxHeaderLen(30000)
-                .build();
+        // the limits of mime4j's permissive profile (4096 fields, 64 KB per field, no line limit) are well
+        // above what real mail uses; the next mime4j release makes them configurable with the
+        // james.mime4j.permissive.* system properties
+        MimeConfig mec = MimeConfig.PERMISSIVE;
 
         MessageServiceFactory mbf = MessageServiceFactory.newInstance();
         mbf.setAttribute("MimeEntityConfig", mec);

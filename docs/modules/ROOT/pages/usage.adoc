@@ -286,6 +286,15 @@ slightly malformed signatures or keys. Start the JVM with
 with a semantic effect -- a key for another service (`s=chat`), an expired
 signature, an unsupported algorithm -- are always applied.
 
+=== Message parsing limits
+
+`sign(InputStream)` and `verify(InputStream)` parse the message with mime4j's
+`MimeConfig.PERMISSIVE` profile, whose limits (4096 header fields, 64 KB per
+header field, no line limit, 100 MB of content) are well above what real mail
+uses. The next mime4j release makes them configurable with the
+`james.mime4j.permissive.*` system properties. A message exceeding them is a permanent error
+(`PermFailException`), not an I/O error.
+
 == Applying several signatures
 
 Signing with more than one key lets you offer several algorithms on one
