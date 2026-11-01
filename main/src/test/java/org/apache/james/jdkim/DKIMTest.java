@@ -85,7 +85,14 @@ public class DKIMTest {
 
     @Test
     public void should_verify_generated_signature_single_key() throws Exception {
-        String expectedSignature = "DKIM-Signature: a=rsa-sha256; q=dns/txt; b=Axa8s/gTnnJ8em45KV/AQw33hQ4uYtBKiQp3dLq7oRFt+WmDZ5ZErPq4lBVXfP+IAvP+Au91J8270ivn1J/6E0YqKntn4s1hjcNBPPRVohvmlcQ1mEMd6DuYDtWjDFwG2GWZwtilaPY2afhlTuAbHkn8nHm7MVtAGETO8QQ2zfD1NSGzKbNYP9I+hrDJq5ajka6PZn1d+mDhUH5Px8yScYqo5i8Z8GXaejSIu7RsLDuxtOO2cuClRi8MKGxc7MiGndMufXB8xbS1L80IFlyunOVY5eBaqnnhF2YrDDQfZ6DTqorzX6D5dNjpjOG6AbsqkW83Drx0TTV/5M0raU1SIw==; c=simple; s=selector2; d=messiah.edu; v=1; bh=6pQY5V6Dw8mCYWq017gfbpv+x2X4GvOhIIZtKw6iU6g=; h=date:from:subject;";
+        String expectedSignature = "DKIM-Signature: a=rsa-sha256; q=dns/txt; b=\r\n"
+                + " C+1++2C84m11IB3g95xLH9fMGUC/eDf8hzv267Htlr010KmPOa+ljSTVGzWUnsor9JXIDXwl\r\n"
+                + " a7JEMixM5GRDhmZX/bkHki3BBkyjQxOq7g8YNfMIOE0igpM2j6kItCP6fA9jAG7mBfHFOwiu\r\n"
+                + " a2pxXzejH3mxefUK2RfQ93aFG3Mm0BWMTkkEr0km6+M4crjuDj63+od4lmXMu8PEkirSAERH\r\n"
+                + " CzpIfluJpl/TfEhQ9kMljPaAFApt1iLzaIPyOTIUQx+pWRbuVGE52+Z+Sbco1m/1+9gKWyk7\r\n"
+                + " S9flEbozdtNIadQSOfhcl+wMaG/R8Y7166HilWhzz9uF6u7gv/VIMQ==;\r\n"
+                + " c=simple; s=selector2; d=messiah.edu; v=1;\r\n"
+                + " bh=6pQY5V6Dw8mCYWq017gfbpv+x2X4GvOhIIZtKw6iU6g=; h=date:from:subject;";
 
         ByteArrayInputStream inputStream = readFileToByteArrayInputStream("/org/apache/james/jdkim/Mail-DKIM/corpus/multiple_2.txt");
         String actualSignature = dkimSigner.sign(inputStream);
@@ -112,9 +119,30 @@ public class DKIMTest {
         // You might want to sign with multiple keys to support several hashmethods on the same selector
         // or several signing algorithm on the same selector ( ECDSA is a proposed alternative to rsa )
         // or when upgrading keys for any reason to add several signatures using different selectors.
-        String expectedSignature = "DKIM-Signature: a=rsa-sha256; q=dns/txt; b=Axa8s/gTnnJ8em45KV/AQw33hQ4uYtBKiQp3dLq7oRFt+WmDZ5ZErPq4lBVXfP+IAvP+Au91J8270ivn1J/6E0YqKntn4s1hjcNBPPRVohvmlcQ1mEMd6DuYDtWjDFwG2GWZwtilaPY2afhlTuAbHkn8nHm7MVtAGETO8QQ2zfD1NSGzKbNYP9I+hrDJq5ajka6PZn1d+mDhUH5Px8yScYqo5i8Z8GXaejSIu7RsLDuxtOO2cuClRi8MKGxc7MiGndMufXB8xbS1L80IFlyunOVY5eBaqnnhF2YrDDQfZ6DTqorzX6D5dNjpjOG6AbsqkW83Drx0TTV/5M0raU1SIw==; c=simple; s=selector2; d=messiah.edu; v=1; bh=6pQY5V6Dw8mCYWq017gfbpv+x2X4GvOhIIZtKw6iU6g=; h=date:from:subject;";
-        String expectedSignature2 = "DKIM-Signature: a=rsa-sha1; q=dns/txt; b=YiwcfjqM7myZ/OENExlyGVzy+rg/779R6pF7bPl79aL6e7yGYeN0XdLRcJEqhg+/uNFwcC7zrbWUwPBVFpFN8pKdQT7TgTr+ydoN65QiBa/rXH4m8Ga+oKx8652dXAHm9oMvG166VdMRsEKTJq2bFpM9RR4mW0KtHPte2JWiOtCYO6MPTlWA2JnIgQp+3+03rnOcKdQ+sn/bi9OwanwE4jgIBcPeHkHVr1fVsV53nvDlbk1DiDX+uOXvuk6bjPVBN4srZiSIvFKsmco0tGZx8cgs5OKyjmtIWVOvjxgupXWvEJJ1nMi1UQ1AXh6jDqWrMDCioRCMG9TeGy8fjcjcfw==; c=simple; s=selector2; d=messiah.edu; v=1; bh=q6DWKdHUzNbVPt6YBbD1KOai/b8=; h=date:from:subject;";
-        String expectedSignature3 = "DKIM-Signature: a=rsa-sha256; q=dns/txt; b=crkBsqVuTJJmjZyNuJtmGXBsHIT7tJq0ONWLvNfO29sl1kNm9UzTZ4mOYR+akNJqonkaFFaVM9MZ/6QUd5NbGaIytxXnxv+NPNu6ZzUunlcRyOPhEQ/znemg3WjibRs24gWubBZZXApkqQ9kFh/atatoaJhTls/lnbP8ZV3XlWVN12UuESU3qdieRvrhKWX5/Od7LqZS04ZTeToAabOtDmm6hYl2R6wxizdHrOkGiNERfbB8Iaws5f3Qnt0S94wQ5FVTPzgRiO9OW8hYbAijS4Bh8/NXV5xauMXjCETfxX3pQYUuxc4QVhnoMbmuqgEulzuJUzapjotLLFxQRaSsjw==; c=simple; s=selector3; d=messiah.edu; v=1; bh=6pQY5V6Dw8mCYWq017gfbpv+x2X4GvOhIIZtKw6iU6g=; h=date:from:subject;";
+        String expectedSignature = "DKIM-Signature: a=rsa-sha256; q=dns/txt; b=\r\n"
+                + " C+1++2C84m11IB3g95xLH9fMGUC/eDf8hzv267Htlr010KmPOa+ljSTVGzWUnsor9JXIDXwl\r\n"
+                + " a7JEMixM5GRDhmZX/bkHki3BBkyjQxOq7g8YNfMIOE0igpM2j6kItCP6fA9jAG7mBfHFOwiu\r\n"
+                + " a2pxXzejH3mxefUK2RfQ93aFG3Mm0BWMTkkEr0km6+M4crjuDj63+od4lmXMu8PEkirSAERH\r\n"
+                + " CzpIfluJpl/TfEhQ9kMljPaAFApt1iLzaIPyOTIUQx+pWRbuVGE52+Z+Sbco1m/1+9gKWyk7\r\n"
+                + " S9flEbozdtNIadQSOfhcl+wMaG/R8Y7166HilWhzz9uF6u7gv/VIMQ==;\r\n"
+                + " c=simple; s=selector2; d=messiah.edu; v=1;\r\n"
+                + " bh=6pQY5V6Dw8mCYWq017gfbpv+x2X4GvOhIIZtKw6iU6g=; h=date:from:subject;";
+        String expectedSignature2 = "DKIM-Signature: a=rsa-sha1; q=dns/txt; b=\r\n"
+                + " KZAV2MxR3rpgiMusBSzFlMX2AdiloPGzz1nwSFN3XCZf3negA5PePSbHzB+49ZI0guESW1tJ\r\n"
+                + " qhs5ke3lSTq/06B6y6AIreAVneZMetOlZQT6iKYWSkKJLrXB/lQMDWjsy73X8aiaVXCpnAY0\r\n"
+                + " IKy5YHNZe0deFEsiVf6ooXGxxm3ZkDNJx4kFM+LO+Cc4SXSj+XbN9U32WPMb6NwMYGt/3JqC\r\n"
+                + " Efp33mQSM8kktisvNiNOVMLAcDH7JsxL+ZvMhcyR9ysoyxZYbA3YjiGplrawANQhOBMmskjt\r\n"
+                + " dbtMy80J1vYK/7QHqr/k1jvSexSXtqENKdsdhSRvFYn0zZVE5RF64w==;\r\n"
+                + " c=simple; s=selector2; d=messiah.edu; v=1; bh=q6DWKdHUzNbVPt6YBbD1KOai/b8=;\r\n"
+                + " h=date:from:subject;";
+        String expectedSignature3 = "DKIM-Signature: a=rsa-sha256; q=dns/txt; b=\r\n"
+                + " UtvF5klyckyu+x/qq5QWauomFRNMBYjt5ozWB4k7wWAolnhbgWZ2pwfdnkjygJxqwWpb8YQr\r\n"
+                + " M9oM1umMc+Lh1icGMzRERkADy1EMHFrhxMfjLsu8tnU2A23Z+Pjc9ZSuLJIelPoPZt8cZNX6\r\n"
+                + " aEkLBm/PFy8mct0FMsZGTJEQKAOOLwpKk2XLEaGdgsCY8C11BHIyKP5ahx53neAQFot299qx\r\n"
+                + " /4274+v/0ydPtHDJO007s3QTbHJbhcIsWzGwTCY/Ukx4lqSg+9COTFqVlTcF20HvB9Vm6DUi\r\n"
+                + " xFSaocxZmja2yewLh4+QPSqU2m3j7W6v7BkPYOqpQCeBy39SOU3rDw==;\r\n"
+                + " c=simple; s=selector3; d=messiah.edu; v=1;\r\n"
+                + " bh=6pQY5V6Dw8mCYWq017gfbpv+x2X4GvOhIIZtKw6iU6g=; h=date:from:subject;";
 
         ByteArrayInputStream inputStream1 = readFileToByteArrayInputStream("/org/apache/james/jdkim/Mail-DKIM/corpus/multiple_2.txt");
         String actualSignature1 = dkimSigner.sign(inputStream1);
@@ -679,6 +707,30 @@ public class DKIMTest {
                 .isInstanceOf(PermFailException.class)
                 .hasMessageContaining("algorithm");
         assertThat(verifier.getResults()).extracting(Result::getResultType).containsExactly(Result.Type.PERMERROR);
+    }
+
+    @Test
+    public void signedFieldLinesShouldBeFoldedAndStillVerify() throws Exception {
+        StringBuilder h = new StringBuilder("from");
+        for (int i = 0; i < 100; i++) {
+            h.append(":from");
+        }
+        String message = "From: joe@messiah.edu\r\nSubject: hi\r\n\r\nbody\r\n";
+        for (String c : new String[] {"simple/simple", "relaxed/relaxed"}) {
+            String template = "v=1; a=rsa-sha256; c=" + c + "; d=messiah.edu; s=selector2; q=dns/txt; h=" + h
+                    + "; z=From:joe@messiah.edu;";
+            String field = new DKIMSigner(template, TestKeys.privateKey)
+                    .sign(new ByteArrayInputStream(message.getBytes(StandardCharsets.US_ASCII)));
+
+            for (String line : field.split("\r\n")) {
+                assertThat(line.length()).as("line [%s] with c=%s", line, c).isLessThanOrEqualTo(78);
+            }
+            verifier.resetResults();
+            String signed = field + "\r\n" + message;
+            assertThat(verifier.verify(new ByteArrayInputStream(signed.getBytes(StandardCharsets.US_ASCII))))
+                    .as("c=%s", c)
+                    .hasSize(1);
+        }
     }
 
 }

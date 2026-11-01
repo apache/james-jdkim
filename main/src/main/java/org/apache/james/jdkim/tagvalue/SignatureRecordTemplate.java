@@ -332,6 +332,11 @@ public class SignatureRecordTemplate extends TagValue implements SignatureRecord
         return new SignatureRecordImpl(this.toString());
     }
 
+    @Override
+    protected boolean isFoldedRepresentation() {
+        return true;
+    }
+
     public String toUnsignedString() {
         return emptyTagValue(toString(), "b");
     }

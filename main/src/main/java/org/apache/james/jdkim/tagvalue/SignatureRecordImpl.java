@@ -384,6 +384,11 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
         }
     }
 
+    @Override
+    protected boolean isFoldedRepresentation() {
+        return true;
+    }
+
     public String toUnsignedString() {
         return emptyTagValue(toString(), "b");
     }

@@ -326,7 +326,18 @@ public class TagValue {
         return stringRepresentation;
     }
     
+    /**
+     * @return true to fold the generated string representation, see {@link #foldedRepresentation()}
+     */
+    protected boolean isFoldedRepresentation() {
+        return false;
+    }
+
     private void updateStringRepresentation() {
+        if (isFoldedRepresentation()) {
+            stringRepresentation = foldedRepresentation();
+            return;
+        }
         // calculate a new string representation
         StringBuilder res = new StringBuilder();
         Set<String> s = getTags();
@@ -337,8 +348,70 @@ public class TagValue {
             res.append(getValue(tag));
             res.append(";");
         }
-        // TODO add folding
         stringRepresentation = res.toString();
+    }
+
+    // RFC 5322 section 2.1.1: lines SHOULD be at most 78 characters, MUST be at most 998.
+    private static final int FOLDING_WIDTH = 78;
+    private static final int B64_CHUNK = 72;
+    // the field name the representation is appended to, e.g. "DKIM-Signature:"
+    private static final int FIELD_NAME_LENGTH = "DKIM-Signature:".length();
+
+    /**
+     * Folds the representation with CRLF + SP, as RFC 6376 section 3.5 allows. The b= value goes on
+     * continuation lines of its own and the next tag on a new line, so that the folding of the other
+     * tags does not depend on b=: removing the b= value (with its FWS) gives back the representation
+     * generated with an empty b=, which is the one the signature is computed over.
+     */
+    private String foldedRepresentation() {
+        StringBuilder res = new StringBuilder();
+        int column = FIELD_NAME_LENGTH;
+        boolean breakBeforeNextTag = false;
+        for (String tag : getTags()) {
+            String value = getValue(tag).toString();
+            if ("b".equals(tag)) {
+                String prefix = " b=";
+                if (breakBeforeNextTag || column + prefix.length() + 1 > FOLDING_WIDTH) {
+                    res.append("\r\n");
+                    column = 0;
+                }
+                res.append(prefix);
+                column += prefix.length();
+                for (int i = 0; i < value.length(); i += B64_CHUNK) {
+                    String chunk = value.substring(i, Math.min(value.length(), i + B64_CHUNK));
+                    res.append("\r\n ").append(chunk);
+                    column = 1 + chunk.length();
+                }
+                res.append(";");
+                breakBeforeNextTag = true;
+                continue;
+            }
+            String piece = " " + tag + "=" + value + ";";
+            if (breakBeforeNextTag || (column > 0 && column + piece.length() > FOLDING_WIDTH)) {
+                res.append("\r\n");
+                column = 0;
+            }
+            breakBeforeNextTag = false;
+            if (column + piece.length() <= FOLDING_WIDTH || !"h".equals(tag)) {
+                res.append(piece);
+                column += piece.length();
+                continue;
+            }
+            // SPEC: sig-h-tag = hdr-name *( [FWS] ":" [FWS] hdr-name ): fold after a ":"
+            res.append(" h=");
+            column += 3;
+            String[] names = value.split(":", -1);
+            for (int i = 0; i < names.length; i++) {
+                String name = names[i] + (i < names.length - 1 ? ":" : ";");
+                if (column + name.length() > FOLDING_WIDTH) {
+                    res.append("\r\n ");
+                    column = 1;
+                }
+                res.append(name);
+                column += name.length();
+            }
+        }
+        return res.toString();
     }
 
 }
