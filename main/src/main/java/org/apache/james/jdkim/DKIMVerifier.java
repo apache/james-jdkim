@@ -32,6 +32,7 @@ import org.apache.james.jdkim.api.VerifierOptions;
 import org.apache.james.jdkim.exceptions.CompositeFailException;
 import org.apache.james.jdkim.exceptions.FailException;
 import org.apache.james.jdkim.exceptions.PermFailException;
+import org.apache.james.jdkim.exceptions.SignatureMismatchException;
 import org.apache.james.jdkim.exceptions.TempFailException;
 import org.apache.james.jdkim.impl.BodyHasherImpl;
 import org.apache.james.jdkim.impl.CompoundBodyHasher;
@@ -487,7 +488,7 @@ public class DKIMVerifier {
                 byte[] expectedBodyHash = bhj.getSignatureRecord().getBodyHash();
 
                 if (!Arrays.equals(expectedBodyHash, computedHash)) {
-                    job.setFailure(new PermFailException(
+                    job.setFailure(new SignatureMismatchException(
                             "Computed bodyhash is different from the expected one", bhj.getSignatureRecord()));
                 } else {
                     verifiedSignatures.add(bhj.getSignatureRecord());
@@ -549,13 +550,12 @@ public class DKIMVerifier {
         Result.Type resultType = Result.Type.NONE;
         if (e instanceof TempFailException) {
             resultType = Result.Type.TEMPERROR;
+        } else if (e instanceof SignatureMismatchException) {
+            // RFC 6376 section 6.1, RFC 8601 section 2.7.1: fail only when the signature does not verify.
+            resultType = Result.Type.FAIL;
         } else if (e instanceof PermFailException) {
-            if (e.getRelatedRecord() == null) {
-                //FailException without the SignatureRecord
-                resultType = Result.Type.PERMERROR;
-            } else {
-                resultType = Result.Type.FAIL;
-            }
+            // malformed or unsupported signature, missing, revoked or inapplicable key...
+            resultType = Result.Type.PERMERROR;
         }
         return new Result(e.getMessage(), signatureField != null ? signatureField : "", rec, resultType);
     }
@@ -607,8 +607,11 @@ public class DKIMVerifier {
             signatureCheck(h, sign, headers, signature, signatureFieldName);
 
             if (!signature.verify(decoded))
-                throw new PermFailException("Header signature does not verify", sign);
-        } catch (InvalidKeyException | NoSuchAlgorithmException | SignatureException e) {
+                throw new SignatureMismatchException("Header signature does not verify", sign);
+        } catch (SignatureException e) {
+            // e.g. a b= value whose length does not fit the key: the signature does not verify against it.
+            throw new SignatureMismatchException("Header signature does not verify: " + e.getMessage(), sign, e);
+        } catch (InvalidKeyException | NoSuchAlgorithmException e) {
             throw new PermFailException(e.getMessage(), sign, e);
         }
     }

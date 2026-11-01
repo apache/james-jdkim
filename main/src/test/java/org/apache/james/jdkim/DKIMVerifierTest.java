@@ -150,7 +150,8 @@ public class DKIMVerifierTest {
                 .isInstanceOf(FailException.class);
         assertThat(calls.get()).isEqualTo(10);
         assertThat(verifier.getResults()).hasSize(200);
-        assertThat(verifier.getResults().stream().filter(r -> r.getResultType() == Result.Type.PERMERROR)).hasSize(190);
+        assertThat(verifier.getResults()).allMatch(r -> r.getResultType() == Result.Type.PERMERROR);
+        assertThat(verifier.getResults().stream().filter(r -> r.getErrorMessage().startsWith("Too many DKIM-Signature fields"))).hasSize(190);
     }
 
     @Test

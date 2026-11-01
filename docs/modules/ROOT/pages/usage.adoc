@@ -166,6 +166,11 @@ for (Result result : verifier.getResults()) {
 The result types follow
 https://datatracker.ietf.org/doc/html/rfc8601#section-2.7.1[RFC 8601 section 2.7.1],
 so `getHeaderText()` can feed an `Authentication-Results` header directly.
+`FAIL` means the signature does not verify (body hash or header signature
+mismatch, `SignatureMismatchException`); `TEMPERROR` a temporary key lookup
+failure; `PERMERROR` any other permanent error: a malformed or unsupported
+signature, a signature dated in the future or expired, a key that is missing,
+revoked, malformed or does not apply.
 
 For a DMARC-style verdict -- a message passes when at least one signature is
 valid -- use:

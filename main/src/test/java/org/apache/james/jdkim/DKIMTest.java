@@ -602,4 +602,64 @@ public class DKIMTest {
 
         assertThat(subjectOnlyVerifier.verify(new ByteArrayInputStream(replayed.getBytes(StandardCharsets.US_ASCII)))).hasSize(1);
     }
+
+    private static final String KEY = Base64.getEncoder().encodeToString(TestKeys.publicKey.getEncoded());
+
+    private Result.Type resultTypeWithKeyRecord(String signatureTemplate, String keyRecord, boolean alterBody) throws Exception {
+        MockPublicKeyRecordRetriever retriever = keyRecord == null
+                ? new MockPublicKeyRecordRetriever()
+                : new MockPublicKeyRecordRetriever(Record.of("selector2", "messiah.edu", keyRecord));
+        DKIMVerifier verifier = new DKIMVerifier(new VerifierOptions.Builder().withPublicKeyRecordRetriever(retriever).build());
+
+        String message = "From: joe@messiah.edu\r\nSubject: test\r\n\r\nbody\r\n";
+        String signature = new DKIMSigner(signatureTemplate, TestKeys.privateKey)
+                .sign(new ByteArrayInputStream(message.getBytes(StandardCharsets.US_ASCII)));
+        String signed = signature + "\r\n" + (alterBody ? message.replace("body", "b0dy") : message);
+
+        assertThatThrownBy(() -> verifier.verify(new ByteArrayInputStream(signed.getBytes(StandardCharsets.US_ASCII))))
+                .isInstanceOf(PermFailException.class);
+        assertThat(verifier.getResults()).hasSize(1);
+        return verifier.getResults().get(0).getResultType();
+    }
+
+    @Test
+    public void unusableKeysShouldBeReportedAsPermerror() throws Exception {
+        String[] keyRecords = {
+                null,
+                "v=DKIM1; k=rsa; p=",
+                "v=DKIM2; k=rsa; p=" + KEY,
+                "v=DKIM1; k=rsa; p=AAAA",
+                "v=DKIM1; k=ec; p=" + KEY,
+                "v=DKIM1; k=rsa; h=sha1; p=" + KEY};
+        for (String keyRecord : keyRecords) {
+            assertThat(resultTypeWithKeyRecord(SIGNATURE_TEMPLATE, keyRecord, false))
+                    .as("key record %s", keyRecord)
+                    .isEqualTo(Result.Type.PERMERROR);
+        }
+    }
+
+    @Test
+    public void keyRestrictedToTheSdidShouldBeReportedAsPermerrorForASubdomainIdentity() throws Exception {
+        String template = "v=1; a=rsa-sha256; c=simple; d=messiah.edu; i=@sub.messiah.edu; h=from:subject; q=dns/txt; s=selector2;";
+
+        assertThat(resultTypeWithKeyRecord(template, "v=DKIM1; k=rsa; t=s; p=" + KEY, false))
+                .isEqualTo(Result.Type.PERMERROR);
+    }
+
+    @Test
+    public void bodyChangedAfterSigningShouldStillBeReportedAsFail() throws Exception {
+        assertThat(resultTypeWithKeyRecord(SIGNATURE_TEMPLATE, "v=DKIM1; k=rsa; p=" + KEY, true))
+                .isEqualTo(Result.Type.FAIL);
+    }
+
+    @Test
+    public void headerChangedAfterSigningShouldStillBeReportedAsFail() throws Exception {
+        String message = "From: joe@messiah.edu\r\nSubject: test\r\n\r\nbody\r\n";
+        String signature = dkimSigner.sign(new ByteArrayInputStream(message.getBytes(StandardCharsets.US_ASCII)));
+        String altered = signature + "\r\n" + message.replace("Subject: test", "Subject: tost");
+
+        assertThatThrownBy(() -> verifier.verify(new ByteArrayInputStream(altered.getBytes(StandardCharsets.US_ASCII))))
+                .isInstanceOf(PermFailException.class);
+        assertThat(verifier.getResults()).extracting(Result::getResultType).containsExactly(Result.Type.FAIL);
+    }
 }
