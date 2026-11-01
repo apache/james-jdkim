@@ -48,7 +48,9 @@ import org.apache.james.jdkim.MockPublicKeyRecordRetriever.Record;
 import org.apache.james.jdkim.api.Headers;
 import org.apache.james.jdkim.api.Result;
 import org.apache.james.jdkim.api.SignatureRecord;
+import org.apache.james.jdkim.api.UnsignedDuplicateFieldPolicy;
 import org.apache.james.jdkim.api.VerifierOptions;
+import org.apache.james.jdkim.exceptions.FailException;
 import org.apache.james.jdkim.exceptions.CompositeFailException;
 import org.apache.james.jdkim.exceptions.PermFailException;
 import org.apache.james.jdkim.impl.Message;
@@ -475,5 +477,129 @@ public class DKIMTest {
                         .collect(Collectors.toList());
             }
         };
+    }
+
+    private static final String SINGLE_FROM_MESSAGE = "From: alice@messiah.edu\r\nSubject: hello\r\n\r\nbody\r\n";
+
+    private String replayWithExtraFrom(String template) throws Exception {
+        DKIMSigner signer = new DKIMSigner(template, TestKeys.privateKey);
+        String signature = signer.sign(new ByteArrayInputStream(SINGLE_FROM_MESSAGE.getBytes(StandardCharsets.US_ASCII)));
+        return "From: someone-else@example.net\r\n" + signature + "\r\n" + SINGLE_FROM_MESSAGE;
+    }
+
+    private DKIMVerifier verifierWith(UnsignedDuplicateFieldPolicy policy) {
+        return new DKIMVerifier(new VerifierOptions.Builder()
+                .withPublicKeyRecordRetriever(keyRecordRetriever)
+                .withUnsignedDuplicateFieldPolicy(policy)
+                .build());
+    }
+
+    @Test
+    public void unsignedExtraFromFieldShouldNotPassSilently() throws Exception {
+        String replayed = replayWithExtraFrom("v=1; a=rsa-sha256; c=simple; d=messiah.edu; h=from:subject; q=dns/txt; s=selector2;");
+
+        DKIMVerifier strictVerifier = verifierWith(UnsignedDuplicateFieldPolicy.REJECT);
+
+        assertThatThrownBy(() -> strictVerifier.verify(new ByteArrayInputStream(replayed.getBytes(StandardCharsets.US_ASCII))))
+                .isInstanceOf(FailException.class)
+                .hasMessageContaining("2 from fields");
+        assertThat(strictVerifier.hasAnyValidSignature()).isFalse();
+        assertThat(strictVerifier.getResults()).singleElement()
+                .satisfies(r -> assertThat(r.getErrorMessage()).contains("2 from fields"));
+    }
+
+    @Test
+    public void unsignedExtraFromFieldShouldBeRejectedByDefault() throws Exception {
+        String replayed = replayWithExtraFrom("v=1; a=rsa-sha256; c=simple; d=messiah.edu; h=from:subject; q=dns/txt; s=selector2;");
+
+        assertThatThrownBy(() -> verifier.verify(new ByteArrayInputStream(replayed.getBytes(StandardCharsets.US_ASCII))))
+                .isInstanceOf(FailException.class);
+        assertThat(verifier.hasAnyValidSignature()).isFalse();
+    }
+
+    @Test
+    public void unsignedExtraFromFieldShouldBeFlaggedWhenConfigured() throws Exception {
+        String replayed = replayWithExtraFrom("v=1; a=rsa-sha256; c=simple; d=messiah.edu; h=from:subject; q=dns/txt; s=selector2;");
+
+        DKIMVerifier flaggingVerifier = verifierWith(UnsignedDuplicateFieldPolicy.FLAG);
+
+        assertThat(flaggingVerifier.verify(new ByteArrayInputStream(replayed.getBytes(StandardCharsets.US_ASCII)))).hasSize(1);
+        assertThat(flaggingVerifier.getResults()).singleElement().satisfies(r -> {
+            assertThat(r.getResultType()).isEqualTo(Result.Type.PASS);
+            assertThat(r.getWarning()).contains("2 from fields");
+            assertThat(r.getHeaderTextWithReason()).contains("reason=\"valid signature, but the message has 2 from fields");
+        });
+    }
+
+    @Test
+    public void unsignedExtraFromFieldShouldPassWhenAccepted() throws Exception {
+        String replayed = replayWithExtraFrom("v=1; a=rsa-sha256; c=simple; d=messiah.edu; h=from:subject; q=dns/txt; s=selector2;");
+
+        DKIMVerifier lenientVerifier = verifierWith(UnsignedDuplicateFieldPolicy.ACCEPT);
+
+        assertThat(lenientVerifier.verify(new ByteArrayInputStream(replayed.getBytes(StandardCharsets.US_ASCII)))).hasSize(1);
+        assertThat(lenientVerifier.getResults()).singleElement()
+                .satisfies(r -> assertThat(r.getWarning()).isNull());
+    }
+
+    @Test
+    public void oversignedFromShouldStillFailWhenAFromFieldIsAdded() throws Exception {
+        String replayed = replayWithExtraFrom("v=1; a=rsa-sha256; c=simple; d=messiah.edu; h=from:from:subject; q=dns/txt; s=selector2;");
+
+        DKIMVerifier lenientVerifier = verifierWith(UnsignedDuplicateFieldPolicy.ACCEPT);
+
+        assertThatThrownBy(() -> lenientVerifier.verify(new ByteArrayInputStream(replayed.getBytes(StandardCharsets.US_ASCII))))
+                .isInstanceOf(PermFailException.class)
+                .hasMessageContaining("Header signature does not verify");
+    }
+
+    @Test
+    public void singleFromFieldShouldPassWithoutWarning() throws Exception {
+        DKIMSigner signer = new DKIMSigner("v=1; a=rsa-sha256; c=simple; d=messiah.edu; h=from:subject; q=dns/txt; s=selector2;", TestKeys.privateKey);
+        String signature = signer.sign(new ByteArrayInputStream(SINGLE_FROM_MESSAGE.getBytes(StandardCharsets.US_ASCII)));
+        String signed = signature + "\r\n" + SINGLE_FROM_MESSAGE;
+
+        DKIMVerifier flaggingVerifier = verifierWith(UnsignedDuplicateFieldPolicy.FLAG);
+
+        assertThat(flaggingVerifier.verify(new ByteArrayInputStream(signed.getBytes(StandardCharsets.US_ASCII)))).hasSize(1);
+        assertThat(flaggingVerifier.getResults()).singleElement()
+                .satisfies(r -> assertThat(r.getWarning()).isNull());
+    }
+
+    @Test
+    public void unsignedExtraReplyToFieldShouldNotPassSilently() throws Exception {
+        DKIMSigner signer = new DKIMSigner(
+                "v=1; a=rsa-sha256; c=simple; d=messiah.edu; h=from:reply-to:subject; q=dns/txt; s=selector2;",
+                TestKeys.privateKey);
+        String message = "From: alice@messiah.edu\r\nReply-To: alice@messiah.edu\r\nSubject: hello\r\n\r\nbody\r\n";
+        String signature = signer.sign(new ByteArrayInputStream(message.getBytes(StandardCharsets.US_ASCII)));
+        String replayed = "Reply-To: someone-else@example.net\r\n" + signature + "\r\n" + message;
+
+        assertThatThrownBy(() -> verifier.verify(new ByteArrayInputStream(replayed.getBytes(StandardCharsets.US_ASCII))))
+                .isInstanceOf(FailException.class)
+                .hasMessageContaining("2 reply-to fields");
+        assertThat(verifier.hasAnyValidSignature()).isFalse();
+    }
+
+    @Test
+    public void duplicateFieldNotListedInHShouldNotBeChecked() throws Exception {
+        String message = "To: bob@messiah.edu\r\n" + SINGLE_FROM_MESSAGE;
+        DKIMSigner signer = new DKIMSigner("v=1; a=rsa-sha256; c=simple; d=messiah.edu; h=from:subject; q=dns/txt; s=selector2;", TestKeys.privateKey);
+        String signature = signer.sign(new ByteArrayInputStream(message.getBytes(StandardCharsets.US_ASCII)));
+        String withExtraTo = "To: carol@example.net\r\n" + signature + "\r\n" + message;
+
+        assertThat(verifier.verify(new ByteArrayInputStream(withExtraTo.getBytes(StandardCharsets.US_ASCII)))).hasSize(1);
+    }
+
+    @Test
+    public void configuredSingleInstanceFieldsShouldBeChecked() throws Exception {
+        String replayed = replayWithExtraFrom("v=1; a=rsa-sha256; c=simple; d=messiah.edu; h=from:subject; q=dns/txt; s=selector2;");
+
+        DKIMVerifier subjectOnlyVerifier = new DKIMVerifier(new VerifierOptions.Builder()
+                .withPublicKeyRecordRetriever(keyRecordRetriever)
+                .withSingleInstanceFields(Collections.singletonList("Subject"))
+                .build());
+
+        assertThat(subjectOnlyVerifier.verify(new ByteArrayInputStream(replayed.getBytes(StandardCharsets.US_ASCII)))).hasSize(1);
     }
 }

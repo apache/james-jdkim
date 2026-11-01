@@ -25,6 +25,12 @@ import org.xbill.DNS.Lookup;
 import org.xbill.DNS.Resolver;
 
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.Locale;
+import java.util.Set;
 
 public class VerifierOptions {
     /**
@@ -32,15 +38,29 @@ public class VerifierOptions {
      */
     public static final String MAX_SIGNATURE_COUNT_PROPERTY = "james.dkim.max-signature.count";
     private static final int DEFAULT_MAX_SIGNATURE_COUNT = 32;
+    /**
+     * System property holding the default of {@link Builder#withUnsignedDuplicateFieldPolicy(UnsignedDuplicateFieldPolicy)}.
+     */
+    public static final String UNSIGNED_DUPLICATE_FIELD_POLICY_PROPERTY = "james.dkim.unsigned-duplicate-field.policy";
+    private static final UnsignedDuplicateFieldPolicy DEFAULT_UNSIGNED_DUPLICATE_FIELD_POLICY = UnsignedDuplicateFieldPolicy.REJECT;
+    /**
+     * Default of {@link Builder#withSingleInstanceFields(Collection)}: the fields RFC 5322 section 3.6 allows once.
+     */
+    public static final Set<String> DEFAULT_SINGLE_INSTANCE_FIELDS = Collections.unmodifiableSet(new LinkedHashSet<>(Arrays.asList(
+            "from", "sender", "reply-to", "to", "cc", "bcc", "subject", "date", "message-id", "in-reply-to", "references")));
 
     private final Duration clockDriftTolerance;
     private final int maxSignatures;
+    private final UnsignedDuplicateFieldPolicy unsignedDuplicateFieldPolicy;
+    private final Set<String> singleInstanceFields;
     private final PublicKeyRecordRetriever publicKeyRecordRetriever;
     private final Resolver dnsResolver;
 
     public static class Builder {
         private Duration clockDriftTolerance = Duration.ofSeconds(300);
         private int maxSignatures = Integer.getInteger(MAX_SIGNATURE_COUNT_PROPERTY, DEFAULT_MAX_SIGNATURE_COUNT);
+        private UnsignedDuplicateFieldPolicy unsignedDuplicateFieldPolicy = defaultUnsignedDuplicateFieldPolicy();
+        private Set<String> singleInstanceFields = DEFAULT_SINGLE_INSTANCE_FIELDS;
         private Resolver dnsResolver = Lookup.getDefaultResolver();
         private PublicKeyRecordRetriever publicKeyRecordRetriever = new MultiplexingPublicKeyRecordRetriever(
                 "dns", new DNSPublicKeyRecordRetriever(this.dnsResolver));
@@ -81,6 +101,47 @@ public class VerifierOptions {
         }
 
         /**
+         * Sets what happens to a signature when the message holds more instances of a single-instance field
+         * (see {@link #withSingleInstanceFields(Collection)}) listed in its h= tag than h= lists, and more than one
+         * in total:
+         * the extra instance is not signed, yet mail clients usually display the top-most one.
+         * See RFC 6376 section 8.15. Signers protect themselves by listing the field once more in h=
+         * than it appears ("h=from:from"). Defaults to the
+         * {@value #UNSIGNED_DUPLICATE_FIELD_POLICY_PROPERTY} system property, or {@link UnsignedDuplicateFieldPolicy#REJECT}.
+         *
+         * @param unsignedDuplicateFieldPolicy an {@link UnsignedDuplicateFieldPolicy}
+         * @return {@link Builder}
+         */
+        public Builder withUnsignedDuplicateFieldPolicy(UnsignedDuplicateFieldPolicy unsignedDuplicateFieldPolicy) {
+            this.unsignedDuplicateFieldPolicy = unsignedDuplicateFieldPolicy;
+            return this;
+        }
+
+        /**
+         * Sets the names of the fields expected once per message, checked by
+         * {@link #withUnsignedDuplicateFieldPolicy(UnsignedDuplicateFieldPolicy)}. Case-insensitive.
+         * Defaults to the fields RFC 5322 section 3.6 allows once ({@link #DEFAULT_SINGLE_INSTANCE_FIELDS}).
+         *
+         * @param singleInstanceFields field names
+         * @return {@link Builder}
+         */
+        public Builder withSingleInstanceFields(Collection<String> singleInstanceFields) {
+            if (singleInstanceFields == null) {
+                this.singleInstanceFields = null;
+                return this;
+            }
+            Set<String> names = new LinkedHashSet<>();
+            for (String name : singleInstanceFields) {
+                if (name == null || name.trim().isEmpty()) {
+                    throw new IllegalArgumentException("singleInstanceFields can not hold a blank name");
+                }
+                names.add(name.trim().toLowerCase(Locale.US));
+            }
+            this.singleInstanceFields = Collections.unmodifiableSet(names);
+            return this;
+        }
+
+        /**
          * A custom dns resolver
          *
          * @param dnsResolver a {@link Resolver}
@@ -108,6 +169,14 @@ public class VerifierOptions {
             throw new IllegalArgumentException("maxSignatures must be strictly positive");
         }
 
+        if (builder.unsignedDuplicateFieldPolicy == null) {
+            throw new IllegalArgumentException("unsignedDuplicateFieldPolicy can not be null");
+        }
+
+        if (builder.singleInstanceFields == null) {
+            throw new IllegalArgumentException("singleInstanceFields can not be null");
+        }
+
         if (builder.publicKeyRecordRetriever == null) {
             throw new IllegalArgumentException("publicKeyRecordRetriever can not be null");
         }
@@ -118,6 +187,8 @@ public class VerifierOptions {
 
         this.clockDriftTolerance = builder.clockDriftTolerance;
         this.maxSignatures = builder.maxSignatures;
+        this.unsignedDuplicateFieldPolicy = builder.unsignedDuplicateFieldPolicy;
+        this.singleInstanceFields = builder.singleInstanceFields;
         this.dnsResolver = builder.dnsResolver;
         this.publicKeyRecordRetriever = builder.publicKeyRecordRetriever;
     }
@@ -138,6 +209,36 @@ public class VerifierOptions {
      */
     public int getMaxSignatures() {
         return maxSignatures;
+    }
+
+    /**
+     * Gets what happens to a signature leaving an instance of a single-instance field unsigned
+     *
+     * @return {@link UnsignedDuplicateFieldPolicy}
+     */
+    public UnsignedDuplicateFieldPolicy getUnsignedDuplicateFieldPolicy() {
+        return unsignedDuplicateFieldPolicy;
+    }
+
+    /**
+     * Gets the lower-cased names of the fields expected once per message
+     *
+     * @return field names
+     */
+    public Set<String> getSingleInstanceFields() {
+        return singleInstanceFields;
+    }
+
+    private static UnsignedDuplicateFieldPolicy defaultUnsignedDuplicateFieldPolicy() {
+        String value = System.getProperty(UNSIGNED_DUPLICATE_FIELD_POLICY_PROPERTY);
+        if (value == null) {
+            return DEFAULT_UNSIGNED_DUPLICATE_FIELD_POLICY;
+        }
+        try {
+            return UnsignedDuplicateFieldPolicy.valueOf(value.trim().toUpperCase(Locale.US));
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid " + UNSIGNED_DUPLICATE_FIELD_POLICY_PROPERTY + " value: " + value, e);
+        }
     }
 
     /**

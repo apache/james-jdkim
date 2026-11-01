@@ -217,6 +217,24 @@ get a `PERMERROR` result ("Too many DKIM-Signature fields") without any lookup.
 Defaults to the `james.dkim.max-signature.count` system property, or 32 when it
 is unset (e.g. `-Djames.dkim.max-signature.count=32`); must be strictly positive.
 
+`withUnsignedDuplicateFieldPolicy(UnsignedDuplicateFieldPolicy)`::
+What happens to a signature when the message holds more instances of a
+single-instance field listed in its `h=` than `h=` lists, and more than one in
+total: the extra
+instance is not signed, yet mail clients usually display the top-most one
+(https://datatracker.ietf.org/doc/html/rfc6376#section-8.15[RFC 6376 section 8.15]).
+`REJECT` fails the signature, `FLAG` keeps the `PASS` but sets `Result#getWarning()`
+(also written in the `reason` of `getHeaderTextWithReason()`), `ACCEPT` ignores it.
+Defaults to the `james.dkim.unsigned-duplicate-field.policy` system property, or
+`REJECT` when it is unset. Signers avoid the issue by listing the field once more
+than it appears (`h=from:from`).
+
+`withSingleInstanceFields(Collection<String>)`::
+The field names checked by the policy above, case-insensitive. Defaults to the
+fields https://datatracker.ietf.org/doc/html/rfc5322#section-3.6[RFC 5322 section 3.6]
+allows once: `from`, `sender`, `reply-to`, `to`, `cc`, `bcc`, `subject`, `date`,
+`message-id`, `in-reply-to`, `references`.
+
 `withDnsResolver(Resolver)`::
 A dnsjava `Resolver` to query instead of the system default -- useful to point
 at a specific resolver or to shorten timeouts.

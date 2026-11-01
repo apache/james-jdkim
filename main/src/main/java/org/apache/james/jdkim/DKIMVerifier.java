@@ -27,6 +27,7 @@ import org.apache.james.jdkim.api.PublicKeyRecord;
 import org.apache.james.jdkim.api.PublicKeyRecordRetriever;
 import org.apache.james.jdkim.api.Result;
 import org.apache.james.jdkim.api.SignatureRecord;
+import org.apache.james.jdkim.api.UnsignedDuplicateFieldPolicy;
 import org.apache.james.jdkim.api.VerifierOptions;
 import org.apache.james.jdkim.exceptions.CompositeFailException;
 import org.apache.james.jdkim.exceptions.FailException;
@@ -50,11 +51,13 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 
 public class DKIMVerifier {
@@ -303,6 +306,15 @@ public class DKIMVerifier {
                         }
                     }
 
+                    String unsignedInstance = unsignedSingleInstanceField(messageHeaders, signatureRecord);
+                    if (unsignedInstance != null) {
+                        if (options.getUnsignedDuplicateFieldPolicy() == UnsignedDuplicateFieldPolicy.REJECT) {
+                            throw new PermFailException(unsignedInstance, signatureRecord);
+                        } else if (options.getUnsignedDuplicateFieldPolicy() == UnsignedDuplicateFieldPolicy.FLAG) {
+                            job.setWarning(unsignedInstance);
+                        }
+                    }
+
                     // TODO here we could check more parameters for
                     // validation before running a network operation like the
                     // dns lookup.
@@ -341,6 +353,33 @@ public class DKIMVerifier {
         }
 
         return new CompoundBodyHasher(jobs);
+    }
+
+    /**
+     * RFC 6376 section 8.15: a single-instance field listed in h=, present more times than h= lists it and
+     * more than once, has an unsigned instance that mail clients may display instead of the signed one.
+     *
+     * @return a description of the first such field, or null if there is none
+     */
+    private String unsignedSingleInstanceField(Headers messageHeaders, SignatureRecord signatureRecord) {
+        if (options.getUnsignedDuplicateFieldPolicy() == UnsignedDuplicateFieldPolicy.ACCEPT) {
+            return null;
+        }
+        Map<String, Integer> signedCounts = new HashMap<>();
+        for (CharSequence header : signatureRecord.getHeaders()) {
+            signedCounts.merge(header.toString().trim().toLowerCase(Locale.US), 1, Integer::sum);
+        }
+        for (String name : options.getSingleInstanceFields()) {
+            List<String> instances = messageHeaders.getFields(name);
+            int present = instances == null ? 0 : instances.size();
+            int signed = signedCounts.getOrDefault(name, 0);
+            // a field h= does not list is not vouched for by the signature; From: is always listed.
+            if (signed > 0 && present > 1 && present > signed) {
+                return "the message has " + present + " " + name + " fields and h= signs only " + signed
+                        + " (RFC 6376 section 8.15)";
+            }
+        }
+        return null;
     }
 
     /**
@@ -452,7 +491,7 @@ public class DKIMVerifier {
                             "Computed bodyhash is different from the expected one", bhj.getSignatureRecord()));
                 } else {
                     verifiedSignatures.add(bhj.getSignatureRecord());
-                    result.add(new Result(bhj.getSignatureRecord()));
+                    result.add(new Result(bhj.getSignatureRecord(), job.getWarning()));
                     continue;
                 }
             }

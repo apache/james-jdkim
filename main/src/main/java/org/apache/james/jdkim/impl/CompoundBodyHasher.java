@@ -44,6 +44,7 @@ public class CompoundBodyHasher implements BodyHasher {
         private final String signatureField;
         private BodyHasherImpl bodyHasher;
         private FailException failure;
+        private String warning;
 
         public Job(String signatureField) {
             this.signatureField = signatureField;
@@ -63,6 +64,17 @@ public class CompoundBodyHasher implements BodyHasher {
 
         public FailException getFailure() {
             return failure;
+        }
+
+        /**
+         * @return the warning to attach to the result of a successful verification, or null
+         */
+        public String getWarning() {
+            return warning;
+        }
+
+        public void setWarning(String warning) {
+            this.warning = warning;
         }
 
         public void setFailure(FailException failure) {

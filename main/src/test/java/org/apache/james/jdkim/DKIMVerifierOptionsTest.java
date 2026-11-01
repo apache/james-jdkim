@@ -20,6 +20,7 @@
 package org.apache.james.jdkim;
 
 import org.apache.james.jdkim.api.PublicKeyRecordRetriever;
+import org.apache.james.jdkim.api.UnsignedDuplicateFieldPolicy;
 import org.apache.james.jdkim.api.VerifierOptions;
 import org.apache.james.jdkim.impl.DNSPublicKeyRecordRetriever;
 import org.apache.james.jdkim.impl.MultiplexingPublicKeyRecordRetriever;
@@ -31,6 +32,8 @@ import org.xbill.DNS.SimpleResolver;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.LinkedHashSet;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -129,5 +132,46 @@ public class DKIMVerifierOptionsTest {
     @Test(expected = IllegalArgumentException.class)
     public void shouldRejectNonPositiveMaxSignatures() {
         new VerifierOptions.Builder().withMaxSignatures(0).build();
+    }
+
+    @Test
+    public void shouldRejectUnsignedDuplicateFieldsByDefault() {
+        VerifierOptions opt = new VerifierOptions.Builder().build();
+        assertEquals(UnsignedDuplicateFieldPolicy.REJECT, opt.getUnsignedDuplicateFieldPolicy());
+        assertEquals(new LinkedHashSet<>(Arrays.asList("from", "sender", "reply-to", "to", "cc", "bcc", "subject",
+                "date", "message-id", "in-reply-to", "references")), opt.getSingleInstanceFields());
+    }
+
+    @Test
+    public void shouldReadUnsignedDuplicateFieldPolicyFromSystemProperty() {
+        System.setProperty(VerifierOptions.UNSIGNED_DUPLICATE_FIELD_POLICY_PROPERTY, "flag");
+        try {
+            VerifierOptions opt = new VerifierOptions.Builder().build();
+            assertEquals(UnsignedDuplicateFieldPolicy.FLAG, opt.getUnsignedDuplicateFieldPolicy());
+        } finally {
+            System.clearProperty(VerifierOptions.UNSIGNED_DUPLICATE_FIELD_POLICY_PROPERTY);
+        }
+    }
+
+    @Test
+    public void shouldReturnCorrectUnsignedDuplicateFieldPolicy() {
+        VerifierOptions opt = new VerifierOptions.Builder().withUnsignedDuplicateFieldPolicy(UnsignedDuplicateFieldPolicy.ACCEPT).build();
+        assertEquals(UnsignedDuplicateFieldPolicy.ACCEPT, opt.getUnsignedDuplicateFieldPolicy());
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void shouldRejectNullUnsignedDuplicateFieldPolicy() {
+        new VerifierOptions.Builder().withUnsignedDuplicateFieldPolicy(null).build();
+    }
+
+    @Test
+    public void shouldLowerCaseSingleInstanceFields() {
+        VerifierOptions opt = new VerifierOptions.Builder().withSingleInstanceFields(Arrays.asList("From", " SUBJECT ")).build();
+        assertEquals(new LinkedHashSet<>(Arrays.asList("from", "subject")), opt.getSingleInstanceFields());
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void shouldRejectNullSingleInstanceFields() {
+        new VerifierOptions.Builder().withSingleInstanceFields(null).build();
     }
 }

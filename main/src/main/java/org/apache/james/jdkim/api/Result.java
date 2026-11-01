@@ -31,6 +31,7 @@ public class Result {
     private final String dkimRawField;
     private final SignatureRecord record;
     private final Type type;
+    private final String warning;
 
     /**
      * Result type
@@ -60,6 +61,7 @@ public class Result {
         this.dkimRawField = dkimRawField;
         this.record = record;
         this.type = type;
+        this.warning = null;
     }
 
     /**
@@ -68,10 +70,21 @@ public class Result {
      * @param record SignatureRecord
      */
     public Result(SignatureRecord record) {
+        this(record, null);
+    }
+
+    /**
+     * Constructor to create a Result instance of a successful verification the verifier has a concern about
+     *
+     * @param record  SignatureRecord
+     * @param warning The concern, null if none
+     */
+    public Result(SignatureRecord record, String warning) {
         this.errorMessage = null;
         this.dkimRawField = null;
         this.record = record;
         this.type = Type.PASS;
+        this.warning = warning;
     }
 
     /**
@@ -111,7 +124,7 @@ public class Result {
             String reasonMsg;
             switch (type) {
                 case PASS:
-                    reasonMsg = "valid signature";
+                    reasonMsg = warning != null ? "valid signature, but " + warning : "valid signature";
                     break;
                 case NONE:
                     reasonMsg = "unknown error";
@@ -181,6 +194,16 @@ public class Result {
     }
 
     /**
+     * Get the concern the verifier has about a successful verification, for instance an unsigned
+     * extra instance of a single-instance field (see {@link VerifierOptions.Builder#withUnsignedDuplicateFieldPolicy}).
+     *
+     * @return the warning, or null if none
+     */
+    public String getWarning() {
+        return warning;
+    }
+
+    /**
      * Get dkim field
      *
      * @return The DKIM-Signature field that was verified
@@ -228,6 +251,7 @@ public class Result {
                 ", errorMessage='" + errorMessage + '\'' +
                 ", dkimRawField='" + dkimRawField + '\'' +
                 ", type=" + type +
+                ", warning='" + warning + '\'' +
                 '}';
     }
 }
