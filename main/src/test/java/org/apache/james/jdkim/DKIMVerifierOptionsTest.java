@@ -174,4 +174,24 @@ public class DKIMVerifierOptionsTest {
     public void shouldRejectNullSingleInstanceFields() {
         new VerifierOptions.Builder().withSingleInstanceFields(null).build();
     }
+
+    @Test
+    public void shouldRequire1024BitRsaKeysByDefault() {
+        assertEquals(1024, new VerifierOptions.Builder().build().getMinimumRsaKeyBits());
+    }
+
+    @Test
+    public void shouldReadMinimumRsaKeyBitsFromSystemProperty() {
+        System.setProperty(VerifierOptions.MIN_RSA_KEY_BITS_PROPERTY, "2048");
+        try {
+            assertEquals(2048, new VerifierOptions.Builder().build().getMinimumRsaKeyBits());
+        } finally {
+            System.clearProperty(VerifierOptions.MIN_RSA_KEY_BITS_PROPERTY);
+        }
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void shouldRejectNegativeMinimumRsaKeyBits() {
+        new VerifierOptions.Builder().withMinimumRsaKeyBits(-1).build();
+    }
 }

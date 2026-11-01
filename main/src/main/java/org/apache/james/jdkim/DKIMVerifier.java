@@ -48,6 +48,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.security.Signature;
 import java.security.SignatureException;
+import java.security.interfaces.RSAPublicKey;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -604,6 +605,12 @@ public class DKIMVerifier {
                 publicKey = key.getPublicKey();
             } catch (IllegalStateException e) {
                 throw new PermFailException("Invalid Public Key: " + e.getMessage(), sign, e);
+            }
+            // RFC 8301 section 3.2: verifiers MAY take the key length into account.
+            if (publicKey instanceof RSAPublicKey
+                    && ((RSAPublicKey) publicKey).getModulus().bitLength() < options.getMinimumRsaKeyBits()) {
+                throw new PermFailException("RSA key too short: " + ((RSAPublicKey) publicKey).getModulus().bitLength()
+                        + " bits, at least " + options.getMinimumRsaKeyBits() + " required (RFC 8301)", sign);
             }
             signature.initVerify(publicKey);
 

@@ -28,6 +28,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -190,5 +193,48 @@ public class DKIMVerifierTest {
 
         assertThat(key.getGranularityPattern().matcher("a\r\nb").matches()).isTrue();
         assertThat(key.getGranularityPattern().matcher("ab\n").matches()).isFalse();
+    }
+
+    private static DKIMVerifier signAndVerify(int keyBits, VerifierOptions.Builder options, StringBuilder mailOut) throws Exception {
+        KeyPairGenerator gen = KeyPairGenerator.getInstance("RSA");
+        gen.initialize(keyBits);
+        KeyPair pair = gen.generateKeyPair();
+        MockPublicKeyRecordRetriever retriever = new MockPublicKeyRecordRetriever();
+        retriever.addRecord("sel", "example.com",
+                "v=DKIM1; p=" + Base64.getEncoder().encodeToString(pair.getPublic().getEncoded()));
+        String message = "From: joe@example.com\r\nSubject: test\r\n\r\nbody\r\n";
+        String field = new DKIMSigner("v=1; a=rsa-sha256; d=example.com; s=sel; h=from:subject; bh=; b=;", pair.getPrivate())
+                .sign(new ByteArrayInputStream(message.getBytes(StandardCharsets.US_ASCII)));
+        mailOut.append(field).append("\r\n").append(message);
+        return new DKIMVerifier(options.withPublicKeyRecordRetriever(retriever).build());
+    }
+
+    @Test
+    public void shortRsaKeysShouldNotPass() throws Exception {
+        for (int bits : new int[] {512, 768}) {
+            StringBuilder mail = new StringBuilder();
+            DKIMVerifier verifier = signAndVerify(bits, new VerifierOptions.Builder(), mail);
+
+            assertThatThrownBy(() -> verifier.verify(new ByteArrayInputStream(mail.toString().getBytes(StandardCharsets.US_ASCII))))
+                    .isInstanceOf(PermFailException.class)
+                    .hasMessageContaining("RSA key too short: " + bits + " bits");
+            assertThat(verifier.getResults()).extracting(Result::getResultType).containsExactly(Result.Type.PERMERROR);
+        }
+    }
+
+    @Test
+    public void shortRsaKeysShouldPassWhenAllowed() throws Exception {
+        StringBuilder mail = new StringBuilder();
+        DKIMVerifier verifier = signAndVerify(512, new VerifierOptions.Builder().withMinimumRsaKeyBits(512), mail);
+
+        assertThat(verifier.verify(new ByteArrayInputStream(mail.toString().getBytes(StandardCharsets.US_ASCII)))).hasSize(1);
+    }
+
+    @Test
+    public void rsaKeysOfTheMinimumLengthShouldPass() throws Exception {
+        StringBuilder mail = new StringBuilder();
+        DKIMVerifier verifier = signAndVerify(1024, new VerifierOptions.Builder(), mail);
+
+        assertThat(verifier.verify(new ByteArrayInputStream(mail.toString().getBytes(StandardCharsets.US_ASCII)))).hasSize(1);
     }
 }

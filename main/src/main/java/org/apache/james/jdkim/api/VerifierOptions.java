@@ -39,6 +39,11 @@ public class VerifierOptions {
     public static final String MAX_SIGNATURE_COUNT_PROPERTY = "james.dkim.max-signature.count";
     private static final int DEFAULT_MAX_SIGNATURE_COUNT = 32;
     /**
+     * System property holding the default of {@link Builder#withMinimumRsaKeyBits(int)}.
+     */
+    public static final String MIN_RSA_KEY_BITS_PROPERTY = "james.dkim.min-rsa-key-bits";
+    private static final int DEFAULT_MIN_RSA_KEY_BITS = 1024;
+    /**
      * System property holding the default of {@link Builder#withUnsignedDuplicateFieldPolicy(UnsignedDuplicateFieldPolicy)}.
      */
     public static final String UNSIGNED_DUPLICATE_FIELD_POLICY_PROPERTY = "james.dkim.unsigned-duplicate-field.policy";
@@ -51,6 +56,7 @@ public class VerifierOptions {
 
     private final Duration clockDriftTolerance;
     private final int maxSignatures;
+    private final int minimumRsaKeyBits;
     private final UnsignedDuplicateFieldPolicy unsignedDuplicateFieldPolicy;
     private final Set<String> singleInstanceFields;
     private final PublicKeyRecordRetriever publicKeyRecordRetriever;
@@ -59,6 +65,7 @@ public class VerifierOptions {
     public static class Builder {
         private Duration clockDriftTolerance = Duration.ofSeconds(300);
         private int maxSignatures = Integer.getInteger(MAX_SIGNATURE_COUNT_PROPERTY, DEFAULT_MAX_SIGNATURE_COUNT);
+        private int minimumRsaKeyBits = Integer.getInteger(MIN_RSA_KEY_BITS_PROPERTY, DEFAULT_MIN_RSA_KEY_BITS);
         private UnsignedDuplicateFieldPolicy unsignedDuplicateFieldPolicy = defaultUnsignedDuplicateFieldPolicy();
         private Set<String> singleInstanceFields = DEFAULT_SINGLE_INSTANCE_FIELDS;
         private Resolver dnsResolver = Lookup.getDefaultResolver();
@@ -97,6 +104,20 @@ public class VerifierOptions {
          */
         public Builder withMaxSignatures(int maxSignatures) {
             this.maxSignatures = maxSignatures;
+            return this;
+        }
+
+        /**
+         * Sets the minimum length, in bits, of the RSA keys whose signatures are accepted. Shorter keys get a
+         * PERMERROR result. RFC 8301 section 3.2: signers MUST use keys of at least 1024 bits, and verifiers
+         * MAY take the key length into account. Defaults to the {@value #MIN_RSA_KEY_BITS_PROPERTY} system
+         * property, or 1024.
+         *
+         * @param minimumRsaKeyBits a positive number of bits, 0 to accept any key
+         * @return {@link Builder}
+         */
+        public Builder withMinimumRsaKeyBits(int minimumRsaKeyBits) {
+            this.minimumRsaKeyBits = minimumRsaKeyBits;
             return this;
         }
 
@@ -169,6 +190,10 @@ public class VerifierOptions {
             throw new IllegalArgumentException("maxSignatures must be strictly positive");
         }
 
+        if (builder.minimumRsaKeyBits < 0) {
+            throw new IllegalArgumentException("minimumRsaKeyBits must not be negative");
+        }
+
         if (builder.unsignedDuplicateFieldPolicy == null) {
             throw new IllegalArgumentException("unsignedDuplicateFieldPolicy can not be null");
         }
@@ -187,6 +212,7 @@ public class VerifierOptions {
 
         this.clockDriftTolerance = builder.clockDriftTolerance;
         this.maxSignatures = builder.maxSignatures;
+        this.minimumRsaKeyBits = builder.minimumRsaKeyBits;
         this.unsignedDuplicateFieldPolicy = builder.unsignedDuplicateFieldPolicy;
         this.singleInstanceFields = builder.singleInstanceFields;
         this.dnsResolver = builder.dnsResolver;
@@ -209,6 +235,15 @@ public class VerifierOptions {
      */
     public int getMaxSignatures() {
         return maxSignatures;
+    }
+
+    /**
+     * Gets the minimum length, in bits, of the RSA keys whose signatures are accepted
+     *
+     * @return a number of bits
+     */
+    public int getMinimumRsaKeyBits() {
+        return minimumRsaKeyBits;
     }
 
     /**

@@ -113,7 +113,9 @@ public class PerlDKIMTest extends TestCase {
             expectFailure = true;
 
         try {
-            DKIMVerifier verifier = new DKIMVerifier(new VerifierOptions.Builder().withPublicKeyRecordRetriever(pkr).build());
+            DKIMVerifier verifier = new DKIMVerifier(new VerifierOptions.Builder().withPublicKeyRecordRetriever(pkr)
+                    // the corpus keys are 512 bits long
+                    .withMinimumRsaKeyBits(512).build());
             List<SignatureRecord> res = verifier.verify(is);
 
             if (getName().matches("good_dk_7|good_dk_6|dk_headers_2|good_dk_3")

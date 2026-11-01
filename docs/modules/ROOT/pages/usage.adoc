@@ -222,6 +222,13 @@ get a `PERMERROR` result ("Too many DKIM-Signature fields") without any lookup.
 Defaults to the `james.dkim.max-signature.count` system property, or 32 when it
 is unset (e.g. `-Djames.dkim.max-signature.count=32`); must be strictly positive.
 
+`withMinimumRsaKeyBits(int)`::
+The minimum length of the RSA keys whose signatures are accepted; shorter keys
+get a `PERMERROR` result ("RSA key too short"), as
+https://datatracker.ietf.org/doc/html/rfc8301#section-3.2[RFC 8301 section 3.2]
+allows. Defaults to the `james.dkim.min-rsa-key-bits` system property, or 1024
+when it is unset; 0 accepts any key.
+
 `withUnsignedDuplicateFieldPolicy(UnsignedDuplicateFieldPolicy)`::
 What happens to a signature when the message holds more instances of a
 single-instance field listed in its `h=` than `h=` lists, and more than one in
