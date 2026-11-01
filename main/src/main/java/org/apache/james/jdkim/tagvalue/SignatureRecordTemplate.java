@@ -68,6 +68,9 @@ public class SignatureRecordTemplate extends TagValue implements SignatureRecord
      */
     public void validate() throws IllegalStateException {
         super.validate();
+        if (getValue("a") != null) {
+            SignatureRecordImpl.checkAlgorithm(getValue("a"));
+        }
         // TODO: what about v=0.5 and no v= at all?
         // do specs allow parsing? what should we check?
         if (!"1".equals(getValue("v")))

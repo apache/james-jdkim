@@ -63,7 +63,7 @@ public class DKIMVerifierTest {
                             new SignatureRecordImpl(
                                     "v=1; a=dsa-sha256; c=relaxed/relaxed; d=gmail.com; s=gamma; h=domainkey-signature:mime-version:received:date:message-id:subject:from:to:content-type; bh=AbPsrGRdyVjM2e5ZZdhQA/aLe305f2bPvPRohUxrGjo=; b=ksNsfQJv20M9/Vf66sMJT1WHM/fUfcqli1NfkyxSOjr8jlNTH4JNCGacb2neWuwMN4C4TFXqMR8BENkn+XrCV1FjrlW1mCxlLDilVypP/uqqq04KzJpVyJG6zZLd/0DeknSLN6sDGKdCvIdS+YpHEhUxoEuf6QizCs8PTXhnJiA="));
             fail("This is not a signature for that key");
-        } catch (PermFailException e) {
+        } catch (PermFailException | IllegalStateException e) {
         }
         pkr = new PublicKeyRecordImpl(
                 "k=rsa; t=y:s; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDIhyR3oItOy22ZOaBrIVe9m/iME3RqOJeasANSpg2YTHTYV+Xtp4xwf5gTjCmHQEMOs0qYu0FYiNQPQogJ2t0Mfx9zNu06rfRBDjiIU9tpx2T+NGlWZ8qhbiLo5By8apJavLyqTLavyPSrvsx0B3YzC63T4Age2CDqZYA+OwSMWQIDAQAB");

@@ -122,13 +122,22 @@ public class SignatureRecordTemplateTest {
 
     @Test
     public void testWrongHashSyntaxes() {
-        SignatureRecord sr = new SignatureRecordTemplate("v=1; a=nothyphenedword; bh=abcdef; b=1235345987; h=from:to; s=select; d=example.com");
+        assertThatThrownBy(() -> new SignatureRecordTemplate("v=1; a=nothyphenedword; bh=abcdef; b=1235345987; h=from:to; s=select; d=example.com"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("algorithm");
+    }
 
-        assertThatThrownBy(sr::getHashAlgo)
-                .hasMessageContaining("hash");
-
-        assertThatThrownBy(sr::getHashMethod)
-                .hasMessageContaining("hash");
+    @Test
+    public void algorithmsOutsideRfc6376ShouldBeRejected() {
+        for (String a : new String[] {"rsa-md5", "rsa-md2", "rsa-sha512/256", "rsa-sha512", "rsa-sha384", "rsa-sha224",
+                "rsa-SHA256", "RSA-SHA256", "Rsa-Sha1", "dsa-sha256", "rsa-sha3-256"}) {
+            assertThatThrownBy(() -> new SignatureRecordTemplate("v=1; a=" + a + "; bh=abcdef; b=1235345987; h=from:to; s=select; d=example.com"))
+                    .as("a=%s", a)
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("algorithm");
+        }
+        new SignatureRecordTemplate("v=1; a=rsa-sha256; bh=abcdef; b=1235345987; h=from:to; s=select; d=example.com");
+        new SignatureRecordTemplate("v=1; a=rsa-sha1; bh=abcdef; b=1235345987; h=from:to; s=select; d=example.com");
     }
 
     @Test

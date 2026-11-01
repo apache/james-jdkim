@@ -598,9 +598,7 @@ public class DKIMVerifier {
                                  String signatureFieldName)
             throws PermFailException {
         try {
-            Signature signature = Signature.getInstance(sign.getHashMethod()
-                    .toString().toUpperCase(Locale.US)
-                    + "with" + sign.getHashKeyType().toString().toUpperCase(Locale.US));
+            Signature signature = Signature.getInstance(DKIMCommon.jcaSignatureAlgorithm(sign));
             PublicKey publicKey;
             try {
                 publicKey = key.getPublicKey();

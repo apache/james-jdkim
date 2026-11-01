@@ -21,14 +21,56 @@ package org.apache.james.jdkim.tagvalue;
 
 import static org.apache.james.jdkim.parser.DKIMQuotedPrintable.dkimQuotedPrintableDecode;
 
+import org.apache.james.jdkim.api.HashMethod;
 import org.apache.james.jdkim.api.SignatureRecord;
 
 import java.util.Base64;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 public class SignatureRecordImpl extends TagValue implements SignatureRecord {
+
+    /**
+     * RFC 6376 section 3.3: the a= values, case-sensitive (section 3.2), and their hash method.
+     */
+    private static final Map<String, HashMethod> ALGORITHMS;
+
+    static {
+        Map<String, HashMethod> algorithms = new LinkedHashMap<>();
+        algorithms.put("rsa-sha256", HashMethod.SHA256);
+        algorithms.put("rsa-sha1", HashMethod.SHA1);
+        ALGORITHMS = Collections.unmodifiableMap(algorithms);
+    }
+
+    /**
+     * Checks an a= value against the algorithms of RFC 6376 section 3.3.
+     *
+     * @param algorithm the a= value
+     * @return its hash method
+     * @throws IllegalStateException if it is not rsa-sha256 or rsa-sha1, exactly
+     */
+    public static HashMethod checkAlgorithm(CharSequence algorithm) {
+        HashMethod hashMethod = algorithm == null ? null : ALGORITHMS.get(algorithm.toString());
+        if (hashMethod == null) {
+            throw new IllegalStateException("Unsupported signature algorithm (a=): " + algorithm
+                    + ", expected one of " + ALGORITHMS.keySet());
+        }
+        return hashMethod;
+    }
+
+    /**
+     * Checks the a= value of a signature record, see {@link #checkAlgorithm(CharSequence)}.
+     *
+     * @param sign a signature record
+     * @return its hash method
+     */
+    public static HashMethod checkAlgorithm(SignatureRecord sign) {
+        return checkAlgorithm(sign.getHashKeyType() + "-" + sign.getHashMethod());
+    }
 
     // TODO ftext is defined as a sequence of at least one in %d33-57 or
     // %d59-126
@@ -68,6 +110,8 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
                             + getValue("v"));
         if (getValue("h").length() == 0)
             throw new IllegalStateException("Tag h= cannot be empty.");
+
+        checkAlgorithm(getValue("a"));
 
         CharSequence identity;
         try {

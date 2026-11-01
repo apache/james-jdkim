@@ -137,9 +137,7 @@ public class DKIMSigner {
             throws NoSuchAlgorithmException, InvalidKeyException,
             SignatureException, PermFailException {
 
-        Signature signature = Signature.getInstance(sign.getHashMethod()
-                .toString().toUpperCase(Locale.US)
-                + "with" + sign.getHashKeyType().toString().toUpperCase(Locale.US));
+        Signature signature = Signature.getInstance(DKIMCommon.jcaSignatureAlgorithm(sign));
         signature.initSign(key);
 
         signatureCheck(h, sign, headers, signature);

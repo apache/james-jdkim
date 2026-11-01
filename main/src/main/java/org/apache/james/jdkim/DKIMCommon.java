@@ -19,9 +19,12 @@
 
 package org.apache.james.jdkim;
 
+import org.apache.james.jdkim.api.HashMethod;
 import org.apache.james.jdkim.api.Headers;
 import org.apache.james.jdkim.api.SignatureRecord;
 import org.apache.james.jdkim.exceptions.PermFailException;
+import org.apache.james.jdkim.tagvalue.SignatureRecordImpl;
+import org.apache.james.jdkim.api.SigningAlgorithm;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -37,6 +40,21 @@ import java.util.Map;
 public abstract class DKIMCommon {
 
     private static final boolean DEEP_DEBUG = false;
+
+    /**
+     * The JCA signature algorithm of a signature record, from a fixed map rather than from the a= value:
+     * only the RFC 6376 section 3.3 algorithms are accepted.
+     *
+     * @throws PermFailException for any other a= value
+     */
+    protected static String jcaSignatureAlgorithm(SignatureRecord sign) throws PermFailException {
+        try {
+            HashMethod hashMethod = SignatureRecordImpl.checkAlgorithm(sign);
+            return SigningAlgorithm.RSA.asJdkSignatureAlgorithm(hashMethod);
+        } catch (IllegalStateException e) {
+            throw new PermFailException(e.getMessage(), sign, e);
+        }
+    }
 
     /**
      * Header fields are carried as Strings where each char is one raw octet

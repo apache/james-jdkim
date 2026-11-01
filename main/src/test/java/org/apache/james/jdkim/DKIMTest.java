@@ -662,4 +662,23 @@ public class DKIMTest {
                 .isInstanceOf(PermFailException.class);
         assertThat(verifier.getResults()).extracting(Result::getResultType).containsExactly(Result.Type.FAIL);
     }
+
+    @Test
+    public void signerShouldRejectAlgorithmsOutsideRfc6376() {
+        assertThatThrownBy(() -> new DKIMSigner("v=1; a=rsa-md5; c=simple; d=messiah.edu; h=from:subject; q=dns/txt; s=selector2;", TestKeys.privateKey)
+                .sign(new ByteArrayInputStream(SINGLE_FROM_MESSAGE.getBytes(StandardCharsets.US_ASCII))))
+                .hasMessageContaining("algorithm");
+    }
+
+    @Test
+    public void verifierShouldReportAlgorithmsOutsideRfc6376AsPermerror() {
+        String mail = "DKIM-Signature: v=1; a=rsa-md5; c=simple; d=messiah.edu; s=selector2; h=from:subject; bh=AAAA; b=AAAA\r\n"
+                + SINGLE_FROM_MESSAGE;
+
+        assertThatThrownBy(() -> verifier.verify(new ByteArrayInputStream(mail.getBytes(StandardCharsets.US_ASCII))))
+                .isInstanceOf(PermFailException.class)
+                .hasMessageContaining("algorithm");
+        assertThat(verifier.getResults()).extracting(Result::getResultType).containsExactly(Result.Type.PERMERROR);
+    }
+
 }

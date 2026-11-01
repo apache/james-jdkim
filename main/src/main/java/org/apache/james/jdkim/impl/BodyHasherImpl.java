@@ -31,6 +31,7 @@ import org.apache.james.jdkim.canon.LimitedOutputStream;
 import org.apache.james.jdkim.canon.RelaxedBodyCanonicalizer;
 import org.apache.james.jdkim.canon.SimpleBodyCanonicalizer;
 import org.apache.james.jdkim.exceptions.PermFailException;
+import org.apache.james.jdkim.tagvalue.SignatureRecordImpl;
 
 public class BodyHasherImpl implements BodyHasher {
 
@@ -42,7 +43,9 @@ public class BodyHasherImpl implements BodyHasher {
     public BodyHasherImpl(SignatureRecord sign) throws PermFailException {
         MessageDigest md;
         try {
-            md = MessageDigest.getInstance(sign.getHashAlgo().toString());
+            md = MessageDigest.getInstance(SignatureRecordImpl.checkAlgorithm(sign).asMessageDigestAlgorithm());
+        } catch (IllegalStateException e) {
+            throw new PermFailException(e.getMessage(), sign, e);
         } catch (NoSuchAlgorithmException e) {
             throw new PermFailException("Unsupported algorythm: "
                     + sign.getHashAlgo(), sign, e);
