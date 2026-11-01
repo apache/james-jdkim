@@ -557,7 +557,12 @@ public class DKIMVerifier {
     private Result resultFromException(String signatureField, FailException e) {
         SignatureRecord rec = e.getRelatedRecord();
         if (rec == null) {
-            rec = new SignatureRecordTemplate("v=1; d=invalid; h=from; s=invalid; b=invalidsig");
+            rec = new SignatureRecordTemplate("v=1; d=invalid; h=from; s=invalid; b=invalidsig") {
+                @Override
+                public void validate() {
+                    // placeholder for a failure without a parsed signature, not a record to check
+                }
+            };
         }
 
         Result.Type resultType = Result.Type.NONE;

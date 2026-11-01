@@ -22,9 +22,23 @@ package org.apache.james.jdkim.api;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.apache.james.jdkim.tagvalue.SignatureRecordImpl;
+import org.apache.james.jdkim.tagvalue.TagValue;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 public class ResultTest {
+
+    // the records below carry sender-controlled d= and s= values that strict validation would reject
+    @Before
+    public void disableStrictValidation() {
+        System.setProperty(TagValue.STRICT_VALIDATION_PROPERTY, "false");
+    }
+
+    @After
+    public void restoreStrictValidation() {
+        System.clearProperty(TagValue.STRICT_VALIDATION_PROPERTY);
+    }
 
     @Test
     public void headerTextShouldKeepTokensUnquoted() {

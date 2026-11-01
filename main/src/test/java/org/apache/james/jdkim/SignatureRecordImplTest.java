@@ -24,6 +24,7 @@ import org.apache.james.jdkim.tagvalue.SignatureRecordTemplate;
 import java.util.Locale;
 import org.apache.james.jdkim.api.SignatureRecord;
 import org.apache.james.jdkim.tagvalue.SignatureRecordImpl;
+import org.apache.james.jdkim.tagvalue.TagValue;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -309,5 +310,46 @@ public class SignatureRecordImplTest {
                 .isInstanceOf(IllegalStateException.class);
         // x= after t= stays valid
         new SignatureRecordImpl(base + "t=" + now + "; x=" + (now + 1000));
+    }
+
+    private static SignatureRecordImpl record(String d, String s) {
+        return new SignatureRecordImpl("v=1; a=rsa-sha256; c=relaxed/relaxed; d=" + d + "; s=" + s
+                + "; h=from:subject; bh=AAAA; b=AAAA");
+    }
+
+    private static final String LONG_LABEL = new String(new char[64]).replace('\0', 'a');
+    private static final String LONG_NAME = new String(new char[130]).replace("\0", "a.") + "com";
+
+    @Test
+    public void malformedSdidAndSelectorAreSyntaxErrors() {
+        for (String[] ds : new String[][] {
+                {"a.", "sel"}, {".example.com", "sel"}, {"example..com", "sel"}, {"com", "sel"},
+                {"-example.com", "sel"}, {"example-.com", "sel"}, {"m_ail.example.com", "sel"},
+                {LONG_LABEL + ".com", "sel"}, {LONG_NAME, "sel"},
+                {"example.com", "-sel"}, {"example.com", "sel."}, {"example.com", "a_b"},
+                {"example.com", "a b"}, {"example.com", LONG_LABEL}}) {
+            assertThatThrownBy(() -> record(ds[0], ds[1]))
+                    .as("d=%s s=%s", ds[0], ds[1])
+                    .isInstanceOf(IllegalStateException.class);
+        }
+    }
+
+    @Test
+    public void wellFormedSdidAndSelectorAreAccepted() {
+        record("example.com", "sel");
+        record("Mail.Example.COM", "sel-2024.a1");
+        record("123.example.com", "1");
+        record("xn--bcher-kva.example", "s");
+    }
+
+    @Test
+    public void malformedSdidAndSelectorAreAcceptedWithoutStrictValidation() {
+        System.setProperty(TagValue.STRICT_VALIDATION_PROPERTY, "false");
+        try {
+            record("example.com", "google_2024");
+            record("m_ail.example.com", "sel");
+        } finally {
+            System.clearProperty(TagValue.STRICT_VALIDATION_PROPERTY);
+        }
     }
 }

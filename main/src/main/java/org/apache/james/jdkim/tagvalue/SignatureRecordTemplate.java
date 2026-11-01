@@ -71,6 +71,7 @@ public class SignatureRecordTemplate extends TagValue implements SignatureRecord
         if (getValue("a") != null) {
             SignatureRecordImpl.checkAlgorithm(getValue("a"));
         }
+        SignatureRecordImpl.checkSdidAndSelector(getValue("d"), getValue("s"));
         // TODO: what about v=0.5 and no v= at all?
         // do specs allow parsing? what should we check?
         if (!"1".equals(getValue("v")))
