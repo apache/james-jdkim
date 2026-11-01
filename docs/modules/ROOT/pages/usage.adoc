@@ -256,6 +256,17 @@ DKIMVerifier verifier = new DKIMVerifier(new VerifierOptions.Builder()
     .build());
 ----
 
+[[strict-validation]]
+=== Strict syntax validation
+
+jDKIM rejects, as a syntax error (RFC 6376 sections 3.5, 3.6.1 and 6.1), tag
+values that do not follow the RFC grammar, such as a malformed `s=` list in a
+key record. A verifier stricter than the others may however reject real-world,
+slightly malformed signatures or keys. Start the JVM with
+`-Djames.jdkim.strict.validation=false` to disable these syntax checks. Checks
+with a semantic effect -- a key for another service (`s=chat`), an expired
+signature, an unsupported algorithm -- are always applied.
+
 == Applying several signatures
 
 Signing with more than one key lets you offer several algorithms on one

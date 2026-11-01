@@ -46,6 +46,10 @@ public class PublicKeyRecordImpl extends TagValue implements PublicKeyRecord {
     private static final Pattern hyphenatedWordPattern = Pattern
             .compile("^[a-zA-Z]([a-zA-Z0-9-]*[a-zA-Z0-9])?$");
 
+    // SPEC: key-s-tag-type = "email" / "*" / x-key-s-tag-type ; x-key-s-tag-type = hyphenated-word
+    private static final Pattern serviceTypePattern = Pattern
+            .compile("^(\\*|[a-zA-Z]([a-zA-Z0-9-]*[a-zA-Z0-9])?)$");
+
     public PublicKeyRecordImpl(String data) {
         super(data);
     }
@@ -83,6 +87,35 @@ public class PublicKeyRecordImpl extends TagValue implements PublicKeyRecord {
                     "Unknown version for v= (expected DKIM1): " + getValue("v"));
         if ("".equals(getValue("p")))
             throw new IllegalStateException("Revoked key. 'p=' in record");
+        if (isStrictValidation()) {
+            // a malformed s= is a key syntax error (RFC 6376 section 6.1.2)
+            getServiceTypes();
+        }
+    }
+
+    /**
+     * RFC 6376 section 3.6.1, s=: the service types the key may be used for.
+     *
+     * @return the listed types; with strict validation, an {@link IllegalStateException} on a malformed list
+     */
+    public List<CharSequence> getServiceTypes() {
+        String s = getValue("s").toString();
+        if (isStrictValidation()) {
+            return stringToColonSeparatedList(s, serviceTypePattern);
+        }
+        List<CharSequence> res = new ArrayList<>();
+        for (String type : s.split(":")) {
+            res.add(trimFWS(type, 0, type.length() - 1, true));
+        }
+        return res;
+    }
+
+    /**
+     * @see org.apache.james.jdkim.api.PublicKeyRecord#isServiceTypeSupported(java.lang.CharSequence)
+     */
+    public boolean isServiceTypeSupported(CharSequence serviceType) {
+        List<CharSequence> types = getServiceTypes();
+        return isInListCaseInsensitive("*", types) || isInListCaseInsensitive(serviceType, types);
     }
 
     /**

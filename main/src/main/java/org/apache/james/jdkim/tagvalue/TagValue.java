@@ -37,6 +37,20 @@ public class TagValue {
     private static final boolean DEBUG = false;
     protected static final boolean VALIDATION = true;
 
+    /**
+     * System property disabling the strict syntax checks of tag values (RFC 6376 section 3.5 and 3.6.1)
+     * when set to false: a verifier stricter than the others may reject real-world, slightly malformed records.
+     * Checks with a semantic effect are never disabled. Defaults to true.
+     */
+    public static final String STRICT_VALIDATION_PROPERTY = "james.jdkim.strict.validation";
+
+    /**
+     * @return whether the strict syntax checks are enabled, see {@link #STRICT_VALIDATION_PROPERTY}
+     */
+    public static boolean isStrictValidation() {
+        return !"false".equalsIgnoreCase(System.getProperty(STRICT_VALIDATION_PROPERTY, "true").trim());
+    }
+
     private static final Pattern tagPattern = Pattern
             .compile("^[A-Za-z][A-Za-z0-9_]*$");
     // RFC 6376 section 3.2: tval = 1*VALCHAR, VALCHAR = %x21-3A / %x3C-7E

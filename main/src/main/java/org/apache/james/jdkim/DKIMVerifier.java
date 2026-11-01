@@ -134,6 +134,11 @@ public class DKIMVerifier {
      */
     public static void apply(PublicKeyRecord pkr, SignatureRecord sign) throws PermFailException {
         try {
+            // RFC 6376 section 3.6.1: verifiers MUST ignore a key whose s= does not list their service type.
+            if (!pkr.isServiceTypeSupported("email")) {
+                throw new PermFailException("inapplicable key: service type (s=) does not include email", sign);
+            }
+
             if (!pkr.getGranularityPattern().matcher(sign.getIdentityLocalPart())
                     .matches()) {
                 throw new PermFailException("inapplicable key identity local="

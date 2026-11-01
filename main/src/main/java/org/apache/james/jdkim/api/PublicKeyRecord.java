@@ -34,6 +34,16 @@ public interface PublicKeyRecord {
     boolean isKeyTypeSupported(CharSequence hash);
 
     /**
+     * RFC 6376 section 3.6.1, s=: whether the key may be used for the given service type.
+     *
+     * @param serviceType a service type, such as "email"
+     * @return true if s= lists the type or "*"
+     */
+    default boolean isServiceTypeSupported(CharSequence serviceType) {
+        return true;
+    }
+
+    /**
      * @return null if "any", otherwise a list of supported methods
      */
     List<CharSequence> getAcceptableHashMethods();

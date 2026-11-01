@@ -23,7 +23,11 @@ import java.security.KeyPairGenerator;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.util.Base64;
 import org.apache.james.jdkim.api.PublicKeyRecord;
+import org.apache.james.jdkim.api.SignatureRecord;
+import org.apache.james.jdkim.exceptions.PermFailException;
 import org.apache.james.jdkim.tagvalue.PublicKeyRecordImpl;
+import org.apache.james.jdkim.tagvalue.SignatureRecordImpl;
+import org.apache.james.jdkim.tagvalue.TagValue;
 import org.junit.Assert;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -34,6 +38,7 @@ import org.junit.Test;
 import java.math.BigInteger;
 import java.security.PublicKey;
 import java.security.interfaces.RSAKey;
+import java.util.Collections;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -287,5 +292,58 @@ public class PublicKeyRecordTest {
                 .isInstanceOf(IllegalStateException.class);
         assertThatThrownBy(new PublicKeyRecordImpl("v=DKIM1; k=rsa; p=" + ec)::getPublicKey)
                 .isInstanceOf(IllegalStateException.class);
+    }
+
+    private static final String P = "MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBALgSoqXVSEmfcIsOzw7oRuCCOwsmtX/SJnTWxYyj2leFxfS/AVJ+dYfY+hXqMsT7l+MZvvh/R1WzN4MO/kI/7XsCAwEAAQ==";
+    private static final SignatureRecord SIGN = new SignatureRecordImpl(
+            "v=1; a=rsa-sha256; d=example.com; s=sel; h=from:to; bh=AAAA; b=AAAA");
+
+    private static void applyRecord(String record) throws PermFailException {
+        PublicKeyRecord pk = new DKIMVerifier().publicKeySelector(Collections.singletonList(record));
+        DKIMVerifier.apply(pk, SIGN);
+    }
+
+    @Test
+    public void keyRestrictedToAnotherServiceMustNotApplyToEmail() {
+        for (String s : new String[] {"chat", "web", "web:chat"}) {
+            try {
+                applyRecord("v=DKIM1; s=" + s + "; p=" + P);
+                fail("accepted s=" + s);
+            } catch (PermFailException expected) {
+            }
+        }
+    }
+
+    @Test(expected = PermFailException.class)
+    public void malformedServiceTypeListIsRejected() throws Exception {
+        applyRecord("s=:email; p=" + P);
+    }
+
+    @Test
+    public void malformedServiceTypeListIsAcceptedWithoutStrictValidation() throws Exception {
+        System.setProperty(TagValue.STRICT_VALIDATION_PROPERTY, "false");
+        try {
+            applyRecord("s=:email; p=" + P);
+        } finally {
+            System.clearProperty(TagValue.STRICT_VALIDATION_PROPERTY);
+        }
+    }
+
+    @Test(expected = PermFailException.class)
+    public void otherServiceIsRejectedWithoutStrictValidation() throws Exception {
+        System.setProperty(TagValue.STRICT_VALIDATION_PROPERTY, "false");
+        try {
+            applyRecord("s=chat; p=" + P);
+        } finally {
+            System.clearProperty(TagValue.STRICT_VALIDATION_PROPERTY);
+        }
+    }
+
+    @Test
+    public void emailAndWildcardServiceTypesApply() throws Exception {
+        applyRecord("p=" + P);
+        for (String s : new String[] {"*", "email", "web:email", "EMAIL", "email:web:fine", "web : email"}) {
+            applyRecord("s=" + s + "; p=" + P);
+        }
     }
 }
