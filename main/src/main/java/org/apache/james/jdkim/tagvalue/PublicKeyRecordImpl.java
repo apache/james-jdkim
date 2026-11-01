@@ -88,8 +88,11 @@ public class PublicKeyRecordImpl extends TagValue implements PublicKeyRecord {
         if ("".equals(getValue("p")))
             throw new IllegalStateException("Revoked key. 'p=' in record");
         if (isStrictValidation()) {
-            // a malformed s= is a key syntax error (RFC 6376 section 6.1.2)
+            // a malformed list is a key syntax error (RFC 6376 section 6.1.2)
             getServiceTypes();
+            getAcceptableHashMethods();
+            getAcceptableKeyTypes();
+            getFlags();
         }
     }
 
@@ -185,6 +188,10 @@ public class PublicKeyRecordImpl extends TagValue implements PublicKeyRecord {
 
     public List<CharSequence> getFlags() {
         String flags = getValue("t").toString();
+        if (isStrictValidation() && containsTag("t")) {
+            // SPEC: key-t-tag-flag *( [FWS] ":" [FWS] key-t-tag-flag ), each a hyphenated-word
+            return stringToColonSeparatedList(flags, hyphenatedWordPattern);
+        }
         String[] flagsStrings = flags.split(":");
         List<CharSequence> res = new ArrayList<>();
         for (String flagsString : flagsStrings) {

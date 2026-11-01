@@ -229,11 +229,22 @@ public class PublicKeyRecordTest {
         pkr.validate();
         flags = pkr.getFlags();
         assertEquals("[y]", flags.toString());
-        pkr = new PublicKeyRecordImpl(
-                "k=rsa; t=; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDIhyR3oItOy22ZOaBrIVe9m/iME3RqOJeasANSpg2YTHTYV+Xtp4xwf5gTjCmHQEMOs0qYu0FYiNQPQogJ2t0Mfx9zNu06rfRBDjiIU9tpx2T+NGlWZ8qhbiLo5By8apJavLyqTLavyPSrvsx0B3YzC63T4Age2CDqZYA+OwSMWQIDAQAB");
-        pkr.validate();
-        flags = pkr.getFlags();
-        assertEquals("[]", flags.toString());
+        // an empty t= is a key syntax error, accepted as no flag without strict validation
+        PublicKeyRecord emptyFlags = new PublicKeyRecordImpl("k=rsa; t=; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDIhyR3oItOy22ZOaBrIVe9m/iME3RqOJeasANSpg2YTHTYV+Xtp4xwf5gTjCmHQEMOs0qYu0FYiNQPQogJ2t0Mfx9zNu06rfRBDjiIU9tpx2T+NGlWZ8qhbiLo5By8apJavLyqTLavyPSrvsx0B3YzC63T4Age2CDqZYA+OwSMWQIDAQAB");
+        try {
+            emptyFlags.validate();
+            fail("empty t= accepted");
+        } catch (IllegalStateException expected) {
+        }
+        System.setProperty(TagValue.STRICT_VALIDATION_PROPERTY, "false");
+        try {
+            PublicKeyRecord lenient = new PublicKeyRecordImpl("k=rsa; t=; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDIhyR3oItOy22ZOaBrIVe9m/iME3RqOJeasANSpg2YTHTYV+Xtp4xwf5gTjCmHQEMOs0qYu0FYiNQPQogJ2t0Mfx9zNu06rfRBDjiIU9tpx2T+NGlWZ8qhbiLo5By8apJavLyqTLavyPSrvsx0B3YzC63T4Age2CDqZYA+OwSMWQIDAQAB");
+            lenient.validate();
+            List<CharSequence> noFlags = lenient.getFlags();
+            assertEquals("[]", noFlags.toString());
+        } finally {
+            System.clearProperty(TagValue.STRICT_VALIDATION_PROPERTY);
+        }
     }
 
     @Test
@@ -246,10 +257,21 @@ public class PublicKeyRecordTest {
                 "k=rsa; t=y; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDIhyR3oItOy22ZOaBrIVe9m/iME3RqOJeasANSpg2YTHTYV+Xtp4xwf5gTjCmHQEMOs0qYu0FYiNQPQogJ2t0Mfx9zNu06rfRBDjiIU9tpx2T+NGlWZ8qhbiLo5By8apJavLyqTLavyPSrvsx0B3YzC63T4Age2CDqZYA+OwSMWQIDAQAB");
         pkr.validate();
         assertTrue(pkr.isTesting());
-        pkr = new PublicKeyRecordImpl(
-                "k=rsa; t=; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDIhyR3oItOy22ZOaBrIVe9m/iME3RqOJeasANSpg2YTHTYV+Xtp4xwf5gTjCmHQEMOs0qYu0FYiNQPQogJ2t0Mfx9zNu06rfRBDjiIU9tpx2T+NGlWZ8qhbiLo5By8apJavLyqTLavyPSrvsx0B3YzC63T4Age2CDqZYA+OwSMWQIDAQAB");
-        pkr.validate();
-        assertFalse(pkr.isTesting());
+        // an empty t= is a key syntax error, accepted as no flag without strict validation
+        PublicKeyRecord emptyFlags = new PublicKeyRecordImpl("k=rsa; t=; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDIhyR3oItOy22ZOaBrIVe9m/iME3RqOJeasANSpg2YTHTYV+Xtp4xwf5gTjCmHQEMOs0qYu0FYiNQPQogJ2t0Mfx9zNu06rfRBDjiIU9tpx2T+NGlWZ8qhbiLo5By8apJavLyqTLavyPSrvsx0B3YzC63T4Age2CDqZYA+OwSMWQIDAQAB");
+        try {
+            emptyFlags.validate();
+            fail("empty t= accepted");
+        } catch (IllegalStateException expected) {
+        }
+        System.setProperty(TagValue.STRICT_VALIDATION_PROPERTY, "false");
+        try {
+            PublicKeyRecord lenient = new PublicKeyRecordImpl("k=rsa; t=; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDIhyR3oItOy22ZOaBrIVe9m/iME3RqOJeasANSpg2YTHTYV+Xtp4xwf5gTjCmHQEMOs0qYu0FYiNQPQogJ2t0Mfx9zNu06rfRBDjiIU9tpx2T+NGlWZ8qhbiLo5By8apJavLyqTLavyPSrvsx0B3YzC63T4Age2CDqZYA+OwSMWQIDAQAB");
+            lenient.validate();
+            assertFalse(lenient.isTesting());
+        } finally {
+            System.clearProperty(TagValue.STRICT_VALIDATION_PROPERTY);
+        }
     }
 
     @Test
@@ -262,10 +284,21 @@ public class PublicKeyRecordTest {
                 "k=rsa; t=y; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDIhyR3oItOy22ZOaBrIVe9m/iME3RqOJeasANSpg2YTHTYV+Xtp4xwf5gTjCmHQEMOs0qYu0FYiNQPQogJ2t0Mfx9zNu06rfRBDjiIU9tpx2T+NGlWZ8qhbiLo5By8apJavLyqTLavyPSrvsx0B3YzC63T4Age2CDqZYA+OwSMWQIDAQAB");
         pkr.validate();
         assertFalse(pkr.isDenySubdomains());
-        pkr = new PublicKeyRecordImpl(
-                "k=rsa; t=; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDIhyR3oItOy22ZOaBrIVe9m/iME3RqOJeasANSpg2YTHTYV+Xtp4xwf5gTjCmHQEMOs0qYu0FYiNQPQogJ2t0Mfx9zNu06rfRBDjiIU9tpx2T+NGlWZ8qhbiLo5By8apJavLyqTLavyPSrvsx0B3YzC63T4Age2CDqZYA+OwSMWQIDAQAB");
-        pkr.validate();
-        assertFalse(pkr.isDenySubdomains());
+        // an empty t= is a key syntax error, accepted as no flag without strict validation
+        PublicKeyRecord emptyFlags = new PublicKeyRecordImpl("k=rsa; t=; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDIhyR3oItOy22ZOaBrIVe9m/iME3RqOJeasANSpg2YTHTYV+Xtp4xwf5gTjCmHQEMOs0qYu0FYiNQPQogJ2t0Mfx9zNu06rfRBDjiIU9tpx2T+NGlWZ8qhbiLo5By8apJavLyqTLavyPSrvsx0B3YzC63T4Age2CDqZYA+OwSMWQIDAQAB");
+        try {
+            emptyFlags.validate();
+            fail("empty t= accepted");
+        } catch (IllegalStateException expected) {
+        }
+        System.setProperty(TagValue.STRICT_VALIDATION_PROPERTY, "false");
+        try {
+            PublicKeyRecord lenient = new PublicKeyRecordImpl("k=rsa; t=; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDIhyR3oItOy22ZOaBrIVe9m/iME3RqOJeasANSpg2YTHTYV+Xtp4xwf5gTjCmHQEMOs0qYu0FYiNQPQogJ2t0Mfx9zNu06rfRBDjiIU9tpx2T+NGlWZ8qhbiLo5By8apJavLyqTLavyPSrvsx0B3YzC63T4Age2CDqZYA+OwSMWQIDAQAB");
+            lenient.validate();
+            assertFalse(lenient.isDenySubdomains());
+        } finally {
+            System.clearProperty(TagValue.STRICT_VALIDATION_PROPERTY);
+        }
     }
 
     @Test
@@ -344,6 +377,65 @@ public class PublicKeyRecordTest {
         applyRecord("p=" + P);
         for (String s : new String[] {"*", "email", "web:email", "EMAIL", "email:web:fine", "web : email"}) {
             applyRecord("s=" + s + "; p=" + P);
+        }
+    }
+
+    private static final SignatureRecord SHA1_SIGN = new SignatureRecordImpl(
+            "v=1; a=rsa-sha1; d=example.com; s=sel; h=from:to; bh=AAAA; b=AAAA");
+
+    private static final String[] MALFORMED_LIST_RECORDS = {
+            "t=; p=" + P,
+            "p=" + P + "; h=sha256:sha1:",
+            "p=" + P + "; h=",
+            "p=" + P + "; k=rsa:",
+            "p=" + P + "; t=y:"};
+
+    @Test
+    public void malformedListTagsMakeTheKeyInapplicable() {
+        for (String record : MALFORMED_LIST_RECORDS) {
+            try {
+                PublicKeyRecord pk = new DKIMVerifier().publicKeySelector(Collections.singletonList(record));
+                DKIMVerifier.apply(pk, SHA1_SIGN);
+                fail("accepted: " + record);
+            } catch (PermFailException expected) {
+            }
+        }
+    }
+
+    @Test
+    public void malformedListTagsAreAcceptedWithoutStrictValidation() throws Exception {
+        System.setProperty(TagValue.STRICT_VALIDATION_PROPERTY, "false");
+        try {
+            for (String record : MALFORMED_LIST_RECORDS) {
+                if (record.contains("h=;") || record.endsWith("h=")) {
+                    continue;
+                }
+                DKIMVerifier.apply(new DKIMVerifier().publicKeySelector(Collections.singletonList(record)), SHA1_SIGN);
+            }
+        } finally {
+            System.clearProperty(TagValue.STRICT_VALIDATION_PROPERTY);
+        }
+    }
+
+    @Test
+    public void wellFormedListTagsStillApply() throws Exception {
+        for (String record : new String[] {
+                "p=" + P + "; h=sha256 : sha1",
+                "p=" + P + "; h=sha512:sha1",
+                "p=" + P + "; k=rsa",
+                "p=" + P + "; t = y:n:extra"}) {
+            DKIMVerifier.apply(new DKIMVerifier().publicKeySelector(Collections.singletonList(record)), SHA1_SIGN);
+        }
+    }
+
+    @Test(expected = PermFailException.class)
+    public void hashRestrictionStillAppliesWithATrailingColon() throws Exception {
+        System.setProperty(TagValue.STRICT_VALIDATION_PROPERTY, "false");
+        try {
+            DKIMVerifier.apply(new DKIMVerifier().publicKeySelector(
+                    Collections.singletonList("p=" + P + "; h=sha256:")), SHA1_SIGN);
+        } finally {
+            System.clearProperty(TagValue.STRICT_VALIDATION_PROPERTY);
         }
     }
 }

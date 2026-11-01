@@ -291,6 +291,10 @@ public class TagValue {
 
     protected List<CharSequence> stringToColonSeparatedList(String h, Pattern pattern) {
         List<CharSequence> headers = new ArrayList<>();
+        // SPEC: entry *( [FWS] ":" [FWS] entry ): neither an empty list nor a trailing ":"
+        if (isStrictValidation() && h.trim().matches("(?s)|.*:")) {
+            throw new IllegalStateException("Syntax error in list: empty entry in [" + h + "]");
+        }
         for (int i = 0; i < h.length(); i++) {
             int p = h.indexOf(':', i);
             if (p == -1)
