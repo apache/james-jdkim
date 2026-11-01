@@ -48,6 +48,8 @@ public class CompoundOutputStream extends OutputStream {
     }
 
     public void write(int b) throws IOException {
+        // OutputStream#write(int): the 24 high-order bits are ignored
+        b &= 0xFF;
         for (OutputStream outputStream : outputStreams) outputStream.write(b);
     }
 

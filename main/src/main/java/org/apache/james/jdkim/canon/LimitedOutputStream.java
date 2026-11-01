@@ -55,6 +55,8 @@ public class LimitedOutputStream extends FilterOutputStream {
     }
 
     public void write(int b) throws IOException {
+        // OutputStream#write(int): the 24 high-order bits are ignored
+        b &= 0xFF;
         if (computedBytes < limit) {
             out.write(b);
             computedBytes++;

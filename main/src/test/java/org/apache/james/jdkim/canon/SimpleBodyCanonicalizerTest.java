@@ -155,4 +155,14 @@ public class SimpleBodyCanonicalizerTest extends AbstractOutputStreamTestCase {
         extensiveChunker("\r\n\r\r".getBytes(), "\r\n\r\r\r\n".getBytes());
         extensiveChunker("a\r\n\r\nb\r\r\n\r\n".getBytes(), "a\r\n\r\nb\r\r\n".getBytes());
     }
+
+    public void testWriteIntIgnoresHighBits() throws IOException {
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        SimpleBodyCanonicalizer os = new SimpleBodyCanonicalizer(bos);
+        for (byte b : "x\r\n\r\n\r\n".getBytes()) {
+            os.write(b | 0x100); // OutputStream#write(int): the 24 high-order bits are ignored
+        }
+        os.close();
+        assertArrayEquals("x\r\n".getBytes(), bos.toByteArray());
+    }
 }

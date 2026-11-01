@@ -63,6 +63,8 @@ public class RelaxedBodyCanonicalizer extends FilterOutputStream {
     }
 
     public void write(int b) throws IOException {
+        // OutputStream#write(int): the 24 high-order bits are ignored
+        b &= 0xFF;
         if (pendingCR) {
             pendingCR = false;
             if (b == '\n') {

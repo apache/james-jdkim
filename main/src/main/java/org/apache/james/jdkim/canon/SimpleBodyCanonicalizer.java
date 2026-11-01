@@ -76,6 +76,8 @@ public class SimpleBodyCanonicalizer extends FilterOutputStream {
     }
 
     public void write(int b) throws IOException {
+        // OutputStream#write(int): the 24 high-order bits are ignored
+        b &= 0xFF;
         if (DEEP_DEBUG)
             System.out.println("B:(" + lastWasCR + "|" + countCRLF + ") [" + (char) b + "]");
         if (lastWasCR) {

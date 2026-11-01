@@ -91,4 +91,14 @@ public class RelaxedBodyCanonicalizerTest extends AbstractOutputStreamTestCase {
         os.close();
         extensiveChunker(body, bytes.toByteArray());
     }
+
+    public void testWriteIntIgnoresHighBits() throws IOException {
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        RelaxedBodyCanonicalizer os = new RelaxedBodyCanonicalizer(bos);
+        for (byte b : "a  b\r\n".getBytes()) {
+            os.write(b | 0x100); // OutputStream#write(int): the 24 high-order bits are ignored
+        }
+        os.close();
+        assertArrayEquals("a b\r\n".getBytes(), bos.toByteArray());
+    }
 }

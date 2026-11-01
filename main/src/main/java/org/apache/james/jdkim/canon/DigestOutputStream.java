@@ -42,6 +42,8 @@ public class DigestOutputStream extends FilterOutputStream {
     }
 
     public void write(int arg0) throws IOException {
+        // OutputStream#write(int): the 24 high-order bits are ignored
+        arg0 &= 0xFF;
         md.update((byte) arg0);
         if (out != null)
             out.write(arg0);
