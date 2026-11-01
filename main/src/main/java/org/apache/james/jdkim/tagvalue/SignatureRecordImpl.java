@@ -108,6 +108,35 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
         }
     }
 
+    // SPEC (RFC 5321): Dot-string = Atom *("." Atom) ; Quoted-string = DQUOTE *QcontentSMTP DQUOTE,
+    // with the non-ASCII characters RFC 6531 adds to atext and qtextSMTP
+    private static final String ATEXT = "[A-Za-z0-9!#$%&'*+/=?^_`{|}~\\u0080-\\uFFFF-]+";
+    private static final Pattern LOCAL_PART = Pattern.compile(
+            "|" + ATEXT + "(?:\\." + ATEXT + ")*|\"(?:[\\x20\\x21\\x23-\\x5B\\x5D-\\x7E\\u0080-\\uFFFF]|\\\\[\\x20-\\x7E])*\"");
+
+    /**
+     * RFC 6376 section 3.5: checks the decoded i= value as [ Local-part ] "@" domain-name.
+     * Only with strict validation, see {@link TagValue#isStrictValidation()}.
+     *
+     * @throws IllegalStateException if it is not
+     */
+    static void checkIdentity(CharSequence identity) {
+        if (!isStrictValidation()) {
+            return;
+        }
+        String value = identity.toString();
+        int at = value.lastIndexOf('@');
+        if (at == -1) {
+            throw new IllegalStateException("Invalid i= [" + value + "]: no @");
+        }
+        String localPart = value.substring(0, at);
+        if (!LOCAL_PART.matcher(localPart).matches()) {
+            throw new IllegalStateException("Invalid i= [" + value + "]: the local part is neither a Dot-string"
+                    + " nor a Quoted-string (RFC 5321)");
+        }
+        checkDomainName("i= domain", value.substring(at + 1), 2);
+    }
+
     /**
      * Checks the a= value of a signature record, see {@link #checkAlgorithm(CharSequence)}.
      *
@@ -181,6 +210,8 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
         if (getValue("x") != null && timestampPattern.matcher(getValue("x")).matches() && getValue("t") != null
                 && Long.parseLong(getValue("x").toString()) <= Long.parseLong(getValue("t").toString()))
             throw new IllegalStateException("Signature expiration (x=) must be greater than its timestamp (t=)");
+
+        checkIdentity(identity);
 
         // when "x=" exists and signature expired then return PERMFAIL
         // (signature expired)

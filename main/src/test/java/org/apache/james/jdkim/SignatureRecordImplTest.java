@@ -352,4 +352,38 @@ public class SignatureRecordImplTest {
             System.clearProperty(TagValue.STRICT_VALIDATION_PROPERTY);
         }
     }
+
+    private static SignatureRecordImpl recordWithIdentity(String i) {
+        return new SignatureRecordImpl("v=1; a=rsa-sha256; c=relaxed/relaxed; d=example.com; s=sel;"
+                + " h=from:subject; i=" + i + "; bh=AAAA; b=AAAA");
+    }
+
+    @Test
+    public void malformedIdentityIsASyntaxError() {
+        for (String i : new String[] {
+                "\"j=20oe\"@-a.example.com", "x@sub..example.com", "x@.example.com",
+                "\"a\"b@sub.example.com", "a..b@example.com", ".a@example.com", "a.@example.com"}) {
+            assertThatThrownBy(() -> recordWithIdentity(i)).as("i=%s", i)
+                    .isInstanceOf(IllegalStateException.class);
+        }
+    }
+
+    @Test
+    public void wellFormedIdentityIsAccepted() {
+        recordWithIdentity("@example.com");
+        recordWithIdentity("joe@example.com");
+        recordWithIdentity("j.o-e+tag@sub.Example.COM");
+        recordWithIdentity("\"j=20oe\"@sub.example.com");
+        new SignatureRecordImpl("v=1; a=rsa-sha256; d=example.com; s=sel; h=from; bh=AAAA; b=AAAA");
+    }
+
+    @Test
+    public void malformedIdentityIsAcceptedWithoutStrictValidation() {
+        System.setProperty(TagValue.STRICT_VALIDATION_PROPERTY, "false");
+        try {
+            recordWithIdentity("a..b@example.com");
+        } finally {
+            System.clearProperty(TagValue.STRICT_VALIDATION_PROPERTY);
+        }
+    }
 }

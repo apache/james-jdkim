@@ -104,6 +104,8 @@ public class SignatureRecordTemplate extends TagValue implements SignatureRecord
                 && Long.parseLong(getValue("x").toString()) <= Long.parseLong(getValue("t").toString()))
             throw new IllegalStateException("Signature expiration (x=) must be greater than its timestamp (t=)");
 
+        SignatureRecordImpl.checkIdentity(identity);
+
         // when "x=" exists and signature expired then return PERMFAIL
         // (signature expired)
         if (getValue("x") != null) {
