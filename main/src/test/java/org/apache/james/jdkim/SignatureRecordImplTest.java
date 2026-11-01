@@ -418,4 +418,35 @@ public class SignatureRecordImplTest {
             System.clearProperty(TagValue.STRICT_VALIDATION_PROPERTY);
         }
     }
+
+    private static SignatureRecordImpl recordWithCopiedFields(String z) {
+        return new SignatureRecordImpl("v=1; a=rsa-sha256; c=relaxed/relaxed; d=example.com; s=sel;"
+                + " h=from:subject; z=" + z + "; bh=AAAA; b=AAAA");
+    }
+
+    @Test
+    public void malformedCopiedFieldsAreASyntaxError() {
+        for (String z : new String[] {"|", "||", "|\r\n |", "From:a|", "From", "|From:a", ":a"}) {
+            assertThatThrownBy(() -> recordWithCopiedFields(z)).as("z=%s", z)
+                    .isInstanceOf(IllegalStateException.class);
+        }
+    }
+
+    @Test
+    public void wellFormedCopiedFieldsAreAccepted() {
+        recordWithCopiedFields("From:foo@example.com|Subject:demo=20run");
+        recordWithCopiedFields("From: foo@example.com");
+        recordWithCopiedFields("To:");
+        recordWithCopiedFields("From:foo@example.com|\r\n To:bar@example.com");
+    }
+
+    @Test
+    public void malformedCopiedFieldsAreAcceptedWithoutStrictValidation() {
+        System.setProperty(TagValue.STRICT_VALIDATION_PROPERTY, "false");
+        try {
+            recordWithCopiedFields("||");
+        } finally {
+            System.clearProperty(TagValue.STRICT_VALIDATION_PROPERTY);
+        }
+    }
 }

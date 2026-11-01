@@ -73,6 +73,9 @@ public class SignatureRecordTemplate extends TagValue implements SignatureRecord
         }
         SignatureRecordImpl.checkSdidAndSelector(getValue("d"), getValue("s"));
         getRecordLookupMethods();
+        if (getValue("z") != null) {
+            SignatureRecordImpl.checkCopiedHeaderFields(getValue("z"));
+        }
         // TODO: what about v=0.5 and no v= at all?
         // do specs allow parsing? what should we check?
         if (!"1".equals(getValue("v")))

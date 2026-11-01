@@ -142,6 +142,29 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
     static final Pattern QUERY_METHOD = Pattern.compile(
             "[A-Za-z](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:/(?:[\\x21-\\x3A\\x3C\\x3E-\\x7B\\x7D\\x7E]|=[0-9A-F]{2})*)?");
 
+    // SPEC: sig-z-tag-copy = hdr-name [FWS] ":" qp-hdr-value ; hdr-name = 1*ftext (%d33-57 / %d59-126)
+    private static final Pattern COPIED_HEADER_FIELD = Pattern.compile(
+            "[\\x21-\\x39\\x3B-\\x7E]+[ \\t\\r\\n]*:(?:[\\x21-\\x3A\\x3C\\x3E-\\x7B\\x7D\\x7E]|=[0-9A-F]{2}|[ \\t\\r\\n])*");
+
+    /**
+     * RFC 6376 section 3.5: checks z= as sig-z-tag-copy *( "|" [FWS] sig-z-tag-copy ).
+     * Only with strict validation, see {@link TagValue#isStrictValidation()}.
+     *
+     * @throws IllegalStateException if it is not
+     */
+    static void checkCopiedHeaderFields(CharSequence z) {
+        if (!isStrictValidation()) {
+            return;
+        }
+        for (String copy : z.toString().split("\\|", -1)) {
+            String trimmed = copy.replaceFirst("^[ \\t\\r\\n]+", "");
+            if (!COPIED_HEADER_FIELD.matcher(trimmed).matches()) {
+                throw new IllegalStateException("Invalid z= [" + z + "]: copy [" + copy
+                        + "] is not hdr-name [FWS] \":\" qp-hdr-value (RFC 6376 section 3.5)");
+            }
+        }
+    }
+
     /**
      * Checks the a= value of a signature record, see {@link #checkAlgorithm(CharSequence)}.
      *
@@ -194,6 +217,9 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
         checkAlgorithm(getValue("a"));
         checkSdidAndSelector(getValue("d"), getValue("s"));
         getRecordLookupMethods();
+        if (getValue("z") != null) {
+            checkCopiedHeaderFields(getValue("z"));
+        }
 
         CharSequence identity;
         try {
