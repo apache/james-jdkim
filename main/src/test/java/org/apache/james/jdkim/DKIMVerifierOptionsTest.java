@@ -33,6 +33,7 @@ import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 
 import static org.junit.Assert.assertEquals;
@@ -139,8 +140,7 @@ public class DKIMVerifierOptionsTest {
     public void shouldRejectUnsignedDuplicateFieldsByDefault() {
         VerifierOptions opt = new VerifierOptions.Builder().build();
         assertEquals(UnsignedDuplicateFieldPolicy.REJECT, opt.getUnsignedDuplicateFieldPolicy());
-        assertEquals(new LinkedHashSet<>(Arrays.asList("from", "sender", "reply-to", "to", "cc", "bcc", "subject",
-                "date", "message-id", "in-reply-to", "references")), opt.getSingleInstanceFields());
+        assertEquals(Collections.singleton("from"), opt.getSingleInstanceFields());
     }
 
     @Test

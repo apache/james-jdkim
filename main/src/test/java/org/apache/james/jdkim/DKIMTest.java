@@ -603,10 +603,25 @@ public class DKIMTest {
         String signature = signer.sign(new ByteArrayInputStream(message.getBytes(StandardCharsets.US_ASCII)));
         String replayed = "Reply-To: someone-else@example.net\r\n" + signature + "\r\n" + message;
 
-        assertThatThrownBy(() -> verifier.verify(new ByteArrayInputStream(replayed.getBytes(StandardCharsets.US_ASCII))))
+        DKIMVerifier rfc5322Verifier = new DKIMVerifier(new VerifierOptions.Builder()
+                .withPublicKeyRecordRetriever(keyRecordRetriever)
+                .withSingleInstanceFields(VerifierOptions.RFC_5322_SINGLE_INSTANCE_FIELDS)
+                .build());
+
+        assertThatThrownBy(() -> rfc5322Verifier.verify(new ByteArrayInputStream(replayed.getBytes(StandardCharsets.US_ASCII))))
                 .isInstanceOf(FailException.class)
                 .hasMessageContaining("2 reply-to fields");
-        assertThat(verifier.hasAnyValidSignature()).isFalse();
+        assertThat(rfc5322Verifier.hasAnyValidSignature()).isFalse();
+    }
+
+    @Test
+    public void duplicatedToFieldSignedOnceShouldPassByDefault() throws Exception {
+        String message = "From: alice@messiah.edu\r\nTo: bob@messiah.edu\r\nTo: carol@messiah.edu\r\nSubject: hello\r\n\r\nbody\r\n";
+        DKIMSigner signer = new DKIMSigner("v=1; a=rsa-sha256; c=simple; d=messiah.edu; h=from:to:subject; q=dns/txt; s=selector2;", TestKeys.privateKey);
+        String signature = signer.sign(new ByteArrayInputStream(message.getBytes(StandardCharsets.US_ASCII)));
+        String signed = signature + "\r\n" + message;
+
+        assertThat(verifier.verify(new ByteArrayInputStream(signed.getBytes(StandardCharsets.US_ASCII)))).hasSize(1);
     }
 
     @Test
