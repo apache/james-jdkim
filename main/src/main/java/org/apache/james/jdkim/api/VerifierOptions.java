@@ -53,10 +53,17 @@ public class VerifierOptions {
     public static final String UNSIGNED_DUPLICATE_FIELD_POLICY_PROPERTY = "james.dkim.unsigned-duplicate-field.policy";
     private static final UnsignedDuplicateFieldPolicy DEFAULT_UNSIGNED_DUPLICATE_FIELD_POLICY = UnsignedDuplicateFieldPolicy.REJECT;
     /**
-     * Default of {@link Builder#withSingleInstanceFields(Collection)}: the fields RFC 5322 section 3.6 allows once.
+     * The fields RFC 5322 section 3.6 allows once, for {@link Builder#withSingleInstanceFields(Collection)}.
+     * Real-world mail often duplicates some of them (To, Cc, References...) and a signature leaving the
+     * extra instance unsigned is still valid under RFC 6376: rejecting it refuses legitimate mail.
      */
-    public static final Set<String> DEFAULT_SINGLE_INSTANCE_FIELDS = Collections.unmodifiableSet(new LinkedHashSet<>(Arrays.asList(
+    public static final Set<String> RFC_5322_SINGLE_INSTANCE_FIELDS = Collections.unmodifiableSet(new LinkedHashSet<>(Arrays.asList(
             "from", "sender", "reply-to", "to", "cc", "bcc", "subject", "date", "message-id", "in-reply-to", "references")));
+    /**
+     * Default of {@link Builder#withSingleInstanceFields(Collection)}: From, the field RFC 6376 section 8.15
+     * is about and the one DMARC relies on.
+     */
+    public static final Set<String> DEFAULT_SINGLE_INSTANCE_FIELDS = Collections.singleton("from");
 
     private final Duration clockDriftTolerance;
     private final int maxSignatures;
@@ -161,7 +168,8 @@ public class VerifierOptions {
         /**
          * Sets the names of the fields expected once per message, checked by
          * {@link #withUnsignedDuplicateFieldPolicy(UnsignedDuplicateFieldPolicy)}. Case-insensitive.
-         * Defaults to the fields RFC 5322 section 3.6 allows once ({@link #DEFAULT_SINGLE_INSTANCE_FIELDS}).
+         * Defaults to From only ({@link #DEFAULT_SINGLE_INSTANCE_FIELDS}): {@link #RFC_5322_SINGLE_INSTANCE_FIELDS}
+         * checks every field RFC 5322 allows once, at the cost of failing legitimate mail duplicating one of them.
          *
          * @param singleInstanceFields field names
          * @return {@link Builder}

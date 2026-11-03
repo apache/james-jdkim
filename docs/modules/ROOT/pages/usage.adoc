@@ -250,10 +250,14 @@ Defaults to the `james.dkim.unsigned-duplicate-field.policy` system property, or
 than it appears (`h=from:from`).
 
 `withSingleInstanceFields(Collection<String>)`::
-The field names checked by the policy above, case-insensitive. Defaults to the
-fields https://datatracker.ietf.org/doc/html/rfc5322#section-3.6[RFC 5322 section 3.6]
-allows once: `from`, `sender`, `reply-to`, `to`, `cc`, `bcc`, `subject`, `date`,
-`message-id`, `in-reply-to`, `references`.
+The field names checked by the policy above, case-insensitive. Defaults to
+`from` only, the field RFC 6376 section 8.15 is about.
+`VerifierOptions.RFC_5322_SINGLE_INSTANCE_FIELDS` holds every field
+https://datatracker.ietf.org/doc/html/rfc5322#section-3.6[RFC 5322 section 3.6]
+allows once (`from`, `sender`, `reply-to`, `to`, `cc`, `bcc`, `subject`, `date`,
+`message-id`, `in-reply-to`, `references`): real-world mail sometimes duplicates
+`To:`, `Cc:` or `References:`, and such a signature is valid under RFC 6376, so
+rejecting it with this list refuses legitimate mail.
 
 `withDnsResolver(Resolver)`::
 A dnsjava `Resolver` to query instead of the system default -- useful to point
