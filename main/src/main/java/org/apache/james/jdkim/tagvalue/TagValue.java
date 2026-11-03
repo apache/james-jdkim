@@ -53,9 +53,11 @@ public class TagValue {
 
     private static final Pattern tagPattern = Pattern
             .compile("^[A-Za-z][A-Za-z0-9_]*$");
-    // RFC 6376 section 3.2: tval = 1*VALCHAR, VALCHAR = %x21-3A / %x3C-7E
+    // RFC 6376 section 3.2: tval = 1*VALCHAR, VALCHAR = %x21-3A / %x3C-7E, plus the UTF8-non-ascii
+    // octets RFC 8616 section 4 allows in i= and z= for internationalized mail (header octets are read as
+    // ISO-8859-1, so they arrive as U+0080 to U+00FF; the header hashing rejects anything above).
     // Use possessive matching to avoid heavy stack usage
-    private static final String tval = "[\\x21-\\x3a\\x3c-\\x7e]++";
+    private static final String tval = "[\\x21-\\x3a\\x3c-\\x7e\\u0080-\\uffff]++";
     // validate value chars
     // Use possessive matching to avoid heavy stack usage
     private static final Pattern valuePattern = Pattern.compile("^(?:" + tval

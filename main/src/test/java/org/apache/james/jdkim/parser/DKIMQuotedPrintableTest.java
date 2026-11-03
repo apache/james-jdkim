@@ -99,13 +99,17 @@ public class DKIMQuotedPrintableTest {
         assertEquals("smiling face ØÞ with heart eyes", DKIMQuotedPrintable.dkimQuotedPrintableDecode("smiling=20face=20=D8=DE=20with=20heart=20eyes"));
     }
 
-    // TODO UTF-8 see https://datatracker.ietf.org/doc/html/rfc6376#section-3.2
+    @Test
+    public void utf8OctetsShouldBeKeptAsSafeChars() {
+        // RFC 8616 section 4: dkim-safe-char =/ UTF8-non-ascii
+        assertEquals("j\u00c3\u00a9r\u00c3\u00b4me x", DKIMQuotedPrintable.dkimQuotedPrintableDecode("j\u00c3\u00a9r\u00c3\u00b4me=20x"));
+    }
 
     @Test
     public void unsafeCharactersAndBareLineBreaksShouldBeRejected() {
         assertThatThrownBy(() -> DKIMQuotedPrintable.dkimQuotedPrintableDecode("\u001d"))
                 .isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> DKIMQuotedPrintable.dkimQuotedPrintableDecode("\u00e9"))
+        assertThatThrownBy(() -> DKIMQuotedPrintable.dkimQuotedPrintableDecode("\u007f"))
                 .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> DKIMQuotedPrintable.dkimQuotedPrintableDecode("a\n b"))
                 .isInstanceOf(IllegalArgumentException.class);

@@ -615,6 +615,21 @@ public class DKIMTest {
     }
 
     @Test
+    public void eaiSignatureWithUtf8IdentityAndCopiedFieldsShouldPass() throws Exception {
+        // RFC 8616 section 4: raw UTF-8 in i= and z=, here "j\u00e9r\u00f4me" whose octets read as ISO-8859-1
+        String local = "j\u00c3\u00a9r\u00c3\u00b4me";
+        String message = "From: " + local + "@messiah.edu\r\nSubject: hello\r\n\r\nbody\r\n";
+        DKIMSigner signer = new DKIMSigner("v=1; a=rsa-sha256; c=relaxed; d=messiah.edu; h=from:subject; q=dns/txt; s=selector2;"
+                + " i=" + local + "@messiah.edu; z=From:" + local + "@messiah.edu;", TestKeys.privateKey);
+        String signature = signer.sign(new ByteArrayInputStream(message.getBytes(StandardCharsets.ISO_8859_1)));
+        String signed = signature + "\r\n" + message;
+
+        assertThat(verifier.verify(new ByteArrayInputStream(signed.getBytes(StandardCharsets.ISO_8859_1)))).hasSize(1);
+        assertThat(verifier.getResults()).singleElement()
+                .satisfies(r -> assertThat(r.getResultType()).isEqualTo(Result.Type.PASS));
+    }
+
+    @Test
     public void duplicatedToFieldSignedOnceShouldPassByDefault() throws Exception {
         String message = "From: alice@messiah.edu\r\nTo: bob@messiah.edu\r\nTo: carol@messiah.edu\r\nSubject: hello\r\n\r\nbody\r\n";
         DKIMSigner signer = new DKIMSigner("v=1; a=rsa-sha256; c=simple; d=messiah.edu; h=from:to:subject; q=dns/txt; s=selector2;", TestKeys.privateKey);

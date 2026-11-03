@@ -22,6 +22,7 @@ package org.apache.james.jdkim.tagvalue;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import org.junit.Assert;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
 import org.junit.Test;
 
 import java.util.Set;
@@ -197,8 +198,13 @@ public class TagValueTest {
     @Test
     public void valuesOutsideValcharShouldBeRejected() {
         assertThatThrownBy(() -> new TagValue("a=\u000b")).isInstanceOf(IllegalStateException.class);
-        assertThatThrownBy(() -> new TagValue("a=\u0090")).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> new TagValue("a=\u007f")).isInstanceOf(IllegalStateException.class);
         assertThatThrownBy(() -> new TagValue("a=b\u0000c")).isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    public void utf8OctetsShouldBeAccepted() {
+        assertEquals("j\u00c3\u00a9r\u00c3\u00b4me", new TagValue("a=j\u00c3\u00a9r\u00c3\u00b4me").getValue("a").toString());
     }
 
     @Test
