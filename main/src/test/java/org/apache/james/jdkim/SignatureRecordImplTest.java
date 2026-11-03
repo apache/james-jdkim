@@ -449,4 +449,21 @@ public class SignatureRecordImplTest {
             System.clearProperty(TagValue.STRICT_VALIDATION_PROPERTY);
         }
     }
+
+    private static String repeat(String s, int times) {
+        StringBuilder sb = new StringBuilder(s.length() * times);
+        for (int k = 0; k < times; k++) {
+            sb.append(s);
+        }
+        return sb.toString();
+    }
+
+    @Test
+    public void longValuesDoNotOverflowTheStack() {
+        recordWithCopiedFields("Subject:" + repeat("a=20", 16384));
+        recordWithCopiedFields("Subject:" + repeat("a ", 32768) + "a");
+        recordWithQuery("x-foo/" + repeat("a=20", 16384));
+        recordWithIdentity(repeat("a.", 32768) + "a@example.com");
+        recordWithIdentity("\"" + repeat("a=20", 16384) + "\"@example.com");
+    }
 }
