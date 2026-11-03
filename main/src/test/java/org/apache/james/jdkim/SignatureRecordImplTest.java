@@ -459,6 +459,15 @@ public class SignatureRecordImplTest {
     }
 
     @Test
+    public void utf8IdentityAndCopiedFieldsAreAccepted() {
+        // RFC 8616 section 4, the UTF-8 octets of "j\u00e9r\u00f4me" read as ISO-8859-1
+        String local = "j\u00c3\u00a9r\u00c3\u00b4me";
+        Assert.assertEquals(local + "@example.com", recordWithIdentity(local + "@example.com").getIdentity().toString());
+        recordWithCopiedFields("From:" + local + "@example.com|Subject:" + local);
+        recordWithQuery("x-foo/" + local + ":dns/txt");
+    }
+
+    @Test
     public void longValuesDoNotOverflowTheStack() {
         recordWithCopiedFields("Subject:" + repeat("a=20", 16384));
         recordWithCopiedFields("Subject:" + repeat("a ", 32768) + "a");

@@ -139,14 +139,15 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
     }
 
     // SPEC: sig-q-tag-method = "dns/txt" / x-sig-q-tag-type ["/" x-sig-q-tag-args], the type a
-    // hyphenated-word and the args a qp-hdr-value (dkim-safe-char but "|", or "=" HEX HEX). Possessive, see LOCAL_PART.
+    // hyphenated-word and the args a qp-hdr-value (dkim-safe-char but "|", or "=" HEX HEX), dkim-safe-char
+    // including UTF8-non-ascii (RFC 8616 section 4). Possessive, see LOCAL_PART.
     static final Pattern QUERY_METHOD = Pattern.compile(
-            "[A-Za-z](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:/(?:[\\x21-\\x3A\\x3C\\x3E-\\x7B\\x7D\\x7E]|=[0-9A-F]{2})*+)?");
+            "[A-Za-z](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:/(?:[\\x21-\\x3A\\x3C\\x3E-\\x7B\\x7D\\x7E\\u0080-\\uFFFF]|=[0-9A-F]{2})*+)?");
 
     // SPEC: sig-z-tag-copy = hdr-name [FWS] ":" qp-hdr-value ; hdr-name = 1*ftext (%d33-57 / %d59-126).
     // Possessive, see LOCAL_PART.
     private static final Pattern COPIED_HEADER_FIELD = Pattern.compile(
-            "[\\x21-\\x39\\x3B-\\x7E]++[ \\t\\r\\n]*+:(?:[\\x21-\\x3A\\x3C\\x3E-\\x7B\\x7D\\x7E]|=[0-9A-F]{2}|[ \\t\\r\\n])*+");
+            "[\\x21-\\x39\\x3B-\\x7E]++[ \\t\\r\\n]*+:(?:[\\x21-\\x3A\\x3C\\x3E-\\x7B\\x7D\\x7E\\u0080-\\uFFFF]|=[0-9A-F]{2}|[ \\t\\r\\n])*+");
 
     /**
      * RFC 6376 section 3.5: checks z= as sig-z-tag-copy *( "|" [FWS] sig-z-tag-copy ).

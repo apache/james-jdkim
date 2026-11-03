@@ -102,8 +102,8 @@ public class DKIMQuotedPrintable {
         return sb.toString();
     }
 
-    // dkim-safe-char = %x21-3A / %x3C / %x3E-7E
+    // dkim-safe-char = %x21-3A / %x3C / %x3E-7E, RFC 8616 section 4 adding UTF8-non-ascii
     private static boolean isDkimSafeChar(char c) {
-        return c >= 0x21 && c <= 0x7E && c != ';' && c != '=';
+        return c >= 0x21 && c <= 0x7E && c != ';' && c != '=' || c >= 0x80;
     }
 }
