@@ -24,6 +24,10 @@ import static org.apache.james.jdkim.parser.DKIMQuotedPrintable.dkimQuotedPrinta
 import org.apache.james.jdkim.api.HashMethod;
 import org.apache.james.jdkim.api.SignatureRecord;
 
+import java.nio.ByteBuffer;
+import java.nio.charset.CharacterCodingException;
+import java.nio.charset.CodingErrorAction;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -135,6 +139,10 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
             throw new IllegalStateException("Invalid i= [" + value + "]: the local part is neither a Dot-string"
                     + " nor a Quoted-string (RFC 5321)");
         }
+        if (!isWellFormedUtf8(localPart)) {
+            throw new IllegalStateException("Invalid i= [" + value + "]: the local part is not well-formed UTF-8"
+                    + " (RFC 8616 section 4)");
+        }
         checkDomainName("i= domain", value.substring(at + 1), 2);
     }
 
@@ -165,6 +173,37 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
                 throw new IllegalStateException("Invalid z= [" + z + "]: copy [" + copy
                         + "] is not hdr-name [FWS] \":\" qp-hdr-value (RFC 6376 section 3.5)");
             }
+            if (!isWellFormedUtf8(dkimQuotedPrintableDecode(trimmed))) {
+                throw new IllegalStateException("Invalid z= [" + z + "]: copy [" + copy
+                        + "] is not well-formed UTF-8 (RFC 8616 section 4)");
+            }
+        }
+    }
+
+    /**
+     * RFC 8616 section 4 admits UTF8-non-ascii (RFC 6532 section 3.1): the octets above 0x7F must form
+     * well-formed UTF-8. The header octets reach the tag values as ISO-8859-1 chars.
+     *
+     * @param octets a decoded tag value, one char per octet
+     * @return whether it is well-formed UTF-8
+     */
+    static boolean isWellFormedUtf8(CharSequence octets) {
+        byte[] bytes = new byte[octets.length()];
+        for (int k = 0; k < bytes.length; k++) {
+            char c = octets.charAt(k);
+            if (c > 0xFF) {
+                return false;
+            }
+            bytes[k] = (byte) c;
+        }
+        try {
+            StandardCharsets.UTF_8.newDecoder()
+                    .onMalformedInput(CodingErrorAction.REPORT)
+                    .onUnmappableCharacter(CodingErrorAction.REPORT)
+                    .decode(ByteBuffer.wrap(bytes));
+            return true;
+        } catch (CharacterCodingException e) {
+            return false;
         }
     }
 
