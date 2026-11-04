@@ -35,12 +35,10 @@ import java.util.regex.Pattern;
 
 public class PublicKeyRecordImpl extends TagValue implements PublicKeyRecord {
 
-    private static final String atom = "[a-zA-Z0-9!#$%&'*+/=?^_`{}|~-]+";
-    // TODO this should support CFWS: are they supported in DKIM for real?
-    private static final String dotAtomText = "(" + atom + ")?\\*?(" + atom
-            + ")?";
-    private static final Pattern granularityPattern = Pattern.compile("^"
-            + dotAtomText + "$");
+    // Any run of atext: the same values as the former "(atom)?\*?(atom)?", atext including "*".
+    // One possessive class: the former pattern tried every split of the run between its two groups
+    // before failing, quadratic in the length of an invalid value.
+    private static final Pattern granularityPattern = Pattern.compile("^[a-zA-Z0-9!#$%&'*+/=?^_`{}|~-]*+$");
 
     // SPEC: hyphenated-word = ALPHA [ *(ALPHA / DIGIT / "-") (ALPHA / DIGIT) ]
     private static final Pattern hyphenatedWordPattern = Pattern
