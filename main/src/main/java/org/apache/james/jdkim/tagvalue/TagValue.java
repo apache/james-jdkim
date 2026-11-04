@@ -63,7 +63,7 @@ public class TagValue {
     private static final Pattern valuePattern = Pattern.compile("^(?:" + tval
             + "(?:(?:(?:\r\n)?[\t ])++" + tval + ")*+)?$");
     private static final Pattern fwsPattern = Pattern.compile("[ \t\r\n]");
-    // FWS = [*WSP CRLF] 1*WSP
+    // FWS = [*WSP CRLF] 1*WSP, or nothing
     private static final Pattern trailingFWSPattern = Pattern.compile("^(?:(?:[ \t]*\r\n)?[ \t]+)?$");
 
     // we may use a TreeMap because we may need to know original order.
@@ -184,6 +184,11 @@ public class TagValue {
                         + data);
             }
 
+            if (isStrictValidation()) {
+                // SPEC: tag-spec = [FWS] tag-name [FWS] "=" [FWS] tag-value [FWS]: trimFWS removes any number of folds
+                checkSingleFWSAround(data, i, equal);
+                checkSingleFWSAround(data, equal + 1, next);
+            }
             CharSequence tag = trimFWS(data, i, equal - 1, true).toString();
             if (VALIDATION && !tagPattern.matcher(tag).matches()) {
                 throw new IllegalStateException("Syntax error in tag: " + tag);
@@ -204,6 +209,31 @@ public class TagValue {
             i = next;
         }
         this.stringRepresentation  = data;
+    }
+
+    /**
+     * Checks that the whitespace that starts and ends data[start, end) is at most one FWS on each side:
+     * FWS = [*WSP CRLF] 1*WSP holds a single CRLF, a line holding only WSP is obsolete syntax.
+     */
+    private static void checkSingleFWSAround(String data, int start, int end) {
+        int contentStart = start;
+        while (contentStart < end && isFWSChar(data.charAt(contentStart))) {
+            contentStart++;
+        }
+        int contentEnd = end;
+        while (contentEnd > contentStart && isFWSChar(data.charAt(contentEnd - 1))) {
+            contentEnd--;
+        }
+        String leading = data.substring(start, contentStart);
+        String trailing = data.substring(contentEnd, end);
+        if (!trailingFWSPattern.matcher(leading).matches() || !trailingFWSPattern.matcher(trailing).matches()) {
+            throw new IllegalStateException("Syntax error: whitespace that is not FWS in ["
+                    + data.substring(start, end) + "]");
+        }
+    }
+
+    private static boolean isFWSChar(char c) {
+        return c == ' ' || c == '\t' || c == '\r' || c == '\n';
     }
 
     public int hashCode() {

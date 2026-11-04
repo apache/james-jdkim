@@ -124,7 +124,7 @@ public class TagValueTest {
                 "p=ciao;s=cips;v=DKIM1;"));
         Assert.assertTrue(tagValuesEquals("p\r\n = ciao; s=cips\r\n\t; v=DKIM1;",
                 "p=ciao;s=cips;v=DKIM1;"));
-        Assert.assertTrue(tagValuesEquals("p=ciao\r\n\r\n  ; \r\n   s=cips\r\n\t; v=DKIM1;",
+        Assert.assertTrue(tagValuesEquals("p=ciao\r\n  ; \r\n   s=cips\r\n\t; v=DKIM1;",
             "p=ciao;s=cips;v=DKIM1;"));
     }
 
@@ -219,5 +219,21 @@ public class TagValueTest {
         new TagValue("a=b; ");
         new TagValue("a=b; \r\n\t");
         new TagValue("a=b;\r\n ");
+    }
+
+    @Test
+    public void blankLineInsideATagSpecShouldBeRejected() {
+        assertThatThrownBy(() -> new TagValue("v=1\r\n\r\n ")).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> new TagValue("a\r\n\r\n =b")).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> new TagValue("v=\r\n\r\n ;f=1")).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> new TagValue("p=ciao\r\n\r\n  ; s=cips")).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> new TagValue(" \r\n \r\n a=b")).isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    public void singleFoldAroundATagSpecShouldBeAccepted() {
+        assertEquals("1", new TagValue("v=1\r\n ").getValue("v").toString());
+        assertEquals("b", new TagValue("a\r\n =b;\r\n\tc=d").getValue("a").toString());
+        assertEquals("", new TagValue("v= \r\n\t;f=1").getValue("v").toString());
     }
 }
