@@ -144,7 +144,11 @@ public class Message implements Headers {
      * without trailing WSP.
      */
     private static String rawName(String field) {
-        return field.substring(0, field.indexOf(':')).replaceAll("[ \t]+$", "").toLowerCase(Locale.US);
+        int end = field.indexOf(':');
+        while (end > 0 && (field.charAt(end - 1) == ' ' || field.charAt(end - 1) == '\t')) {
+            end--;
+        }
+        return field.substring(0, end).toLowerCase(Locale.US);
     }
 
     public InputStream getBodyInputStream() {

@@ -62,6 +62,38 @@ public class MessageLimitsTest {
         assertThat(message.getFields("To")).hasSize(1);
     }
 
+    @Test(timeout = 10_000)
+    public void shouldParseFieldNameWithLongWspRunInLinearTime() throws Exception {
+        StringBuilder sb = new StringBuilder("From: a@example.com\r\nx");
+        for (int i = 0; i < 200_000; i++) {
+            sb.append(' ');
+        }
+        sb.append("y: v\r\n\r\nbody\r\n");
+
+        Message message = new Message(stream(sb));
+
+        assertThat(message.getFields()).hasSize(2);
+    }
+
+    @Test
+    public void shouldStillMatchFieldNameWithoutItsTrailingWsp() throws Exception {
+        StringBuilder sb = new StringBuilder("From: a@example.com\r\nX-Long \t : v\r\n\r\nbody\r\n");
+
+        Message message = new Message(stream(sb));
+
+        assertThat(message.getFields("X-Long")).hasSize(1);
+    }
+
+    @Test
+    public void shouldKeepWspBeforeLineTerminatorLikeCharInFieldName() throws Exception {
+        byte[] bytes = ("From: a@example.com\r\nx " + (char) 0x85 + ": v\r\n\r\nbody\r\n")
+                .getBytes(StandardCharsets.ISO_8859_1);
+
+        Message message = new Message(new ByteArrayInputStream(bytes));
+
+        assertThat(message.getFields("x " + (char) 0x85)).hasSize(1);
+    }
+
     @Test
     public void shouldParseLongLine() throws Exception {
         StringBuilder sb = new StringBuilder("From: a@example.com\r\nX-Long: ");
