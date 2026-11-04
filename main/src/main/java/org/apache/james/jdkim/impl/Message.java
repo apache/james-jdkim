@@ -78,10 +78,14 @@ public class Message implements Headers {
     }
 
     private MessageServiceFactory newMessageBuilder() throws MimeException {
-        // the limits of mime4j's permissive profile (4096 fields, 64 KB per field, no line limit) are well
-        // above what real mail uses; the next mime4j release makes them configurable with the
-        // james.mime4j.permissive.* system properties
-        MimeConfig mec = MimeConfig.PERMISSIVE;
+        // mime4j's permissive profile, without its per-field limits (4096 fields, 64 KB per field): RFC 5322
+        // sets none, and a To: listing a few thousand recipients exceeds 64 KB. The memory the header takes
+        // stays bounded by the limits on the whole header (16384 fields, 1 MB), which a single field cannot
+        // exceed anyway.
+        MimeConfig mec = MimeConfig.copy(MimeConfig.PERMISSIVE)
+                .setMaxHeaderCount(MimeConfig.PERMISSIVE.getMaxTotalHeaderCount())
+                .setMaxHeaderLen((int) Math.min(Integer.MAX_VALUE, MimeConfig.PERMISSIVE.getMaxTotalHeaderLen()))
+                .build();
 
         MessageServiceFactory mbf = MessageServiceFactory.newInstance();
         mbf.setAttribute("MimeEntityConfig", mec);
