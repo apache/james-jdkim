@@ -475,4 +475,37 @@ public class SignatureRecordImplTest {
         recordWithIdentity(repeat("a.", 32768) + "a@example.com");
         recordWithIdentity("\"" + repeat("a=20", 16384) + "\"@example.com");
     }
+
+    @Test
+    public void illFormedUtf8IdentityIsASyntaxError() {
+        // header octets arrive as ISO-8859-1 chars, as Message produces them
+        for (String i : new String[] {
+                "\"\u0080\"@example.com",       // lone continuation octet, raw
+                "\"=80\"@example.com",          // the same, DKIM-Quoted-Printable
+                "\u00c3@example.com",           // truncated 2-octet sequence
+                "\u00c0\u00af@example.com",     // overlong "/"
+                "\u00ed\u00a0\u0080@example.com", // encoded surrogate U+D800
+                "\u00ff@example.com"}) {        // never valid in UTF-8
+            assertThatThrownBy(() -> recordWithIdentity(i)).as("i=%s", i)
+                    .isInstanceOf(IllegalStateException.class);
+        }
+    }
+
+    @Test
+    public void illFormedUtf8CopiedFieldIsASyntaxError() {
+        for (String z : new String[] {"Subject:\u0080", "Subject:=80", "From:a@example.com|Subject:\u00c3"}) {
+            assertThatThrownBy(() -> recordWithCopiedFields(z)).as("z=%s", z)
+                    .isInstanceOf(IllegalStateException.class);
+        }
+    }
+
+    @Test
+    public void wellFormedUtf8IdentityIsStillAccepted() {
+        // "\u03b4" = CE B4
+        assertThat(recordWithIdentity("\u00ce\u00b4@example.com").getIdentity().toString())
+                .isEqualTo("\u00ce\u00b4@example.com");
+        assertThat(recordWithIdentity("=CE=B4@example.com").getIdentity().toString())
+                .isEqualTo("\u00ce\u00b4@example.com");
+        recordWithCopiedFields("Subject:=CE=B4|To:\u00ce\u00b4@example.com");
+    }
 }
