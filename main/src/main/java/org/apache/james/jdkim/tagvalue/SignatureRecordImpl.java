@@ -178,7 +178,16 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
                 throw new IllegalStateException("Invalid z= [" + z + "]: copy [" + copy
                         + "] is not hdr-name [FWS] \":\" qp-hdr-value (RFC 6376 section 3.5)");
             }
-            if (!isWellFormedUtf8(dkimQuotedPrintableDecode(trimmed))) {
+            // only the qp-hdr-value is quoted-printable: hdr-name may hold "=", and is ASCII
+            String value = trimmed.substring(trimmed.indexOf(':') + 1);
+            boolean wellFormed;
+            try {
+                wellFormed = isWellFormedUtf8(dkimQuotedPrintableDecode(value));
+            } catch (IllegalArgumentException e) {
+                throw new IllegalStateException("Invalid z= [" + z + "]: copy [" + copy
+                        + "] cannot be decoded: " + e.getMessage(), e);
+            }
+            if (!wellFormed) {
                 throw new IllegalStateException("Invalid z= [" + z + "]: copy [" + copy
                         + "] is not well-formed UTF-8 (RFC 8616 section 4)");
             }

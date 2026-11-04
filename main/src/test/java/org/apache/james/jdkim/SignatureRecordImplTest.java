@@ -27,6 +27,7 @@ import org.apache.james.jdkim.tagvalue.SignatureRecordImpl;
 import org.apache.james.jdkim.tagvalue.TagValue;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Arrays;
@@ -513,6 +514,14 @@ public class SignatureRecordImplTest {
         for (String z : new String[] {"Subject:\u0080", "Subject:=80", "From:a@example.com|Subject:\u00c3"}) {
             assertThatThrownBy(() -> recordWithCopiedFields(z)).as("z=%s", z)
                     .isInstanceOf(IllegalStateException.class);
+        }
+    }
+
+    @Test
+    public void equalsInCopiedFieldNameIsNotQuotedPrintable() {
+        for (String z : new String[] {"xb=x:X", "x=:y", "x=80:y", "=:", "z:|=:|!:|T:"}) {
+            assertThatCode(() -> recordWithCopiedFields(z)).as("z=%s", z)
+                    .doesNotThrowAnyException();
         }
     }
 
