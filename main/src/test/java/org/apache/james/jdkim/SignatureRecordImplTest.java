@@ -353,6 +353,23 @@ public class SignatureRecordImplTest {
         }
     }
 
+    @Test
+    public void sdidAndSelectorMustStillFormADnsNameWithoutStrictValidation() {
+        System.setProperty(TagValue.STRICT_VALIDATION_PROPERTY, "false");
+        try {
+            for (String[] ds : new String[][] {
+                    {"example.com", ":"}, {"example.com", "a..b"}, {"example.com", "a b"},
+                    {"example.com", LONG_LABEL}, {"example..com", "sel"}, {"com", "sel"},
+                    {"example.com", repeat("a.", 120) + "a"}}) {
+                assertThatThrownBy(() -> record(ds[0], ds[1]))
+                        .as("d=%s s=%s", ds[0], ds[1])
+                        .isInstanceOf(IllegalStateException.class);
+            }
+        } finally {
+            System.clearProperty(TagValue.STRICT_VALIDATION_PROPERTY);
+        }
+    }
+
     private static SignatureRecordImpl recordWithIdentity(String i) {
         return new SignatureRecordImpl("v=1; a=rsa-sha256; c=relaxed/relaxed; d=example.com; s=sel;"
                 + " h=from:subject; i=" + i + "; bh=AAAA; b=AAAA");

@@ -68,21 +68,22 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
 
     // SPEC: sub-domain = Let-dig [Ldh-str] (RFC 5321), at most 63 octets (RFC 1035)
     private static final Pattern SUB_DOMAIN = Pattern.compile("[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?");
+    // Without strict validation: a DNS label that may also hold "_", as some published selectors do
+    private static final Pattern LENIENT_LABEL = Pattern.compile("[A-Za-z0-9_](?:[A-Za-z0-9_-]{0,61}[A-Za-z0-9_])?");
     private static final int MAX_DOMAIN_NAME_LENGTH = 253;
 
     /**
      * RFC 6376 section 3.5: checks d= (domain-name = sub-domain 1*("." sub-domain)), s= (selector =
      * sub-domain *("." sub-domain)) and that the key query name s._domainkey.d fits in 253 octets.
-     * Only with strict validation, see {@link TagValue#isStrictValidation()}.
+     * Without strict validation (see {@link TagValue#isStrictValidation()}) the labels may also hold "_",
+     * but the query name is still checked: it is sent to DNS.
      *
      * @throws IllegalStateException if they do not
      */
     static void checkSdidAndSelector(CharSequence d, CharSequence selector) {
-        if (!isStrictValidation()) {
-            return;
-        }
-        checkDomainName("d=", d.toString(), 2);
-        checkDomainName("s=", selector.toString(), 1);
+        Pattern label = isStrictValidation() ? SUB_DOMAIN : LENIENT_LABEL;
+        checkDomainName("d=", d.toString(), 2, label);
+        checkDomainName("s=", selector.toString(), 1, label);
         int queryNameLength = selector.length() + "._domainkey.".length() + d.length();
         if (queryNameLength > MAX_DOMAIN_NAME_LENGTH) {
             throw new IllegalStateException("Key query name s._domainkey.d is " + queryNameLength
@@ -97,12 +98,16 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
      * @throws IllegalStateException if it is not a valid name
      */
     static void checkDomainName(String what, String name, int minLabels) {
+        checkDomainName(what, name, minLabels, SUB_DOMAIN);
+    }
+
+    private static void checkDomainName(String what, String name, int minLabels, Pattern labelPattern) {
         String[] labels = name.split("\\.", -1);
         if (labels.length < minLabels) {
             throw new IllegalStateException("Invalid " + what + " [" + name + "]: at least " + minLabels + " labels expected");
         }
         for (String label : labels) {
-            if (!SUB_DOMAIN.matcher(label).matches()) {
+            if (!labelPattern.matcher(label).matches()) {
                 throw new IllegalStateException("Invalid " + what + " [" + name + "]: label [" + label
                         + "] is not a sub-domain (RFC 6376 section 3.5)");
             }
