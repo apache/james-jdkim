@@ -763,4 +763,27 @@ public class DKIMTest {
         }
     }
 
+    @Test
+    public void signedFieldShouldNotHoldWhitespaceOnlyLinesWhenTemplateFoldsH() throws Exception {
+        String message = "From: joe@messiah.edu\r\nSubject: hi\r\n\r\nbody\r\n";
+        for (int repeats = 1; repeats < 20; repeats++) {
+            for (String c : new String[] {"simple/simple", "relaxed/relaxed"}) {
+                String template = "v=1; a=rsa-sha256; c=" + c + "; d=messiah.edu; s=selector2; h=from"
+                        + ":\r\n\tsubject".repeat(repeats) + ";";
+                String field = new DKIMSigner(template, TestKeys.privateKey)
+                        .sign(new ByteArrayInputStream(message.getBytes(StandardCharsets.US_ASCII)));
+
+                for (String line : field.split("\r\n", -1)) {
+                    assertThat(line.trim()).as("line in [%s]", field).isNotEmpty();
+                    assertThat(line.length()).as("line [%s]", line).isLessThanOrEqualTo(78);
+                }
+                verifier.resetResults();
+                String signed = field + "\r\n" + message;
+                assertThat(verifier.verify(new ByteArrayInputStream(signed.getBytes(StandardCharsets.US_ASCII))))
+                        .as("c=%s, %d names", c, repeats)
+                        .hasSize(1);
+            }
+        }
+    }
+
 }

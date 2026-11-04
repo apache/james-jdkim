@@ -426,15 +426,16 @@ public class TagValue {
             breakBeforeNextTag = false;
             if (column + piece.length() <= FOLDING_WIDTH || !"h".equals(tag)) {
                 res.append(piece);
-                column += piece.length();
+                column = columnAfter(column, piece);
                 continue;
             }
-            // SPEC: sig-h-tag = hdr-name *( [FWS] ":" [FWS] hdr-name ): fold after a ":"
+            // SPEC: sig-h-tag = hdr-name *( [FWS] ":" [FWS] hdr-name ): fold after a ":". The FWS the
+            // value may already hold is dropped, so that a fold never lands next to an existing one.
             res.append(" h=");
             column += 3;
             String[] names = value.split(":", -1);
             for (int i = 0; i < names.length; i++) {
-                String name = names[i] + (i < names.length - 1 ? ":" : ";");
+                String name = fwsPattern.matcher(names[i]).replaceAll("") + (i < names.length - 1 ? ":" : ";");
                 if (column + name.length() > FOLDING_WIDTH) {
                     res.append("\r\n ");
                     column = 1;
@@ -444,6 +445,17 @@ public class TagValue {
             }
         }
         return res.toString();
+    }
+
+    /**
+     * @return the column after appending text at column: a CRLF the text holds starts a new line
+     */
+    private static int columnAfter(int column, String text) {
+        int crlf = text.lastIndexOf("\r\n");
+        if (crlf == -1) {
+            return column + text.length();
+        }
+        return text.length() - crlf - 2;
     }
 
 }
