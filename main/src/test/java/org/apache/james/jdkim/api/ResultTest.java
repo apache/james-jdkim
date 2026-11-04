@@ -29,7 +29,7 @@ import org.junit.Test;
 
 public class ResultTest {
 
-    // the records below carry sender-controlled d= and s= values that strict validation would reject
+    // the records below carry sender-controlled values that strict validation would reject
     @Before
     public void disableStrictValidation() {
         System.setProperty(TagValue.STRICT_VALIDATION_PROPERTY, "false");
@@ -52,8 +52,14 @@ public class ResultTest {
 
     @Test
     public void headerTextShouldQuoteSenderValues() {
+        // even without strict validation, s= must be a DNS name: another implementation may not check it
         SignatureRecord record = new SignatureRecordImpl(
-                "v=1; a=rsa-sha256; d=example.com; s=s\"el; h=from; bh=AAAA; b=AA\"A");
+                "v=1; a=rsa-sha256; d=example.com; s=sel; h=from; bh=AAAA; b=AA\"A") {
+            @Override
+            public CharSequence getSelector() {
+                return "s\"el";
+            }
+        };
         Result result = new Result("Invalid DKIM-Signature version (expected '1'): 1\" x=\"", "", record, Result.Type.FAIL);
 
         assertThat(result.getHeaderText()).isEqualTo("dkim=fail header.d=example.com header.s=\"s\\\"el\" header.b=\"AA\\\"A\"");
@@ -62,7 +68,17 @@ public class ResultTest {
 
     @Test
     public void headerTextShouldQuoteEmptyValues() {
-        SignatureRecord record = new SignatureRecordImpl("v=1; a=rsa-sha256; d=; s=; h=from; bh=AAAA; b=");
+        SignatureRecord record = new SignatureRecordImpl("v=1; a=rsa-sha256; d=example.com; s=sel; h=from; bh=AAAA; b=") {
+            @Override
+            public CharSequence getDToken() {
+                return "";
+            }
+
+            @Override
+            public CharSequence getSelector() {
+                return "";
+            }
+        };
         Result result = new Result("error", "", record, Result.Type.FAIL);
 
         assertThat(result.getHeaderText()).isEqualTo("dkim=fail header.d=\"\" header.s=\"\" header.b=\"\"");
