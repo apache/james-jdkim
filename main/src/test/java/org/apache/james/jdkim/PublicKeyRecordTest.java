@@ -438,4 +438,16 @@ public class PublicKeyRecordTest {
             System.clearProperty(TagValue.STRICT_VALIDATION_PROPERTY);
         }
     }
+
+    @Test(timeout = 1000)
+    public void longInvalidGranularityIsRejectedInLinearTime() {
+        StringBuilder g = new StringBuilder("joe");
+        for (int i = 0; i < 60000; i++) {
+            g.append('*');
+        }
+        g.append('.');
+        PublicKeyRecord pkr = new PublicKeyRecordImpl("k=rsa; g=" + g + "; p=XXX");
+        assertThatThrownBy(pkr::getGranularityPattern)
+                .isInstanceOf(IllegalStateException.class);
+    }
 }
