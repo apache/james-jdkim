@@ -293,10 +293,11 @@ signature, an unsupported algorithm -- are always applied.
 === Message parsing limits
 
 `sign(InputStream)` and `verify(InputStream)` parse the message with mime4j's
-`MimeConfig.PERMISSIVE` profile, whose limits (4096 header fields, 64 KB per
-header field, no line limit, 100 MB of content) are well above what real mail
-uses. The next mime4j release makes them configurable with the
-`james.mime4j.permissive.*` system properties. A message exceeding them is a permanent error
+`MimeConfig.PERMISSIVE` profile, without its per-field limits: RFC 5322 sets no
+limit on the length of a folded field, and a `To:` listing a few thousand
+recipients is longer than 64 KB. What remains (16384 header fields and 1 MB for
+the whole header, no line limit, 100 MB of content) is well above what real
+mail uses. A message exceeding these limits is a permanent error
 (`PermFailException`), not an I/O error.
 
 == Applying several signatures
