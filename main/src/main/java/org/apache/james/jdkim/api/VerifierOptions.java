@@ -53,6 +53,11 @@ public class VerifierOptions {
     public static final String UNSIGNED_DUPLICATE_FIELD_POLICY_PROPERTY = "james.dkim.unsigned-duplicate-field.policy";
     private static final UnsignedDuplicateFieldPolicy DEFAULT_UNSIGNED_DUPLICATE_FIELD_POLICY = UnsignedDuplicateFieldPolicy.REJECT;
     /**
+     * System property holding the default of {@link Builder#withBodyLengthPolicy(BodyLengthPolicy)}.
+     */
+    public static final String BODY_LENGTH_POLICY_PROPERTY = "james.dkim.body-length.policy";
+    private static final BodyLengthPolicy DEFAULT_BODY_LENGTH_POLICY = BodyLengthPolicy.FLAG;
+    /**
      * The fields RFC 5322 section 3.6 allows once, for {@link Builder#withSingleInstanceFields(Collection)}.
      * Real-world mail often duplicates some of them (To, Cc, References...) and a signature leaving the
      * extra instance unsigned is still valid under RFC 6376: rejecting it refuses legitimate mail.
@@ -71,6 +76,7 @@ public class VerifierOptions {
     private final boolean rsaSha1Allowed;
     private final UnsignedDuplicateFieldPolicy unsignedDuplicateFieldPolicy;
     private final Set<String> singleInstanceFields;
+    private final BodyLengthPolicy bodyLengthPolicy;
     private final PublicKeyRecordRetriever publicKeyRecordRetriever;
     private final Resolver dnsResolver;
 
@@ -81,6 +87,7 @@ public class VerifierOptions {
         private boolean rsaSha1Allowed = !"false".equalsIgnoreCase(System.getProperty(RSA_SHA1_ALLOWED_PROPERTY, "true").trim());
         private UnsignedDuplicateFieldPolicy unsignedDuplicateFieldPolicy = defaultUnsignedDuplicateFieldPolicy();
         private Set<String> singleInstanceFields = DEFAULT_SINGLE_INSTANCE_FIELDS;
+        private BodyLengthPolicy bodyLengthPolicy = defaultBodyLengthPolicy();
         private Resolver dnsResolver = Lookup.getDefaultResolver();
         private PublicKeyRecordRetriever publicKeyRecordRetriever = new MultiplexingPublicKeyRecordRetriever(
                 "dns", new DNSPublicKeyRecordRetriever(this.dnsResolver));
@@ -191,6 +198,20 @@ public class VerifierOptions {
         }
 
         /**
+         * Sets what happens to a signature whose l= tag leaves body octets unsigned: anyone holding such a
+         * signature can append content of their choice after the signed length. See RFC 6376 section 8.2.
+         * The octets are counted after body canonicalization. Defaults to the
+         * {@value #BODY_LENGTH_POLICY_PROPERTY} system property, or {@link BodyLengthPolicy#FLAG}.
+         *
+         * @param bodyLengthPolicy a {@link BodyLengthPolicy}
+         * @return {@link Builder}
+         */
+        public Builder withBodyLengthPolicy(BodyLengthPolicy bodyLengthPolicy) {
+            this.bodyLengthPolicy = bodyLengthPolicy;
+            return this;
+        }
+
+        /**
          * A custom dns resolver
          *
          * @param dnsResolver a {@link Resolver}
@@ -230,6 +251,10 @@ public class VerifierOptions {
             throw new IllegalArgumentException("singleInstanceFields can not be null");
         }
 
+        if (builder.bodyLengthPolicy == null) {
+            throw new IllegalArgumentException("bodyLengthPolicy can not be null");
+        }
+
         if (builder.publicKeyRecordRetriever == null) {
             throw new IllegalArgumentException("publicKeyRecordRetriever can not be null");
         }
@@ -244,6 +269,7 @@ public class VerifierOptions {
         this.rsaSha1Allowed = builder.rsaSha1Allowed;
         this.unsignedDuplicateFieldPolicy = builder.unsignedDuplicateFieldPolicy;
         this.singleInstanceFields = builder.singleInstanceFields;
+        this.bodyLengthPolicy = builder.bodyLengthPolicy;
         this.dnsResolver = builder.dnsResolver;
         this.publicKeyRecordRetriever = builder.publicKeyRecordRetriever;
     }
@@ -300,6 +326,27 @@ public class VerifierOptions {
      */
     public Set<String> getSingleInstanceFields() {
         return singleInstanceFields;
+    }
+
+    /**
+     * Gets what happens to a signature whose l= tag leaves body octets unsigned
+     *
+     * @return {@link BodyLengthPolicy}
+     */
+    public BodyLengthPolicy getBodyLengthPolicy() {
+        return bodyLengthPolicy;
+    }
+
+    private static BodyLengthPolicy defaultBodyLengthPolicy() {
+        String value = System.getProperty(BODY_LENGTH_POLICY_PROPERTY);
+        if (value == null) {
+            return DEFAULT_BODY_LENGTH_POLICY;
+        }
+        try {
+            return BodyLengthPolicy.valueOf(value.trim().toUpperCase(Locale.US));
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid " + BODY_LENGTH_POLICY_PROPERTY + " value: " + value, e);
+        }
     }
 
     private static UnsignedDuplicateFieldPolicy defaultUnsignedDuplicateFieldPolicy() {

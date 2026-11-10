@@ -19,6 +19,7 @@
 
 package org.apache.james.jdkim;
 
+import org.apache.james.jdkim.api.BodyLengthPolicy;
 import org.apache.james.jdkim.api.PublicKeyRecordRetriever;
 import org.apache.james.jdkim.api.UnsignedDuplicateFieldPolicy;
 import org.apache.james.jdkim.api.VerifierOptions;
@@ -163,6 +164,26 @@ public class DKIMVerifierOptionsTest {
     @Test(expected = IllegalArgumentException.class)
     public void shouldRejectNullUnsignedDuplicateFieldPolicy() {
         new VerifierOptions.Builder().withUnsignedDuplicateFieldPolicy(null).build();
+    }
+
+    @Test
+    public void shouldFlagUnsignedBodyOctetsByDefault() {
+        assertEquals(BodyLengthPolicy.FLAG, new VerifierOptions.Builder().build().getBodyLengthPolicy());
+    }
+
+    @Test
+    public void shouldReadBodyLengthPolicyFromSystemProperty() {
+        System.setProperty(VerifierOptions.BODY_LENGTH_POLICY_PROPERTY, "reject");
+        try {
+            assertEquals(BodyLengthPolicy.REJECT, new VerifierOptions.Builder().build().getBodyLengthPolicy());
+        } finally {
+            System.clearProperty(VerifierOptions.BODY_LENGTH_POLICY_PROPERTY);
+        }
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void shouldRejectNullBodyLengthPolicy() {
+        new VerifierOptions.Builder().withBodyLengthPolicy(null).build();
     }
 
     @Test
