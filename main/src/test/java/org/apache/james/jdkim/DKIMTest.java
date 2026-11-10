@@ -20,6 +20,7 @@
 package org.apache.james.jdkim;
 
 import org.apache.james.jdkim.api.BodyHasher;
+import org.apache.james.jdkim.api.BodyLengthPolicy;
 import java.util.stream.Collectors;
 import org.apache.james.mime4j.MimeException;
 import java.security.MessageDigest;
@@ -592,6 +593,78 @@ public class DKIMTest {
         assertThat(flaggingVerifier.verify(new ByteArrayInputStream(signed.getBytes(StandardCharsets.US_ASCII)))).hasSize(1);
         assertThat(flaggingVerifier.getResults()).singleElement()
                 .satisfies(r -> assertThat(r.getWarning()).isNull());
+    }
+
+    private static final String LIMITED_SIGNATURE_TEMPLATE = "v=1; a=rsa-sha256; c=simple; d=messiah.edu; h=from:subject; l=6; q=dns/txt; s=selector2;";
+
+    private String signWithBodyLength() throws Exception {
+        DKIMSigner signer = new DKIMSigner(LIMITED_SIGNATURE_TEMPLATE, TestKeys.privateKey);
+        String signature = signer.sign(new ByteArrayInputStream(SINGLE_FROM_MESSAGE.getBytes(StandardCharsets.US_ASCII)));
+        return signature + "\r\n" + SINGLE_FROM_MESSAGE;
+    }
+
+    private DKIMVerifier verifierWith(BodyLengthPolicy policy) {
+        return new DKIMVerifier(new VerifierOptions.Builder()
+                .withPublicKeyRecordRetriever(keyRecordRetriever)
+                .withBodyLengthPolicy(policy)
+                .build());
+    }
+
+    @Test
+    public void bodyAppendedAfterLengthShouldBeRejectedWhenConfigured() throws Exception {
+        String replayed = signWithBodyLength() + "EVIL\r\n";
+
+        DKIMVerifier strictVerifier = verifierWith(BodyLengthPolicy.REJECT);
+
+        assertThatThrownBy(() -> strictVerifier.verify(new ByteArrayInputStream(replayed.getBytes(StandardCharsets.US_ASCII))))
+                .isInstanceOf(PermFailException.class)
+                .hasMessageContaining("6 octets after the l= length");
+        assertThat(strictVerifier.hasAnyValidSignature()).isFalse();
+        assertThat(strictVerifier.getResults()).singleElement()
+                .satisfies(r -> assertThat(r.getResultType()).isEqualTo(Result.Type.PERMERROR));
+    }
+
+    @Test
+    public void bodyAppendedAfterLengthShouldBeFlaggedByDefault() throws Exception {
+        String replayed = signWithBodyLength() + "EVIL\r\n";
+
+        assertThat(verifier.verify(new ByteArrayInputStream(replayed.getBytes(StandardCharsets.US_ASCII)))).hasSize(1);
+        assertThat(verifier.getResults()).singleElement().satisfies(r -> {
+            assertThat(r.getResultType()).isEqualTo(Result.Type.PASS);
+            assertThat(r.getWarning()).contains("6 octets after the l= length");
+            assertThat(r.getHeaderTextWithReason()).contains("reason=\"valid signature, but the body has 6 octets");
+        });
+    }
+
+    @Test
+    public void bodyAppendedAfterLengthShouldPassWhenAccepted() throws Exception {
+        String replayed = signWithBodyLength() + "EVIL\r\n";
+
+        DKIMVerifier lenientVerifier = verifierWith(BodyLengthPolicy.ACCEPT);
+
+        assertThat(lenientVerifier.verify(new ByteArrayInputStream(replayed.getBytes(StandardCharsets.US_ASCII)))).hasSize(1);
+        assertThat(lenientVerifier.getResults()).singleElement()
+                .satisfies(r -> assertThat(r.getWarning()).isNull());
+    }
+
+    @Test
+    public void bodyMatchingLengthShouldPassWithoutWarning() throws Exception {
+        String signed = signWithBodyLength();
+
+        DKIMVerifier strictVerifier = verifierWith(BodyLengthPolicy.REJECT);
+
+        assertThat(strictVerifier.verify(new ByteArrayInputStream(signed.getBytes(StandardCharsets.US_ASCII)))).hasSize(1);
+        assertThat(strictVerifier.getResults()).singleElement()
+                .satisfies(r -> assertThat(r.getWarning()).isNull());
+    }
+
+    @Test
+    public void trailingEmptyLinesAfterLengthShouldNotCountAsUnsigned() throws Exception {
+        String padded = signWithBodyLength() + "\r\n\r\n";
+
+        DKIMVerifier strictVerifier = verifierWith(BodyLengthPolicy.REJECT);
+
+        assertThat(strictVerifier.verify(new ByteArrayInputStream(padded.getBytes(StandardCharsets.US_ASCII)))).hasSize(1);
     }
 
     @Test

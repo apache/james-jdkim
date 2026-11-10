@@ -30,6 +30,7 @@ public class LimitedOutputStream extends FilterOutputStream {
 
     private final int limit;
     private int computedBytes;
+    private long droppedBytes;
 
     /**
      * @param out
@@ -45,13 +46,12 @@ public class LimitedOutputStream extends FilterOutputStream {
     }
 
     public void write(byte[] b, int off, int len) throws IOException {
-        if (len > limit - computedBytes) {
-            len = limit - computedBytes;
+        int kept = Math.max(0, Math.min(len, limit - computedBytes));
+        if (kept > 0) {
+            out.write(b, off, kept);
+            computedBytes += kept;
         }
-        if (len > 0) {
-            out.write(b, off, len);
-            computedBytes += len;
-        }
+        droppedBytes += len - kept;
     }
 
     public void write(int b) throws IOException {
@@ -60,6 +60,8 @@ public class LimitedOutputStream extends FilterOutputStream {
         if (computedBytes < limit) {
             out.write(b);
             computedBytes++;
+        } else {
+            droppedBytes++;
         }
     }
 
@@ -68,6 +70,13 @@ public class LimitedOutputStream extends FilterOutputStream {
      */
     public int getComputedBytes() {
         return computedBytes;
+    }
+
+    /**
+     * @return the number of bytes written past the limit, which the underlying stream did not get
+     */
+    public long getDroppedBytes() {
+        return droppedBytes;
     }
 
     /**

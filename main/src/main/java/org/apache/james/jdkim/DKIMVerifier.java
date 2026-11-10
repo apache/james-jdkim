@@ -28,6 +28,7 @@ import org.apache.james.jdkim.api.PublicKeyRecord;
 import org.apache.james.jdkim.api.PublicKeyRecordRetriever;
 import org.apache.james.jdkim.api.Result;
 import org.apache.james.jdkim.api.SignatureRecord;
+import org.apache.james.jdkim.api.BodyLengthPolicy;
 import org.apache.james.jdkim.api.UnsignedDuplicateFieldPolicy;
 import org.apache.james.jdkim.api.VerifierOptions;
 import org.apache.james.jdkim.exceptions.CompositeFailException;
@@ -511,12 +512,22 @@ public class DKIMVerifier {
                 byte[] computedHash = bhj.getDigest();
                 byte[] expectedBodyHash = bhj.getSignatureRecord().getBodyHash();
 
+                // RFC 6376 section 8.2: the octets past l= are not signed, anyone can append them.
+                long unsignedOctets = bhj.getUnsignedBodyOctets();
+                String unsignedBody = "the body has " + unsignedOctets
+                        + " octets after the l= length (RFC 6376 section 8.2)";
                 if (!Arrays.equals(expectedBodyHash, computedHash)) {
                     job.setFailure(new SignatureMismatchException(
                             "Computed bodyhash is different from the expected one", bhj.getSignatureRecord()));
+                } else if (unsignedOctets > 0 && options.getBodyLengthPolicy() == BodyLengthPolicy.REJECT) {
+                    job.setFailure(new PermFailException(unsignedBody, bhj.getSignatureRecord()));
                 } else {
+                    String warning = job.getWarning();
+                    if (unsignedOctets > 0 && options.getBodyLengthPolicy() == BodyLengthPolicy.FLAG) {
+                        warning = warning == null ? unsignedBody : warning + "; " + unsignedBody;
+                    }
                     verifiedSignatures.add(bhj.getSignatureRecord());
-                    result.add(new Result(bhj.getSignatureRecord(), job.getWarning()));
+                    result.add(new Result(bhj.getSignatureRecord(), warning));
                     continue;
                 }
             }

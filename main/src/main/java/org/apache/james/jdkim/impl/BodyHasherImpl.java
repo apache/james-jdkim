@@ -39,6 +39,7 @@ public class BodyHasherImpl implements BodyHasher {
     private SignatureRecord sign;
     private DigestOutputStream digesterOS;
     private OutputStream out;
+    private LimitedOutputStream limited;
 
     public BodyHasherImpl(SignatureRecord sign) throws PermFailException {
         MessageDigest md;
@@ -83,8 +84,10 @@ public class BodyHasherImpl implements BodyHasher {
     private OutputStream prepareCanonicalizerOutputStream(int limit,
             boolean relaxedBody, OutputStream dout) {
         OutputStream out = dout;
-        if (limit != -1)
-            out = new LimitedOutputStream(out, limit);
+        if (limit != -1) {
+            limited = new LimitedOutputStream(out, limit);
+            out = limited;
+        }
         if (relaxedBody)
             out = new RelaxedBodyCanonicalizer(out);
         else
@@ -101,6 +104,16 @@ public class BodyHasherImpl implements BodyHasher {
 
     public SignatureRecord getSignatureRecord() {
         return sign;
+    }
+
+    /**
+     * The canonical body octets past the l= limit, which the body hash does not cover. Meaningful once the
+     * body is written. The trailing empty lines that canonicalization removes are not counted.
+     *
+     * @return a number of octets, 0 when the signature has no l= tag
+     */
+    public long getUnsignedBodyOctets() {
+        return limited == null ? 0 : limited.getDroppedBytes();
     }
 
     public byte[] getDigest() {

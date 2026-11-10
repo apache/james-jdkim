@@ -47,6 +47,7 @@ public class LimitedOutputStreamTest extends AbstractOutputStreamTestCase {
         }
         os.close();
         assertEquals(30, os.getComputedBytes());
+        assertEquals(testData.length - 30, os.getDroppedBytes());
         assertArrayEquals(expectedData, bos.toByteArray());
     }
 
@@ -55,7 +56,15 @@ public class LimitedOutputStreamTest extends AbstractOutputStreamTestCase {
         LimitedOutputStream os = new LimitedOutputStream(bos, 30);
         chunker(testData, os);
         assertEquals(30, os.getComputedBytes());
+        assertEquals(testData.length - 30, os.getDroppedBytes());
         assertArrayEquals(expectedData, bos.toByteArray());
+    }
+
+    public void testNothingDroppedUnderTheLimit() throws IOException {
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        LimitedOutputStream os = new LimitedOutputStream(bos, testData.length);
+        os.write(testData, 0, testData.length);
+        assertEquals(0, os.getDroppedBytes());
     }
 
     protected OutputStream newInstance(ByteArrayOutputStream bos) {

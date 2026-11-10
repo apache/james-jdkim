@@ -195,7 +195,8 @@ public class Result {
 
     /**
      * Get the concern the verifier has about a successful verification, for instance an unsigned
-     * extra instance of a single-instance field (see {@link VerifierOptions.Builder#withUnsignedDuplicateFieldPolicy}).
+     * extra instance of a single-instance field (see {@link VerifierOptions.Builder#withUnsignedDuplicateFieldPolicy})
+     * or body octets past the l= length (see {@link VerifierOptions.Builder#withBodyLengthPolicy}).
      *
      * @return the warning, or null if none
      */
