@@ -34,7 +34,6 @@ import java.security.Signature;
 import java.security.SignatureException;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 public abstract class DKIMCommon {
@@ -80,8 +79,8 @@ public abstract class DKIMCommon {
         if (relaxed) {
             if (DEEP_DEBUG)
                 System.out
-                        .println("#" + header.toString().toLowerCase(Locale.US) + ":-");
-            signature.update(octets(header.toString().toLowerCase(Locale.US)));
+                        .println("#" + Headers.lowerCaseFieldName(header) + ":-");
+            signature.update(octets(Headers.lowerCaseFieldName(header)));
             signature.update(octets(":"));
             String headerValue = fv.substring(fv.indexOf(':') + 1);
             headerValue = headerValue.replaceAll("\r\n[\t ]", " ");
@@ -140,7 +139,7 @@ public abstract class DKIMCommon {
         Map<String, List<String>> fieldsByName = new HashMap<>();
 
         for (CharSequence header : headers) {
-            String lowerCaseHeader = header.toString().toLowerCase(Locale.US);
+            String lowerCaseHeader = Headers.lowerCaseFieldName(header);
             List<String> hl = fieldsByName.computeIfAbsent(lowerCaseHeader, h::getFields);
             if (hl != null && !hl.isEmpty()) {
                 Integer done = processedHeader.get(lowerCaseHeader);

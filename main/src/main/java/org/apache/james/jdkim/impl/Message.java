@@ -35,7 +35,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -148,7 +147,7 @@ public class Message implements Headers {
         while (end > 0 && (field.charAt(end - 1) == ' ' || field.charAt(end - 1) == '\t')) {
             end--;
         }
-        return field.substring(0, end).toLowerCase(Locale.US);
+        return Headers.lowerCaseFieldName(field.substring(0, end));
     }
 
     public InputStream getBodyInputStream() {
@@ -170,7 +169,7 @@ public class Message implements Headers {
      * @see org.apache.james.jdkim.api.Headers#getFields(java.lang.String)
      */
     public List<String> getFields(final String name) {
-        return fieldsByName.getOrDefault(name.toLowerCase(Locale.US), Collections.emptyList());
+        return fieldsByName.getOrDefault(Headers.lowerCaseFieldName(name), Collections.emptyList());
     }
 
     /**
