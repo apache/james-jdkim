@@ -191,7 +191,7 @@ public class VerifierOptions {
                 if (name == null || name.trim().isEmpty()) {
                     throw new IllegalArgumentException("singleInstanceFields can not hold a blank name");
                 }
-                names.add(name.trim().toLowerCase(Locale.US));
+                names.add(Headers.lowerCaseFieldName(name.trim()));
             }
             this.singleInstanceFields = Collections.unmodifiableSet(names);
             return this;

@@ -42,12 +42,36 @@ public interface Headers {
 
     /**
      * Gets all <code>Field</code>s having the specified field name in a case
-     * insensitive way.
+     * insensitive way: only the ASCII letters are folded, see
+     * {@link #lowerCaseFieldName(CharSequence)}.
      * 
      * @param name
      *                the field name (e.g. From, Subject).
      * @return the list of fields.
      */
     List<String> getFields(final String name);
+
+    /**
+     * Lower-cases a field name the way RFC 5322 and RFC 6376 compare them:
+     * field names are ASCII, so only 'A'-'Z' are folded. String#toLowerCase
+     * would also fold the Latin-1 letters of an 8-bit name decoded with
+     * ISO-8859-1, making two distinct names match.
+     *
+     * @param name a field name, one octet per char
+     * @return the name with 'A'-'Z' mapped to 'a'-'z'
+     */
+    static String lowerCaseFieldName(CharSequence name) {
+        StringBuilder sb = null;
+        for (int i = 0; i < name.length(); i++) {
+            char c = name.charAt(i);
+            if (c >= 'A' && c <= 'Z') {
+                if (sb == null) {
+                    sb = new StringBuilder(name);
+                }
+                sb.setCharAt(i, (char) (c + ('a' - 'A')));
+            }
+        }
+        return sb == null ? name.toString() : sb.toString();
+    }
 
 }

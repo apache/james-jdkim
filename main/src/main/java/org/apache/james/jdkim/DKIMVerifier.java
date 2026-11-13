@@ -393,7 +393,7 @@ public class DKIMVerifier {
         }
         Map<String, Integer> signedCounts = new HashMap<>();
         for (CharSequence header : signatureRecord.getHeaders()) {
-            signedCounts.merge(header.toString().trim().toLowerCase(Locale.US), 1, Integer::sum);
+            signedCounts.merge(Headers.lowerCaseFieldName(header.toString().trim()), 1, Integer::sum);
         }
         for (String name : options.getSingleInstanceFields()) {
             List<String> instances = messageHeaders.getFields(name);
