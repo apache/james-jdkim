@@ -236,4 +236,19 @@ public class TagValueTest {
         assertEquals("b", new TagValue("a\r\n =b;\r\n\tc=d").getValue("a").toString());
         assertEquals("", new TagValue("v= \r\n\t;f=1").getValue("v").toString());
     }
+
+    @Test
+    public void twoFoldsAroundAnEmptyValueShouldBeAccepted() {
+        // [FWS] tag-value [FWS] with an empty tag-value: two FWS, one fold each
+        assertEquals("", new TagValue("b\r\n\t=\r\n\t\r\n\t").getValue("b").toString());
+        assertEquals("", new TagValue("v=\r\n \r\n ;f=1").getValue("v").toString());
+        assertEquals("", new TagValue("v= \t\r\n \t\r\n\t ;f=1").getValue("v").toString());
+    }
+
+    @Test
+    public void moreThanTwoFoldsAroundAnEmptyValueShouldBeRejected() {
+        assertThatThrownBy(() -> new TagValue("v=\r\n \r\n \r\n ;f=1")).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> new TagValue("v=\r\n\r\n ;f=1")).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> new TagValue("v= \r\n")).isInstanceOf(IllegalStateException.class);
+    }
 }

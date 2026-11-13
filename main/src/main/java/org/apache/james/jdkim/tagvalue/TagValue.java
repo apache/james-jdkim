@@ -65,6 +65,8 @@ public class TagValue {
     private static final Pattern fwsPattern = Pattern.compile("[ \t\r\n]");
     // FWS = [*WSP CRLF] 1*WSP, or nothing
     private static final Pattern trailingFWSPattern = Pattern.compile("^(?:(?:[ \t]*\r\n)?[ \t]+)?$");
+    // [FWS] tag-value [FWS] with an empty tag-value: up to two FWS, possessive to stay linear
+    private static final Pattern twoFWSPattern = Pattern.compile("^(?:(?:[ \t]*+\r\n)?+[ \t]++){0,2}+$");
 
     // we may use a TreeMap because we may need to know original order.
     private final Map<String, CharSequence> tagValues;
@@ -214,6 +216,7 @@ public class TagValue {
     /**
      * Checks that the whitespace that starts and ends data[start, end) is at most one FWS on each side:
      * FWS = [*WSP CRLF] 1*WSP holds a single CRLF, a line holding only WSP is obsolete syntax.
+     * Whitespace alone may be two FWS, the one before and the one after an empty value.
      */
     private static void checkSingleFWSAround(String data, int start, int end) {
         int contentStart = start;
@@ -226,6 +229,14 @@ public class TagValue {
         }
         String leading = data.substring(start, contentStart);
         String trailing = data.substring(contentEnd, end);
+        if (contentStart == end) {
+            // no content: the run holds the FWS before and the FWS after an empty value
+            if (!twoFWSPattern.matcher(leading).matches()) {
+                throw new IllegalStateException("Syntax error: whitespace that is not FWS in ["
+                        + leading + "]");
+            }
+            return;
+        }
         if (!trailingFWSPattern.matcher(leading).matches() || !trailingFWSPattern.matcher(trailing).matches()) {
             throw new IllegalStateException("Syntax error: whitespace that is not FWS in ["
                     + data.substring(start, end) + "]");
