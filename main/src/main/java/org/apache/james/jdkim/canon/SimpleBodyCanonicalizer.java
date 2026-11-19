@@ -37,6 +37,9 @@ public class SimpleBodyCanonicalizer extends FilterOutputStream {
     // CRLFs read but not written yet: only the trailing ones are dropped
     private int countCRLF;
     private boolean hasContent;
+    // canonical octets not written yet: the digest gets them in blocks rather than one or two at a time
+    private final byte[] pending = new byte[4096];
+    private int count;
 
     public SimpleBodyCanonicalizer(OutputStream arg0) {
         this(arg0, false);
@@ -69,7 +72,7 @@ public class SimpleBodyCanonicalizer extends FilterOutputStream {
             while (next < end && b[next] != '\r') {
                 next++;
             }
-            out.write(b, i, next - i);
+            emit(b, i, next - i);
             hasContent = true;
             i = next;
         }
@@ -98,7 +101,13 @@ public class SimpleBodyCanonicalizer extends FilterOutputStream {
 
     public void close() throws IOException {
         complete();
+        // FilterOutputStream#close flushes
         super.close();
+    }
+
+    public void flush() throws IOException {
+        flushPending();
+        out.flush();
     }
 
     private void complete() throws IOException {
@@ -111,12 +120,12 @@ public class SimpleBodyCanonicalizer extends FilterOutputStream {
         if (emptyBodyIsEmpty && !hasContent) {
             return;
         }
-        out.write("\r\n".getBytes());
+        emitCRLF();
     }
 
     private void writeContent(int b) throws IOException {
         dumpCRLF();
-        out.write(b);
+        emit(b);
         hasContent = true;
     }
 
@@ -124,8 +133,42 @@ public class SimpleBodyCanonicalizer extends FilterOutputStream {
         if (DEEP_DEBUG)
             System.out.println("D:(" + lastWasCR + "|" + countCRLF + ")");
         while (countCRLF > 0) {
-            out.write("\r\n".getBytes());
+            emitCRLF();
             countCRLF--;
+        }
+    }
+
+    private void emitCRLF() throws IOException {
+        if (count + 2 > pending.length) {
+            flushPending();
+        }
+        pending[count++] = '\r';
+        pending[count++] = '\n';
+    }
+
+    private void emit(int b) throws IOException {
+        if (count == pending.length) {
+            flushPending();
+        }
+        pending[count++] = (byte) b;
+    }
+
+    private void emit(byte[] b, int off, int len) throws IOException {
+        if (len > pending.length - count) {
+            flushPending();
+            if (len >= pending.length) {
+                out.write(b, off, len);
+                return;
+            }
+        }
+        System.arraycopy(b, off, pending, count, len);
+        count += len;
+    }
+
+    private void flushPending() throws IOException {
+        if (count > 0) {
+            out.write(pending, 0, count);
+            count = 0;
         }
     }
 
