@@ -25,7 +25,6 @@ import org.apache.james.mime4j.MimeIOException;
 import org.apache.james.mime4j.dom.MessageBuilder;
 import org.apache.james.mime4j.dom.MessageServiceFactory;
 import org.apache.james.mime4j.dom.SingleBody;
-import org.apache.james.mime4j.io.EOLConvertingInputStream;
 import org.apache.james.mime4j.stream.MimeConfig;
 
 import java.io.IOException;
@@ -58,7 +57,7 @@ public class Message implements Headers {
 
         // mime4j drops the fields whose name it cannot parse and normalizes the
         // others: the fields are taken from the raw header bytes instead.
-        HeaderCapturingInputStream header = new HeaderCapturingInputStream(new EOLConvertingInputStream(is));
+        HeaderCapturingInputStream header = new HeaderCapturingInputStream(new CrlfConvertingInputStream(is));
         try {
             this.message = mb.parseMessage(header);
         } catch (MimeIOException e) {
