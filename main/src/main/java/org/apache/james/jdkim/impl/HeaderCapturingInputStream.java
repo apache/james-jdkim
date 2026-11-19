@@ -33,6 +33,8 @@ import java.io.InputStream;
  */
 class HeaderCapturingInputStream extends FilterInputStream {
 
+    private static final byte[] TERMINATOR = {'\r', '\n', '\r', '\n'};
+
     private final ByteArrayOutputStream header = new ByteArrayOutputStream();
     // number of bytes of the "\r\n\r\n" terminator seen so far
     private int matched = 2;
@@ -54,8 +56,8 @@ class HeaderCapturingInputStream extends FilterInputStream {
     @Override
     public int read(byte[] b, int off, int len) throws IOException {
         int read = super.read(b, off, len);
-        for (int i = 0; i < read && !complete; i++) {
-            capture(b[off + i]);
+        if (read > 0 && !complete) {
+            capture(b, off, read);
         }
         return read;
     }
@@ -78,8 +80,25 @@ class HeaderCapturingInputStream extends FilterInputStream {
             return;
         }
         header.write(b);
+        match(b);
+    }
+
+    /**
+     * Captures b[off, off + len) up to the end of the header block, with a single write.
+     */
+    private void capture(byte[] b, int off, int len) {
+        int end = off + len;
+        int i = off;
+        while (i < end && !complete) {
+            match(b[i]);
+            i++;
+        }
+        header.write(b, off, i - off);
+    }
+
+    private void match(byte b) {
         // the header block starts right after a (virtual) CRLF
-        if (b == "\r\n\r\n".charAt(matched)) {
+        if (b == TERMINATOR[matched]) {
             matched++;
         } else {
             matched = b == '\r' ? 1 : 0;
