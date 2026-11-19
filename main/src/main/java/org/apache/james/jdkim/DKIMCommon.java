@@ -32,6 +32,7 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.Signature;
 import java.security.SignatureException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -72,6 +73,9 @@ public abstract class DKIMCommon {
         return s.getBytes(StandardCharsets.ISO_8859_1);
     }
 
+    private static final byte[] COLON = {':'};
+    private static final byte[] CRLF = {'\r', '\n'};
+
     protected static void updateSignature(Signature signature,
                                           boolean relaxed,
                                           CharSequence header,
@@ -81,20 +85,58 @@ public abstract class DKIMCommon {
                 System.out
                         .println("#" + Headers.lowerCaseFieldName(header) + ":-");
             signature.update(octets(Headers.lowerCaseFieldName(header)));
-            signature.update(octets(":"));
-            String headerValue = fv.substring(fv.indexOf(':') + 1);
-            headerValue = headerValue.replaceAll("\r\n[\t ]", " ");
-            headerValue = headerValue.replaceAll("[\t ]+", " ");
-            // RFC 6376 section 3.4.2 only deletes WSP: String#trim would also drop control characters
-            headerValue = headerValue.replaceAll("^ | $", "");
-            signature.update(octets(headerValue));
+            signature.update(COLON);
+            byte[] headerValue = relaxedValue(fv);
+            signature.update(headerValue);
             if (DEEP_DEBUG)
-                System.out.println("#" + headerValue + "#");
+                System.out.println("#" + new String(headerValue, StandardCharsets.ISO_8859_1) + "#");
         } else {
             signature.update(octets(fv));
             if (DEEP_DEBUG)
                 System.out.println("#" + fv + "#");
         }
+    }
+
+    /**
+     * The relaxed canonicalization of the value of a field (RFC 6376 section 3.4.2), in one pass: a CRLF
+     * followed by WSP is unfolded, each run of WSP becomes a single SP, and the WSP at the start and at the end
+     * of the value is deleted. Only WSP is deleted, never control characters, and a CRLF that is not followed
+     * by WSP is kept as is.
+     *
+     * @param fv the field, name included: the value is what follows the first colon
+     * @throws IllegalArgumentException on a char above U+00FF, see {@link #octets(String)}
+     */
+    static byte[] relaxedValue(String fv) {
+        int n = fv.length();
+        int start = fv.indexOf(':') + 1;
+        byte[] out = new byte[n - start];
+        int o = 0;
+        boolean pendingWsp = false;
+        for (int i = start; i < n; i++) {
+            char c = fv.charAt(i);
+            if (c == ' ' || c == '\t') {
+                pendingWsp = true;
+                continue;
+            }
+            if (c == '\r' && i + 2 < n && fv.charAt(i + 1) == '\n'
+                    && (fv.charAt(i + 2) == ' ' || fv.charAt(i + 2) == '\t')) {
+                // unfolding: the CRLF goes, the WSP after it is handled by the next iteration
+                pendingWsp = true;
+                i++;
+                continue;
+            }
+            if (c > 0xFF) {
+                throw new IllegalArgumentException("Header field holds a char above U+00FF at " + i
+                        + ": header fields must carry one octet per char");
+            }
+            if (pendingWsp && o > 0) {
+                out[o++] = ' ';
+            }
+            pendingWsp = false;
+            out[o++] = (byte) c;
+        }
+        // WSP still pending ends the value: it is deleted
+        return o == out.length ? out : Arrays.copyOf(out, o);
     }
 
     protected static void signatureCheck(Headers h, SignatureRecord sign,
@@ -149,7 +191,7 @@ public abstract class DKIMCommon {
                 if (doneHeaders <= hl.size()) {
                     String fv = hl.get(hl.size() - doneHeaders);
                     updateSignature(signature, relaxedHeaders, header, fv);
-                    signature.update(octets("\r\n"));
+                    signature.update(CRLF);
                     processedHeader.put(lowerCaseHeader, doneHeaders);
                 }
             }
