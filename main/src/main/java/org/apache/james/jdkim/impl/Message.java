@@ -23,8 +23,8 @@ import org.apache.james.jdkim.api.Headers;
 import org.apache.james.mime4j.MimeException;
 import org.apache.james.mime4j.MimeIOException;
 import org.apache.james.mime4j.dom.MessageBuilder;
-import org.apache.james.mime4j.dom.MessageServiceFactory;
 import org.apache.james.mime4j.dom.SingleBody;
+import org.apache.james.mime4j.message.DefaultMessageBuilder;
 import org.apache.james.mime4j.stream.MimeConfig;
 
 import java.io.IOException;
@@ -53,7 +53,7 @@ public class Message implements Headers {
      * @throws MimeException  on MIME protocol violations, or when a parsing limit is exceeded.
      */
     public Message(InputStream is) throws IOException, MimeException {
-        MessageBuilder mb = newMessageBuilder().newMessageBuilder();
+        MessageBuilder mb = newMessageBuilder();
 
         // mime4j drops the fields whose name it cannot parse and normalizes the
         // others: the fields are taken from the raw header bytes instead.
@@ -75,22 +75,25 @@ public class Message implements Headers {
         this.fieldsByName = byName;
     }
 
-    private MessageServiceFactory newMessageBuilder() throws MimeException {
-        // mime4j's permissive profile, without its per-field limits (4096 fields, 64 KB per field): RFC 5322
-        // sets none, and a To: listing a few thousand recipients exceeds 64 KB. The memory the header takes
-        // stays bounded by the limits on the whole header (16384 fields, 1 MB), which a single field cannot
-        // exceed anyway.
-        MimeConfig mec = MimeConfig.copy(MimeConfig.PERMISSIVE)
-                .setMaxHeaderCount(MimeConfig.PERMISSIVE.getMaxTotalHeaderCount())
-                .setMaxHeaderLen((int) Math.min(Integer.MAX_VALUE, MimeConfig.PERMISSIVE.getMaxTotalHeaderLen()))
-                .build();
+    // mime4j's permissive profile, without its per-field limits (4096 fields, 64 KB per field): RFC 5322
+    // sets none, and a To: listing a few thousand recipients exceeds 64 KB. The memory the header takes
+    // stays bounded by the limits on the whole header (16384 fields, 1 MB), which a single field cannot
+    // exceed anyway. A built MimeConfig is immutable: one instance serves every message.
+    private static final MimeConfig CONFIG = MimeConfig.copy(MimeConfig.PERMISSIVE)
+            .setMaxHeaderCount(MimeConfig.PERMISSIVE.getMaxTotalHeaderCount())
+            .setMaxHeaderLen((int) Math.min(Integer.MAX_VALUE, MimeConfig.PERMISSIVE.getMaxTotalHeaderLen()))
+            .build();
 
-        MessageServiceFactory mbf = MessageServiceFactory.newInstance();
-        mbf.setAttribute("MimeEntityConfig", mec);
-        mbf.setAttribute("FlatMode", true);
-        mbf.setAttribute("ContentDecoding", false);
-
-        return mbf;
+    /**
+     * A builder per message, created directly: MessageServiceFactory#newInstance looks its implementation up
+     * with a ServiceLoader, reading a jar resource on every call.
+     */
+    private static MessageBuilder newMessageBuilder() {
+        DefaultMessageBuilder mb = new DefaultMessageBuilder();
+        mb.setMimeEntityConfig(CONFIG);
+        mb.setFlatMode(true);
+        mb.setContentDecoding(false);
+        return mb;
     }
 
     /**
