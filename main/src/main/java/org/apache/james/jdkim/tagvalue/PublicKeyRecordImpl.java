@@ -35,11 +35,6 @@ import java.util.regex.Pattern;
 
 public class PublicKeyRecordImpl extends TagValue implements PublicKeyRecord {
 
-    // Any run of atext: the same values as the former "(atom)?\*?(atom)?", atext including "*".
-    // One possessive class: the former pattern tried every split of the run between its two groups
-    // before failing, quadratic in the length of an invalid value.
-    private static final Pattern granularityPattern = Pattern.compile("^[a-zA-Z0-9!#$%&'*+/=?^_`{}|~-]*+$");
-
     // SPEC: hyphenated-word = ALPHA [ *(ALPHA / DIGIT / "-") (ALPHA / DIGIT) ]
     private static final Pattern hyphenatedWordPattern = Pattern
             .compile("^[a-zA-Z]([a-zA-Z0-9-]*[a-zA-Z0-9])?$");
@@ -47,6 +42,13 @@ public class PublicKeyRecordImpl extends TagValue implements PublicKeyRecord {
     // SPEC: key-s-tag-type = "email" / "*" / x-key-s-tag-type ; x-key-s-tag-type = hyphenated-word
     private static final Pattern serviceTypePattern = Pattern
             .compile("^(\\*|[a-zA-Z]([a-zA-Z0-9-]*[a-zA-Z0-9])?)$");
+
+    // the verifier reads these lists more than once per key: each one is parsed once
+    private volatile ParsedValue<List<CharSequence>> serviceTypes;
+    private volatile ParsedValue<List<CharSequence>> hashMethods;
+    private volatile ParsedValue<List<CharSequence>> keyTypes;
+    private volatile ParsedValue<List<CharSequence>> flags;
+    private volatile ParsedValue<Pattern> granularity;
 
     public PublicKeyRecordImpl(String data) {
         super(data);
@@ -100,8 +102,18 @@ public class PublicKeyRecordImpl extends TagValue implements PublicKeyRecord {
      * @return the listed types; with strict validation, an {@link IllegalStateException} on a malformed list
      */
     public List<CharSequence> getServiceTypes() {
-        String s = getValue("s").toString();
-        if (isStrictValidation()) {
+        CharSequence source = getValue("s");
+        boolean strict = isStrictValidation();
+        ParsedValue<List<CharSequence>> cached = serviceTypes;
+        if (cached == null || !cached.isFor(source, strict)) {
+            cached = new ParsedValue<>(source, strict, unmodifiable(parseServiceTypes(source.toString(), strict)));
+            serviceTypes = cached;
+        }
+        return cached.get();
+    }
+
+    private List<CharSequence> parseServiceTypes(String s, boolean strict) {
+        if (strict) {
             return stringToColonSeparatedList(s, serviceTypePattern);
         }
         List<CharSequence> res = new ArrayList<>();
@@ -139,28 +151,64 @@ public class PublicKeyRecordImpl extends TagValue implements PublicKeyRecord {
      * @see org.apache.james.jdkim.api.PublicKeyRecord#getAcceptableHashMethods()
      */
     public List<CharSequence> getAcceptableHashMethods() {
-        if (ANY.equals(getValue("h")))
-            return null;
-        return stringToColonSeparatedList(getValue("h").toString(),
-                hyphenatedWordPattern);
+        CharSequence source = getValue("h");
+        boolean strict = isStrictValidation();
+        ParsedValue<List<CharSequence>> cached = hashMethods;
+        if (cached == null || !cached.isFor(source, strict)) {
+            cached = new ParsedValue<>(source, strict, ANY.equals(source) ? null
+                    : unmodifiable(stringToColonSeparatedList(source.toString(), hyphenatedWordPattern)));
+            hashMethods = cached;
+        }
+        return cached.get();
     }
 
     /**
      * @see org.apache.james.jdkim.api.PublicKeyRecord#getAcceptableKeyTypes()
      */
     public List<CharSequence> getAcceptableKeyTypes() {
-        return stringToColonSeparatedList(getValue("k").toString(),
-                hyphenatedWordPattern);
+        CharSequence source = getValue("k");
+        boolean strict = isStrictValidation();
+        ParsedValue<List<CharSequence>> cached = keyTypes;
+        if (cached == null || !cached.isFor(source, strict)) {
+            cached = new ParsedValue<>(source, strict,
+                    unmodifiable(stringToColonSeparatedList(source.toString(), hyphenatedWordPattern)));
+            keyTypes = cached;
+        }
+        return cached.get();
     }
 
     /**
      * @see org.apache.james.jdkim.api.PublicKeyRecord#getGranularityPattern()
      */
     public Pattern getGranularityPattern() {
-        String g = getValue("g").toString();
+        CharSequence source = getValue("g");
+        ParsedValue<Pattern> cached = granularity;
+        if (cached == null || !cached.isFor(source, false)) {
+            cached = new ParsedValue<>(source, false, parseGranularity(source.toString()));
+            granularity = cached;
+        }
+        return cached.get();
+    }
+
+    /**
+     * Any run of atext, "*" included: the same values as the former "(atom)?\*?(atom)?". A loop over the
+     * chars, since the value is chosen by the domain owner and may be long.
+     */
+    private static boolean isGranularity(String g) {
+        for (int i = 0; i < g.length(); i++) {
+            char c = g.charAt(i);
+            if (!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9')
+                    || "!#$%&'*+/=?^_`{}|~-".indexOf(c) != -1)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static Pattern parseGranularity(String g) {
         int pStar = g.indexOf('*');
         if (VALIDATION) {
-            if (!granularityPattern.matcher(g).matches())
+            if (!isGranularity(g))
                 throw new IllegalStateException("Syntax error in granularity: "
                         + g);
         }
@@ -185,8 +233,18 @@ public class PublicKeyRecordImpl extends TagValue implements PublicKeyRecord {
     }
 
     public List<CharSequence> getFlags() {
-        String flags = getValue("t").toString();
-        if (isStrictValidation() && containsTag("t")) {
+        CharSequence source = getValue("t");
+        boolean strict = isStrictValidation();
+        ParsedValue<List<CharSequence>> cached = flags;
+        if (cached == null || !cached.isFor(source, strict)) {
+            cached = new ParsedValue<>(source, strict, unmodifiable(parseFlags(source.toString(), strict)));
+            flags = cached;
+        }
+        return cached.get();
+    }
+
+    private List<CharSequence> parseFlags(String flags, boolean strict) {
+        if (strict && containsTag("t")) {
             // SPEC: key-t-tag-flag *( [FWS] ":" [FWS] key-t-tag-flag ), each a hyphenated-word
             return stringToColonSeparatedList(flags, hyphenatedWordPattern);
         }

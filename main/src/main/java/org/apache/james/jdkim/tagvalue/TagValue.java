@@ -21,6 +21,7 @@ package org.apache.james.jdkim.tagvalue;
 
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -51,22 +52,10 @@ public class TagValue {
         return !"false".equalsIgnoreCase(System.getProperty(STRICT_VALIDATION_PROPERTY, "true").trim());
     }
 
-    private static final Pattern tagPattern = Pattern
-            .compile("^[A-Za-z][A-Za-z0-9_]*$");
-    // RFC 6376 section 3.2: tval = 1*VALCHAR, VALCHAR = %x21-3A / %x3C-7E, plus the UTF8-non-ascii
-    // octets RFC 8616 section 4 allows in i= and z= for internationalized mail (header octets are read as
-    // ISO-8859-1, so they arrive as U+0080 to U+00FF; the header hashing rejects anything above).
-    // Use possessive matching to avoid heavy stack usage
-    private static final String tval = "[\\x21-\\x3a\\x3c-\\x7e\\u0080-\\uffff]++";
-    // validate value chars
-    // Use possessive matching to avoid heavy stack usage
-    private static final Pattern valuePattern = Pattern.compile("^(?:" + tval
-            + "(?:(?:(?:\r\n)?[\t ])++" + tval + ")*+)?$");
+    // The syntax checks below are loops over the chars rather than regular expressions: they run for every
+    // tag of every DKIM-Signature field and key record, and a loop does not recurse, which is why the former
+    // patterns had to be possessive (a long z= overflowed the stack).
     private static final Pattern fwsPattern = Pattern.compile("[ \t\r\n]");
-    // FWS = [*WSP CRLF] 1*WSP, or nothing
-    private static final Pattern trailingFWSPattern = Pattern.compile("^(?:(?:[ \t]*\r\n)?[ \t]+)?$");
-    // [FWS] tag-value [FWS] with an empty tag-value: up to two FWS, possessive to stay linear
-    private static final Pattern twoFWSPattern = Pattern.compile("^(?:(?:[ \t]*+\r\n)?+[ \t]++){0,2}+$");
 
     // we may use a TreeMap because we may need to know original order.
     private final Map<String, CharSequence> tagValues;
@@ -165,11 +154,10 @@ public class TagValue {
             int equal = data.indexOf('=', i);
             if (equal == -1) {
                 // only FWS may follow the final ";"
-                String rest = data.substring(i);
-                if (!trailingFWSPattern.matcher(rest).matches()) {
+                if (!isFWS(data, i, data.length())) {
                     throw new IllegalStateException(
                             "Unexpected termination at position " + i + ": "
-                                    + data + " | [" + rest + "]");
+                                    + data + " | [" + data.substring(i) + "]");
                 }
                 i = data.length();
                 continue;
@@ -192,7 +180,7 @@ public class TagValue {
                 checkSingleFWSAround(data, equal + 1, next);
             }
             CharSequence tag = trimFWS(data, i, equal - 1, true).toString();
-            if (VALIDATION && !tagPattern.matcher(tag).matches()) {
+            if (VALIDATION && !isTagName(tag)) {
                 throw new IllegalStateException("Syntax error in tag: " + tag);
             }
             String tagString = tag.toString();
@@ -202,7 +190,7 @@ public class TagValue {
             }
 
             CharSequence value = trimFWS(data, equal + 1, next - 1, true);
-            if (VALIDATION && !valuePattern.matcher(value).matches()) {
+            if (VALIDATION && !isValue(value)) {
                 throw new IllegalStateException("Syntax error in value: "
                         + value);
             }
@@ -227,17 +215,15 @@ public class TagValue {
         while (contentEnd > contentStart && isFWSChar(data.charAt(contentEnd - 1))) {
             contentEnd--;
         }
-        String leading = data.substring(start, contentStart);
-        String trailing = data.substring(contentEnd, end);
         if (contentStart == end) {
             // no content: the run holds the FWS before and the FWS after an empty value
-            if (!twoFWSPattern.matcher(leading).matches()) {
+            if (!isTwoFWS(data, start, end)) {
                 throw new IllegalStateException("Syntax error: whitespace that is not FWS in ["
-                        + leading + "]");
+                        + data.substring(start, end) + "]");
             }
             return;
         }
-        if (!trailingFWSPattern.matcher(leading).matches() || !trailingFWSPattern.matcher(trailing).matches()) {
+        if (!isFWS(data, start, contentStart) || !isFWS(data, contentEnd, end)) {
             throw new IllegalStateException("Syntax error: whitespace that is not FWS in ["
                     + data.substring(start, end) + "]");
         }
@@ -245,6 +231,116 @@ public class TagValue {
 
     private static boolean isFWSChar(char c) {
         return c == ' ' || c == '\t' || c == '\r' || c == '\n';
+    }
+
+    private static boolean isWSP(char c) {
+        return c == ' ' || c == '\t';
+    }
+
+    /**
+     * @return the end of the FWS = [*WSP CRLF] 1*WSP that starts data[start, end) at start, or -1
+     */
+    private static int endOfFWS(CharSequence data, int start, int end) {
+        int p = start;
+        while (p < end && isWSP(data.charAt(p))) {
+            p++;
+        }
+        if (p + 1 < end && data.charAt(p) == '\r' && data.charAt(p + 1) == '\n') {
+            int q = p + 2;
+            while (q < end && isWSP(data.charAt(q))) {
+                q++;
+            }
+            return q > p + 2 ? q : -1;
+        }
+        return p > start ? p : -1;
+    }
+
+    /**
+     * @return whether data[start, end) is empty or a single FWS
+     */
+    private static boolean isFWS(CharSequence data, int start, int end) {
+        return start == end || endOfFWS(data, start, end) == end;
+    }
+
+    /**
+     * @return whether data[start, end) is at most two FWS
+     */
+    private static boolean isTwoFWS(CharSequence data, int start, int end) {
+        int p = start;
+        for (int fws = 0; fws < 2 && p < end; fws++) {
+            p = endOfFWS(data, p, end);
+            if (p == -1) {
+                return false;
+            }
+        }
+        return p == end;
+    }
+
+    /**
+     * SPEC: tag-name = ALPHA *ALNUMPUNC, ALNUMPUNC = ALPHA / DIGIT / "_"
+     */
+    private static boolean isTagName(CharSequence tag) {
+        if (tag.length() == 0 || !isAlpha(tag.charAt(0))) {
+            return false;
+        }
+        for (int i = 1; i < tag.length(); i++) {
+            char c = tag.charAt(i);
+            if (!isAlpha(c) && !(c >= '0' && c <= '9') && c != '_') {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static boolean isAlpha(char c) {
+        return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
+    }
+
+    /**
+     * SPEC: tag-value = [ tval *( 1*(WSP / FWS) tval ) ], tval = 1*VALCHAR, VALCHAR = %x21-3A / %x3C-7E.
+     * VALCHAR also takes the UTF8-non-ascii octets RFC 8616 section 4 allows in i= and z= for
+     * internationalized mail: header octets are read as ISO-8859-1, so they arrive as U+0080 to U+00FF, and
+     * the header hashing rejects anything above. Code points are checked, so a surrogate pair (above U+FFFF)
+     * is not a VALCHAR.
+     */
+    private static boolean isValue(CharSequence value) {
+        int n = value.length();
+        int i = endOfTval(value, 0);
+        if (n > 0 && i == 0) {
+            return false;
+        }
+        while (i < n) {
+            // 1*([CRLF] WSP) between two tval
+            int j = i;
+            while (true) {
+                if (j < n && isWSP(value.charAt(j))) {
+                    j++;
+                } else if (j + 2 < n && value.charAt(j) == '\r' && value.charAt(j + 1) == '\n'
+                        && isWSP(value.charAt(j + 2))) {
+                    j += 3;
+                } else {
+                    break;
+                }
+            }
+            int k = endOfTval(value, j);
+            if (j == i || k == j) {
+                return false;
+            }
+            i = k;
+        }
+        return true;
+    }
+
+    private static int endOfTval(CharSequence value, int start) {
+        int i = start;
+        while (i < value.length()) {
+            int cp = Character.codePointAt(value, i);
+            if (!((cp >= 0x21 && cp <= 0x3a) || (cp >= 0x3c && cp <= 0x7e) || (cp >= 0x80 && cp <= 0xffff))) {
+                break;
+            }
+            i += Character.charCount(cp);
+        }
+        return i;
     }
 
     public int hashCode() {
@@ -335,7 +431,8 @@ public class TagValue {
     protected List<CharSequence> stringToColonSeparatedList(String h, Pattern pattern) {
         List<CharSequence> headers = new ArrayList<>();
         // SPEC: entry *( [FWS] ":" [FWS] entry ): neither an empty list nor a trailing ":"
-        if (isStrictValidation() && h.trim().matches("(?s)|.*:")) {
+        String trimmed = h.trim();
+        if (isStrictValidation() && (trimmed.isEmpty() || trimmed.charAt(trimmed.length() - 1) == ':')) {
             throw new IllegalStateException("Syntax error in list: empty entry in [" + h + "]");
         }
         for (int i = 0; i < h.length(); i++) {
@@ -352,6 +449,38 @@ public class TagValue {
             i = p;
         }
         return headers;
+    }
+
+    /**
+     * Something parsed from a tag value, kept as long as the value (the same instance: values only change
+     * through {@link #setValue(String, String)}) and the strictness of the validation are the same. The
+     * parsed object must be immutable: it is returned to every caller.
+     */
+    protected static final class ParsedValue<T> {
+        private final CharSequence source;
+        private final boolean strict;
+        private final T parsed;
+
+        protected ParsedValue(CharSequence source, boolean strict, T parsed) {
+            this.source = source;
+            this.strict = strict;
+            this.parsed = parsed;
+        }
+
+        protected boolean isFor(CharSequence source, boolean strict) {
+            return this.source == source && this.strict == strict;
+        }
+
+        protected T get() {
+            return parsed;
+        }
+    }
+
+    /**
+     * @return list, unmodifiable, or null
+     */
+    protected static List<CharSequence> unmodifiable(List<CharSequence> list) {
+        return list == null ? null : Collections.unmodifiableList(list);
     }
 
     protected boolean isInListCaseInsensitive(CharSequence hash, List<CharSequence> hashes) {

@@ -237,6 +237,8 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
     private static final Pattern timestampPattern = Pattern.compile("^[0-9]{1,12}$");
     private static final Pattern bodyLengthPattern = Pattern.compile("^[0-9]{1,76}$");
 
+    private volatile ParsedValue<List<CharSequence>> parsedHeaders;
+
     public SignatureRecordImpl(String data) {
         super(data);
         validate();
@@ -378,8 +380,16 @@ public class SignatureRecordImpl extends TagValue implements SignatureRecord {
      * @see org.apache.james.jdkim.api.SignatureRecord#getHeaders()
      */
     public List<CharSequence> getHeaders() {
-        return stringToColonSeparatedList(getValue("h").toString(),
-                hdrNamePattern);
+        // the verifier asks for h= several times per signature: it is parsed once
+        CharSequence h = getValue("h");
+        boolean strict = isStrictValidation();
+        ParsedValue<List<CharSequence>> cached = parsedHeaders;
+        if (cached == null || !cached.isFor(h, strict)) {
+            cached = new ParsedValue<>(h, strict,
+                    unmodifiable(stringToColonSeparatedList(h.toString(), hdrNamePattern)));
+            parsedHeaders = cached;
+        }
+        return cached.get();
     }
 
     // If i= is unspecified the default is @d
