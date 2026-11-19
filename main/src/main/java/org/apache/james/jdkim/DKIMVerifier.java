@@ -41,7 +41,6 @@ import org.apache.james.jdkim.impl.CompoundBodyHasher;
 import org.apache.james.jdkim.impl.Message;
 import org.apache.james.jdkim.tagvalue.PublicKeyRecordImpl;
 import org.apache.james.jdkim.tagvalue.SignatureRecordImpl;
-import org.apache.james.jdkim.tagvalue.SignatureRecordTemplate;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -270,14 +269,19 @@ public class DKIMVerifier {
         // One job per field, even for byte-identical fields: each one gets its own result.
         List<CompoundBodyHasher.Job> jobs = new ArrayList<>();
         int processedSignatures = 0;
+        // the fields past the cap all get this one exception: its message and stack are the same for each
+        PermFailException tooManySignatures = null;
         for (int signatureIndex = 0; signatureIndex < fields.size(); signatureIndex++) {
             String signatureField = fields.get(signatureIndex);
             CompoundBodyHasher.Job job = new CompoundBodyHasher.Job(signatureField);
             jobs.add(job);
             // RFC 6376 section 6.1: verifiers MAY limit the number of signatures they try to verify.
             if (processedSignatures >= options.getMaxSignatures()) {
-                job.setFailure(new PermFailException("Too many DKIM-Signature fields: only the first "
-                        + options.getMaxSignatures() + " are verified"));
+                if (tooManySignatures == null) {
+                    tooManySignatures = new PermFailException("Too many DKIM-Signature fields: only the first "
+                            + options.getMaxSignatures() + " are verified");
+                }
+                job.setFailure(tooManySignatures);
                 continue;
             }
             processedSignatures++;
@@ -579,12 +583,7 @@ public class DKIMVerifier {
     private Result resultFromException(String signatureField, FailException e) {
         SignatureRecord rec = e.getRelatedRecord();
         if (rec == null) {
-            rec = new SignatureRecordTemplate("v=1; d=invalid; h=from; s=invalid; b=invalidsig") {
-                @Override
-                public void validate() {
-                    // placeholder for a failure without a parsed signature, not a record to check
-                }
-            };
+            rec = PlaceholderSignatureRecord.INSTANCE;
         }
 
         Result.Type resultType = Result.Type.NONE;
