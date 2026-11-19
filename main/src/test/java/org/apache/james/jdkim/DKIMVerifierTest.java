@@ -158,6 +158,28 @@ public class DKIMVerifierTest {
     }
 
     @Test
+    public void resultsWithoutARecordShouldShareAnUnmodifiablePlaceholder() {
+        StringBuilder mail = new StringBuilder();
+        for (int i = 0; i < 3; i++) {
+            mail.append("DKIM-Signature: v=1; a=rsa-sha256; d=example.com; s=s").append(i).append("; h=from; bh=AAAA; b=AAAA\r\n");
+        }
+        mail.append("From: joe@example.com\r\n\r\nbody\r\n");
+        DKIMVerifier verifier = new DKIMVerifier(new VerifierOptions.Builder()
+                .withPublicKeyRecordRetriever((method, selector, token) -> {
+                    throw new PermFailException("no key");
+                }).withMaxSignatures(1).build());
+
+        assertThatThrownBy(() -> verifier.verify(new ByteArrayInputStream(mail.toString().getBytes(StandardCharsets.US_ASCII))))
+                .isInstanceOf(FailException.class);
+        Result pastTheCap = verifier.getResults().get(2);
+        assertThat(pastTheCap.getRecord()).isSameAs(verifier.getResults().get(1).getRecord());
+        assertThat(pastTheCap.getRecord().getDToken()).hasToString("invalid");
+        assertThat(pastTheCap.getHeaderText()).contains("permerror");
+        assertThatThrownBy(() -> pastTheCap.getRecord().setSignature(new byte[0]))
+                .isInstanceOf(UnsupportedOperationException.class);
+    }
+
+    @Test
     public void verifyShouldFailWithPermFailOnUndecodableBodyHash() throws Exception {
         String tags = " b=; v=1; a=rsa-sha256; d=example.com; s=sel; h=from; bh=ab=c";
         String headers = "From: joe@example.com\r\n";
