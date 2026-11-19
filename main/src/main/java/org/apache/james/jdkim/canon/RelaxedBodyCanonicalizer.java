@@ -47,10 +47,18 @@ public class RelaxedBodyCanonicalizer extends FilterOutputStream {
                 k++;
                 continue;
             }
-            // nothing is pending: copy everything up to the next WSP or CR as is
+            // nothing is pending: copy everything up to the next WSP or CR as is. A single SP followed by
+            // an octet that is neither WSP nor CR is canonical already, so it is copied with the rest.
             int next = k;
-            while (next < end && buffer[next] != ' ' && buffer[next] != '\t' && buffer[next] != '\r') {
-                next++;
+            while (next < end) {
+                byte c = buffer[next];
+                if (c == ' ' && next + 1 < end && isOrdinary(buffer[next + 1])) {
+                    next += 2;
+                } else if (isOrdinary(c)) {
+                    next++;
+                } else {
+                    break;
+                }
             }
             if (next == k) {
                 write(buffer[k]);
@@ -60,6 +68,10 @@ public class RelaxedBodyCanonicalizer extends FilterOutputStream {
                 k = next;
             }
         }
+    }
+
+    private static boolean isOrdinary(byte b) {
+        return b != ' ' && b != '\t' && b != '\r';
     }
 
     public void write(int b) throws IOException {
