@@ -44,6 +44,11 @@ public class VerifierOptions {
     public static final String MIN_RSA_KEY_BITS_PROPERTY = "james.dkim.min-rsa-key-bits";
     private static final int DEFAULT_MIN_RSA_KEY_BITS = 1024;
     /**
+     * System property holding the default of {@link Builder#withMaximumRsaKeyBits(int)}.
+     */
+    public static final String MAX_RSA_KEY_BITS_PROPERTY = "james.dkim.max-rsa-key-bits";
+    private static final int DEFAULT_MAX_RSA_KEY_BITS = 8192;
+    /**
      * System property holding the default of {@link Builder#withRsaSha1Allowed(boolean)}.
      */
     public static final String RSA_SHA1_ALLOWED_PROPERTY = "james.dkim.rsa-sha1.allowed";
@@ -73,6 +78,7 @@ public class VerifierOptions {
     private final Duration clockDriftTolerance;
     private final int maxSignatures;
     private final int minimumRsaKeyBits;
+    private final int maximumRsaKeyBits;
     private final boolean rsaSha1Allowed;
     private final UnsignedDuplicateFieldPolicy unsignedDuplicateFieldPolicy;
     private final Set<String> singleInstanceFields;
@@ -84,6 +90,7 @@ public class VerifierOptions {
         private Duration clockDriftTolerance = Duration.ofSeconds(300);
         private int maxSignatures = Integer.getInteger(MAX_SIGNATURE_COUNT_PROPERTY, DEFAULT_MAX_SIGNATURE_COUNT);
         private int minimumRsaKeyBits = Integer.getInteger(MIN_RSA_KEY_BITS_PROPERTY, DEFAULT_MIN_RSA_KEY_BITS);
+        private int maximumRsaKeyBits = Integer.getInteger(MAX_RSA_KEY_BITS_PROPERTY, DEFAULT_MAX_RSA_KEY_BITS);
         private boolean rsaSha1Allowed = !"false".equalsIgnoreCase(System.getProperty(RSA_SHA1_ALLOWED_PROPERTY, "true").trim());
         private UnsignedDuplicateFieldPolicy unsignedDuplicateFieldPolicy = defaultUnsignedDuplicateFieldPolicy();
         private Set<String> singleInstanceFields = DEFAULT_SINGLE_INSTANCE_FIELDS;
@@ -138,6 +145,19 @@ public class VerifierOptions {
          */
         public Builder withMinimumRsaKeyBits(int minimumRsaKeyBits) {
             this.minimumRsaKeyBits = minimumRsaKeyBits;
+            return this;
+        }
+
+        /**
+         * Sets the maximum length, in bits, of the RSA keys whose signatures are accepted. Longer keys get a
+         * PERMERROR result, without verifying the signature. RFC 8301 section 3.2 requires verifiers to handle
+         * keys of 1024 to 4096 bits. Defaults to the {@value #MAX_RSA_KEY_BITS_PROPERTY} system property, or 8192.
+         *
+         * @param maximumRsaKeyBits a number of bits, at least the minimum
+         * @return {@link Builder}
+         */
+        public Builder withMaximumRsaKeyBits(int maximumRsaKeyBits) {
+            this.maximumRsaKeyBits = maximumRsaKeyBits;
             return this;
         }
 
@@ -243,6 +263,10 @@ public class VerifierOptions {
             throw new IllegalArgumentException("minimumRsaKeyBits must not be negative");
         }
 
+        if (builder.maximumRsaKeyBits < builder.minimumRsaKeyBits) {
+            throw new IllegalArgumentException("maximumRsaKeyBits must not be lower than minimumRsaKeyBits");
+        }
+
         if (builder.unsignedDuplicateFieldPolicy == null) {
             throw new IllegalArgumentException("unsignedDuplicateFieldPolicy can not be null");
         }
@@ -266,6 +290,7 @@ public class VerifierOptions {
         this.clockDriftTolerance = builder.clockDriftTolerance;
         this.maxSignatures = builder.maxSignatures;
         this.minimumRsaKeyBits = builder.minimumRsaKeyBits;
+        this.maximumRsaKeyBits = builder.maximumRsaKeyBits;
         this.rsaSha1Allowed = builder.rsaSha1Allowed;
         this.unsignedDuplicateFieldPolicy = builder.unsignedDuplicateFieldPolicy;
         this.singleInstanceFields = builder.singleInstanceFields;
@@ -299,6 +324,15 @@ public class VerifierOptions {
      */
     public int getMinimumRsaKeyBits() {
         return minimumRsaKeyBits;
+    }
+
+    /**
+     * Gets the maximum length, in bits, of the RSA keys whose signatures are accepted
+     *
+     * @return a number of bits
+     */
+    public int getMaximumRsaKeyBits() {
+        return maximumRsaKeyBits;
     }
 
     /**

@@ -64,6 +64,10 @@ import java.util.Map;
 import java.util.Set;
 
 public class DKIMVerifier {
+    /**
+     * Allows e = 65537 and any exponent up to 2^32 + 1.
+     */
+    private static final int MAX_RSA_PUBLIC_EXPONENT_BITS = 33;
     private final List<Result> result = new ArrayList<>();
     private final VerifierOptions options;
 
@@ -627,6 +631,26 @@ public class DKIMVerifier {
      * @param signatureFieldName the name of the verified field, as written
      * @throws PermFailException If signature or public key validation fails
      */
+    /**
+     * RFC 8301 section 3.2: verifiers MAY take the key length into account. Large moduli and public
+     * exponents also make the verification expensive: those of real signers stay small.
+     */
+    private void checkRsaKey(RSAPublicKey publicKey, SignatureRecord sign) throws PermFailException {
+        int bits = publicKey.getModulus().bitLength();
+        if (bits < options.getMinimumRsaKeyBits()) {
+            throw new PermFailException("RSA key too short: " + bits
+                    + " bits, at least " + options.getMinimumRsaKeyBits() + " required (RFC 8301)", sign);
+        }
+        if (bits > options.getMaximumRsaKeyBits()) {
+            throw new PermFailException("RSA key too long: " + bits
+                    + " bits, at most " + options.getMaximumRsaKeyBits() + " accepted", sign);
+        }
+        if (publicKey.getPublicExponent().bitLength() > MAX_RSA_PUBLIC_EXPONENT_BITS) {
+            throw new PermFailException("RSA public exponent too long: " + publicKey.getPublicExponent().bitLength()
+                    + " bits, at most " + MAX_RSA_PUBLIC_EXPONENT_BITS + " accepted", sign);
+        }
+    }
+
     private void signatureVerify(Headers h, SignatureRecord sign,
                                  byte[] decoded, PublicKeyRecord key, List<CharSequence> headers,
                                  String signatureFieldName)
@@ -639,11 +663,8 @@ public class DKIMVerifier {
             } catch (IllegalStateException e) {
                 throw new PermFailException("Invalid Public Key: " + e.getMessage(), sign, e);
             }
-            // RFC 8301 section 3.2: verifiers MAY take the key length into account.
-            if (publicKey instanceof RSAPublicKey
-                    && ((RSAPublicKey) publicKey).getModulus().bitLength() < options.getMinimumRsaKeyBits()) {
-                throw new PermFailException("RSA key too short: " + ((RSAPublicKey) publicKey).getModulus().bitLength()
-                        + " bits, at least " + options.getMinimumRsaKeyBits() + " required (RFC 8301)", sign);
+            if (publicKey instanceof RSAPublicKey) {
+                checkRsaKey((RSAPublicKey) publicKey, sign);
             }
             signature.initVerify(publicKey);
 
