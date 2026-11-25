@@ -191,6 +191,32 @@ public class PublicKeyRecordImpl extends TagValue implements PublicKeyRecord {
     }
 
     /**
+     * Compares the local part with the prefix and suffix around the wildcard, instead of running the
+     * pattern: its ".*" backtracks over the local part, and both g= and i= may be long.
+     *
+     * @see org.apache.james.jdkim.api.PublicKeyRecord#isGranularityMatching(CharSequence)
+     */
+    @Override
+    public boolean isGranularityMatching(CharSequence localPart) {
+        // validates g= as the pattern does, and caches it
+        getGranularityPattern();
+        String g = getValue("g").toString();
+        if (g.isEmpty()) {
+            // SPEC: An empty "g=" value never matches any addresses.
+            return false;
+        }
+        String local = localPart.toString();
+        int star = g.indexOf('*');
+        if (star == -1) {
+            return local.equals(g);
+        }
+        String prefix = g.substring(0, star);
+        String suffix = g.substring(star + 1);
+        return local.length() >= prefix.length() + suffix.length()
+                && local.startsWith(prefix) && local.endsWith(suffix);
+    }
+
+    /**
      * Any run of atext, "*" included: the same values as the former "(atom)?\*?(atom)?". A loop over the
      * chars, since the value is chosen by the domain owner and may be long.
      */
