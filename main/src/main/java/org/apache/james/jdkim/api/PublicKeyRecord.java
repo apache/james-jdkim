@@ -55,6 +55,14 @@ public interface PublicKeyRecord {
 
     Pattern getGranularityPattern();
 
+    /**
+     * @param localPart the local part of the signature identity (i=)
+     * @return true if the granularity (g=) of this key matches it
+     */
+    default boolean isGranularityMatching(CharSequence localPart) {
+        return getGranularityPattern().matcher(localPart).matches();
+    }
+
     PublicKey getPublicKey();
 
     List<CharSequence> getFlags();

@@ -145,11 +145,9 @@ public class DKIMVerifier {
                 throw new PermFailException("inapplicable key: service type (s=) does not include email", sign);
             }
 
-            if (!pkr.getGranularityPattern().matcher(sign.getIdentityLocalPart())
-                    .matches()) {
+            if (!pkr.isGranularityMatching(sign.getIdentityLocalPart())) {
                 throw new PermFailException("inapplicable key identity local="
-                        + sign.getIdentityLocalPart() + " Pattern: "
-                        + pkr.getGranularityPattern().pattern(), sign);
+                        + sign.getIdentityLocalPart() + " does not match the key granularity", sign);
             }
 
             if (!pkr.isHashMethodSupported(sign.getHashMethod())) {

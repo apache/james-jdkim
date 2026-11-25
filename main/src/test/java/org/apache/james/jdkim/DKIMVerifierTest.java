@@ -214,6 +214,53 @@ public class DKIMVerifierTest {
         assertThatCode(() -> DKIMVerifier.apply(key, sign)).doesNotThrowAnyException();
     }
 
+    @Test(timeout = 2000)
+    public void granularityShouldBeMatchedInLinearTime() throws Exception {
+        StringBuilder suffix = new StringBuilder();
+        for (int i = 0; i < 50000; i++) {
+            suffix.append('a');
+        }
+        StringBuilder local = new StringBuilder();
+        for (int i = 0; i < 200000; i++) {
+            local.append('a');
+        }
+        PublicKeyRecordImpl key = new PublicKeyRecordImpl("v=DKIM1; k=rsa; g=*" + suffix + "b; p=AAAA");
+        SignatureRecordImpl sign = new SignatureRecordImpl(
+                "v=1; a=rsa-sha256; d=example.com; s=sel; h=from; bh=AA==; b=AA==; i=" + local + "@example.com");
+
+        assertThatThrownBy(() -> DKIMVerifier.apply(key, sign))
+                .isInstanceOf(PermFailException.class)
+                .hasMessageContaining("does not match the key granularity");
+    }
+
+    @Test
+    public void granularityShouldMatchPrefixAndSuffix() {
+        PublicKeyRecordImpl key = new PublicKeyRecordImpl("v=DKIM1; k=rsa; g=ab*ba; p=AAAA");
+
+        assertThat(key.isGranularityMatching("abba")).isTrue();
+        assertThat(key.isGranularityMatching("abxyzba")).isTrue();
+        assertThat(key.isGranularityMatching("aba")).isFalse();
+        assertThat(key.isGranularityMatching("abxyz")).isFalse();
+        assertThat(key.isGranularityMatching("xyzba")).isFalse();
+    }
+
+    @Test
+    public void granularityWithoutWildcardShouldMatchExactly() {
+        PublicKeyRecordImpl key = new PublicKeyRecordImpl("v=DKIM1; k=rsa; g=joe; p=AAAA");
+
+        assertThat(key.isGranularityMatching("joe")).isTrue();
+        assertThat(key.isGranularityMatching("joey")).isFalse();
+        assertThat(key.isGranularityMatching("")).isFalse();
+    }
+
+    @Test
+    public void emptyGranularityShouldMatchNothing() {
+        PublicKeyRecordImpl key = new PublicKeyRecordImpl("v=DKIM1; k=rsa; g=; p=AAAA");
+
+        assertThat(key.isGranularityMatching("")).isFalse();
+        assertThat(key.isGranularityMatching("joe")).isFalse();
+    }
+
     @Test
     public void granularityWildcardShouldMatchLineTerminators() throws Exception {
         PublicKeyRecordImpl key = new PublicKeyRecordImpl("v=DKIM1; k=rsa; g=a*b; p=AAAA");
