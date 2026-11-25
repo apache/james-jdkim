@@ -29,9 +29,14 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
+import java.math.BigInteger;
+import java.security.KeyFactory;
 import java.security.KeyPairGenerator;
+import java.security.PublicKey;
+import java.security.spec.RSAPublicKeySpec;
 import java.util.Base64;
 import java.util.Collections;
+import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.james.jdkim.api.PublicKeyRecord;
@@ -267,6 +272,69 @@ public class DKIMVerifierTest {
         DKIMVerifier verifier = signAndVerify(1024, new VerifierOptions.Builder(), mail);
 
         assertThat(verifier.verify(new ByteArrayInputStream(mail.toString().getBytes(StandardCharsets.US_ASCII)))).hasSize(1);
+    }
+
+    private static DKIMVerifier verifyWithPublishedKey(BigInteger modulus, BigInteger exponent, VerifierOptions.Builder options,
+                                                       StringBuilder mailOut) throws Exception {
+        KeyPairGenerator gen = KeyPairGenerator.getInstance("RSA");
+        gen.initialize(1024);
+        PublicKey published = KeyFactory.getInstance("RSA").generatePublic(new RSAPublicKeySpec(modulus, exponent));
+        MockPublicKeyRecordRetriever records = new MockPublicKeyRecordRetriever();
+        records.addRecord("sel", "example.com",
+                "v=DKIM1; p=" + Base64.getEncoder().encodeToString(published.getEncoded()));
+        String message = "From: joe@example.com\r\nSubject: test\r\n\r\nbody\r\n";
+        String field = new DKIMSigner("v=1; a=rsa-sha256; d=example.com; s=sel; h=from:subject; bh=; b=;", gen.generateKeyPair().getPrivate())
+                .sign(new ByteArrayInputStream(message.getBytes(StandardCharsets.US_ASCII)));
+        mailOut.append(field).append("\r\n").append(message);
+        return new DKIMVerifier(options.withPublicKeyRecordRetriever(records).build());
+    }
+
+    private static BigInteger oddNumber(int bits) {
+        return new BigInteger(bits - 1, new Random(bits)).setBit(bits - 1).setBit(0);
+    }
+
+    @Test
+    public void longRsaKeysShouldNotPass() throws Exception {
+        StringBuilder mail = new StringBuilder();
+        DKIMVerifier verifier = verifyWithPublishedKey(oddNumber(16384), BigInteger.valueOf(65537), new VerifierOptions.Builder(), mail);
+
+        assertThatThrownBy(() -> verifier.verify(new ByteArrayInputStream(mail.toString().getBytes(StandardCharsets.US_ASCII))))
+                .isInstanceOf(PermFailException.class)
+                .hasMessageContaining("RSA key too long: 16384 bits");
+        assertThat(verifier.getResults()).extracting(Result::getResultType).containsExactly(Result.Type.PERMERROR);
+    }
+
+    @Test
+    public void longRsaKeysShouldReachVerificationWhenAllowed() throws Exception {
+        StringBuilder mail = new StringBuilder();
+        DKIMVerifier verifier = verifyWithPublishedKey(oddNumber(16384), BigInteger.valueOf(65537),
+                new VerifierOptions.Builder().withMaximumRsaKeyBits(16384), mail);
+
+        assertThatThrownBy(() -> verifier.verify(new ByteArrayInputStream(mail.toString().getBytes(StandardCharsets.US_ASCII))))
+                .isInstanceOf(PermFailException.class)
+                .hasMessageNotContaining("RSA key too long");
+    }
+
+    @Test
+    public void longRsaPublicExponentsShouldNotPass() throws Exception {
+        StringBuilder mail = new StringBuilder();
+        DKIMVerifier verifier = verifyWithPublishedKey(oddNumber(3072), oddNumber(3071), new VerifierOptions.Builder(), mail);
+
+        assertThatThrownBy(() -> verifier.verify(new ByteArrayInputStream(mail.toString().getBytes(StandardCharsets.US_ASCII))))
+                .isInstanceOf(PermFailException.class)
+                .hasMessageContaining("RSA public exponent too long: 3071 bits");
+        assertThat(verifier.getResults()).extracting(Result::getResultType).containsExactly(Result.Type.PERMERROR);
+    }
+
+    @Test
+    public void rsaPublicExponentsOf33BitsShouldReachVerification() throws Exception {
+        StringBuilder mail = new StringBuilder();
+        DKIMVerifier verifier = verifyWithPublishedKey(oddNumber(2048), BigInteger.ONE.shiftLeft(32).add(BigInteger.ONE),
+                new VerifierOptions.Builder(), mail);
+
+        assertThatThrownBy(() -> verifier.verify(new ByteArrayInputStream(mail.toString().getBytes(StandardCharsets.US_ASCII))))
+                .isInstanceOf(PermFailException.class)
+                .hasMessageNotContaining("RSA public exponent too long");
     }
 
     @Test

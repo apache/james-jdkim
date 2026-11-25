@@ -218,6 +218,26 @@ public class DKIMVerifierOptionsTest {
     }
 
     @Test
+    public void shouldAccept8192BitRsaKeysAtMostByDefault() {
+        assertEquals(8192, new VerifierOptions.Builder().build().getMaximumRsaKeyBits());
+    }
+
+    @Test
+    public void shouldReadMaximumRsaKeyBitsFromSystemProperty() {
+        System.setProperty(VerifierOptions.MAX_RSA_KEY_BITS_PROPERTY, "4096");
+        try {
+            assertEquals(4096, new VerifierOptions.Builder().build().getMaximumRsaKeyBits());
+        } finally {
+            System.clearProperty(VerifierOptions.MAX_RSA_KEY_BITS_PROPERTY);
+        }
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void shouldRejectMaximumRsaKeyBitsBelowMinimum() {
+        new VerifierOptions.Builder().withMinimumRsaKeyBits(2048).withMaximumRsaKeyBits(1024).build();
+    }
+
+    @Test
     public void shouldAllowRsaSha1ByDefault() {
         assertTrue(new VerifierOptions.Builder().build().isRsaSha1Allowed());
     }
