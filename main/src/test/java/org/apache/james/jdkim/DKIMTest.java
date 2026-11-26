@@ -42,7 +42,14 @@ import java.security.Signature;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.james.jdkim.MockPublicKeyRecordRetriever.Record;
@@ -856,6 +863,91 @@ public class DKIMTest {
                         .as("c=%s, %d names", c, repeats)
                         .hasSize(1);
             }
+        }
+    }
+
+    private byte[] signedMail(int index, boolean valid) throws Exception {
+        byte[] mail = ("From: joe@messiah.edu\r\nSubject: mail " + index + "\r\n\r\nbody " + index + "\r\n")
+                .getBytes(StandardCharsets.US_ASCII);
+        String field = dkimSigner.sign(new ByteArrayInputStream(mail));
+        if (!valid) {
+            field = field.replace("bh=", "bh=AAAA");
+        }
+        ByteArrayOutputStream signed = new ByteArrayOutputStream();
+        signed.write((field + "\r\n").getBytes(StandardCharsets.US_ASCII));
+        signed.write(mail);
+        return signed.toByteArray();
+    }
+
+    @Test
+    public void reusedVerifierShouldNotAccumulateResults() throws Exception {
+        for (int i = 0; i < 100; i++) {
+            boolean valid = i % 2 == 0;
+            try {
+                verifier.verify(new ByteArrayInputStream(signedMail(i, valid)));
+            } catch (FailException e) {
+                assertThat(valid).isFalse();
+            }
+
+            assertThat(verifier.getResults()).singleElement()
+                    .extracting(Result::isSuccess).isEqualTo(valid);
+            assertThat(verifier.hasAnyValidSignature()).isEqualTo(valid);
+        }
+    }
+
+    @Test
+    public void unsignedMailShouldClearThePreviousResults() throws Exception {
+        verifier.verify(new ByteArrayInputStream(signedMail(0, true)));
+
+        assertThat(verifier.verify(new ByteArrayInputStream(
+                "From: joe@messiah.edu\r\n\r\nbody\r\n".getBytes(StandardCharsets.US_ASCII)))).isNull();
+
+        assertThat(verifier.getResults()).isEmpty();
+        assertThat(verifier.hasAnyValidSignature()).isFalse();
+    }
+
+    @Test
+    public void resetResultsShouldClearTheResults() throws Exception {
+        verifier.verify(new ByteArrayInputStream(signedMail(0, true)));
+
+        verifier.resetResults();
+
+        assertThat(verifier.getResults()).isEmpty();
+    }
+
+    @Test
+    public void concurrentVerificationsShouldNotSeeEachOtherResults() throws Exception {
+        int threads = 8;
+        int mailsPerThread = 50;
+        ExecutorService executor = Executors.newFixedThreadPool(threads);
+        try {
+            CountDownLatch start = new CountDownLatch(1);
+            List<Future<Void>> futures = new ArrayList<>();
+            for (int t = 0; t < threads; t++) {
+                boolean valid = t % 2 == 0;
+                int thread = t;
+                Callable<Void> task = () -> {
+                    start.await();
+                    for (int i = 0; i < mailsPerThread; i++) {
+                        try {
+                            verifier.verify(new ByteArrayInputStream(signedMail(thread * mailsPerThread + i, valid)));
+                        } catch (FailException e) {
+                            assertThat(valid).isFalse();
+                        }
+                        assertThat(verifier.getResults()).singleElement()
+                                .extracting(Result::isSuccess).isEqualTo(valid);
+                        assertThat(verifier.hasAnyValidSignature()).isEqualTo(valid);
+                    }
+                    return null;
+                };
+                futures.add(executor.submit(task));
+            }
+            start.countDown();
+            for (Future<Void> future : futures) {
+                future.get(60, TimeUnit.SECONDS);
+            }
+        } finally {
+            executor.shutdownNow();
         }
     }
 
