@@ -26,17 +26,31 @@ import org.apache.james.jdkim.api.VerifierOptions;
 import org.apache.james.jdkim.impl.DNSPublicKeyRecordRetriever;
 import org.apache.james.jdkim.impl.MultiplexingPublicKeyRecordRetriever;
 import org.junit.Test;
+import org.xbill.DNS.DClass;
+import org.xbill.DNS.Flags;
 import org.xbill.DNS.Lookup;
+import org.xbill.DNS.Message;
+import org.xbill.DNS.Name;
 import org.xbill.DNS.Resolver;
+import org.xbill.DNS.Section;
 import org.xbill.DNS.SimpleResolver;
+import org.xbill.DNS.TXTRecord;
 
+import java.io.ByteArrayInputStream;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -250,5 +264,71 @@ public class DKIMVerifierOptionsTest {
         } finally {
             System.clearProperty(VerifierOptions.RSA_SHA1_ALLOWED_PROPERTY);
         }
+    }
+
+    /**
+     * Answers every query with the given TXT record, and remembers the queried names.
+     */
+    private static Resolver stubResolver(List<Name> queried, String txt) throws UnknownHostException {
+        return new SimpleResolver("127.0.0.1") {
+            @Override
+            public Message send(Message query) {
+                Name name = query.getQuestion().getName();
+                queried.add(name);
+                Message response = new Message(query.getHeader().getID());
+                response.getHeader().setFlag(Flags.QR);
+                response.addRecord(query.getQuestion(), Section.QUESTION);
+                // a character-string holds at most 255 octets
+                List<String> strings = new ArrayList<>();
+                for (int i = 0; i < txt.length(); i += 255) {
+                    strings.add(txt.substring(i, Math.min(txt.length(), i + 255)));
+                }
+                response.addRecord(new TXTRecord(name, DClass.IN, 3600, strings), Section.ANSWER);
+                return response;
+            }
+        };
+    }
+
+    @Test
+    public void defaultRetrieverShouldUseTheConfiguredDnsResolver() throws Exception {
+        Lookup.getDefaultCache(DClass.IN).clearCache();
+        List<Name> queried = new CopyOnWriteArrayList<>();
+        String key = "k=rsa; p=" + Base64.getEncoder().encodeToString(TestKeys.publicKey.getEncoded()) + ";";
+        VerifierOptions opt = new VerifierOptions.Builder()
+                .withDnsResolver(stubResolver(queried, key))
+                .build();
+        byte[] mail = "From: joe@messiah.edu\r\n\r\nbody\r\n".getBytes(StandardCharsets.US_ASCII);
+        String field = new DKIMSigner("v=1; a=rsa-sha256; c=simple; d=resolver-option.invalid; h=from; s=stub;",
+                TestKeys.privateKey).sign(new ByteArrayInputStream(mail));
+        byte[] signed = (field + "\r\n" + new String(mail, StandardCharsets.US_ASCII)).getBytes(StandardCharsets.US_ASCII);
+
+        assertThat(new DKIMVerifier(opt).verify(new ByteArrayInputStream(signed))).hasSize(1);
+        assertThat(queried).containsExactly(Name.fromString("stub._domainkey.resolver-option.invalid."));
+    }
+
+    @Test
+    public void explicitRetrieverShouldWinOverTheDnsResolver() throws Exception {
+        List<Name> queried = new CopyOnWriteArrayList<>();
+        Resolver resolver = stubResolver(queried, "v=DKIM1; p=AAAA");
+        PublicKeyRecordRetriever retriever = new MockPublicKeyRecordRetriever();
+
+        VerifierOptions resolverFirst = new VerifierOptions.Builder()
+                .withDnsResolver(resolver)
+                .withPublicKeyRecordRetriever(retriever)
+                .build();
+        VerifierOptions retrieverFirst = new VerifierOptions.Builder()
+                .withPublicKeyRecordRetriever(retriever)
+                .withDnsResolver(resolver)
+                .build();
+
+        assertThat(resolverFirst.getPublicKeyRecordRetriever()).isSameAs(retriever);
+        assertThat(retrieverFirst.getPublicKeyRecordRetriever()).isSameAs(retriever);
+        assertThat(queried).isEmpty();
+    }
+
+    @Test
+    public void shouldRejectNullPublicKeyRecordRetriever() {
+        assertThatThrownBy(() -> new VerifierOptions.Builder().withPublicKeyRecordRetriever(null).build())
+                .isInstanceOf(IllegalArgumentException.class);
     }
 }

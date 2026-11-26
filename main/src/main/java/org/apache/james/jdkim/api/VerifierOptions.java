@@ -96,8 +96,8 @@ public class VerifierOptions {
         private Set<String> singleInstanceFields = DEFAULT_SINGLE_INSTANCE_FIELDS;
         private BodyLengthPolicy bodyLengthPolicy = defaultBodyLengthPolicy();
         private Resolver dnsResolver = Lookup.getDefaultResolver();
-        private PublicKeyRecordRetriever publicKeyRecordRetriever = new MultiplexingPublicKeyRecordRetriever(
-                "dns", new DNSPublicKeyRecordRetriever(this.dnsResolver));
+        private PublicKeyRecordRetriever publicKeyRecordRetriever;
+        private boolean publicKeyRecordRetrieverSet = false;
 
         /**
          * Sets the clock drift tolerance for signature verification, default is 300 seconds.
@@ -111,13 +111,15 @@ public class VerifierOptions {
         }
 
         /**
-         * Sets a custom PublicKeyRecordRetriever, a default is used if not set.
+         * Sets a custom PublicKeyRecordRetriever. If not set, a DNS retriever using the resolver of
+         * {@link #withDnsResolver(Resolver)} is used.
          *
          * @param publicKeyRecordRetriever a {@link PublicKeyRecordRetriever}
          * @return {@link Builder}
          */
         public Builder withPublicKeyRecordRetriever(PublicKeyRecordRetriever publicKeyRecordRetriever) {
             this.publicKeyRecordRetriever = publicKeyRecordRetriever;
+            this.publicKeyRecordRetrieverSet = true;
             return this;
         }
 
@@ -232,7 +234,8 @@ public class VerifierOptions {
         }
 
         /**
-         * A custom dns resolver
+         * A custom dns resolver, used to retrieve the public keys unless
+         * {@link #withPublicKeyRecordRetriever(PublicKeyRecordRetriever)} sets a retriever.
          *
          * @param dnsResolver a {@link Resolver}
          * @return {@link Builder}
@@ -279,7 +282,7 @@ public class VerifierOptions {
             throw new IllegalArgumentException("bodyLengthPolicy can not be null");
         }
 
-        if (builder.publicKeyRecordRetriever == null) {
+        if (builder.publicKeyRecordRetrieverSet && builder.publicKeyRecordRetriever == null) {
             throw new IllegalArgumentException("publicKeyRecordRetriever can not be null");
         }
 
@@ -296,7 +299,9 @@ public class VerifierOptions {
         this.singleInstanceFields = builder.singleInstanceFields;
         this.bodyLengthPolicy = builder.bodyLengthPolicy;
         this.dnsResolver = builder.dnsResolver;
-        this.publicKeyRecordRetriever = builder.publicKeyRecordRetriever;
+        this.publicKeyRecordRetriever = builder.publicKeyRecordRetrieverSet
+                ? builder.publicKeyRecordRetriever
+                : new MultiplexingPublicKeyRecordRetriever("dns", new DNSPublicKeyRecordRetriever(builder.dnsResolver));
     }
 
     /**
