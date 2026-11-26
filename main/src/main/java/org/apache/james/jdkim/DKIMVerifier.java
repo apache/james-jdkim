@@ -54,6 +54,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
@@ -63,12 +64,20 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * Verifies the DKIM signatures of messages. An instance holds no per-message state: it can be shared and
+ * reused for any number of messages, from any number of threads.
+ */
 public class DKIMVerifier {
     /**
      * Allows e = 65537 and any exponent up to 2^32 + 1.
      */
     private static final int MAX_RSA_PUBLIC_EXPONENT_BITS = 33;
-    private final List<Result> result = new ArrayList<>();
+    /**
+     * The results of the last verification made by each thread: a call replaces them, so they do not grow
+     * with the number of verified messages, and concurrent calls do not see each other's.
+     */
+    private final ThreadLocal<List<Result>> lastResults = ThreadLocal.withInitial(Collections::emptyList);
     private final VerifierOptions options;
 
     public DKIMVerifier() {
@@ -237,6 +246,7 @@ public class DKIMVerifier {
      */
     public List<SignatureRecord> verify(InputStream is) throws IOException,
             FailException {
+        lastResults.remove();
         Message message;
         try {
             try {
@@ -453,6 +463,7 @@ public class DKIMVerifier {
      */
     public List<SignatureRecord> verify(Headers messageHeaders,
                                         InputStream bodyInputStream) throws IOException, FailException {
+        lastResults.remove();
 
         BodyHasher bh = newBodyHasher(messageHeaders);
 
@@ -476,6 +487,7 @@ public class DKIMVerifier {
      * @throws FailException if no valid signature is found
      */
     public List<SignatureRecord> verify(BodyHasher bh) throws FailException {
+        lastResults.remove();
         if (bh == null) return null;
         CompoundBodyHasher cbh = validateBodyHasher(bh);
 
@@ -512,6 +524,7 @@ public class DKIMVerifier {
             throws FailException {
         List<SignatureRecord> verifiedSignatures = new LinkedList<>();
         List<FailException> failures = new ArrayList<>();
+        List<Result> result = new ArrayList<>();
         for (CompoundBodyHasher.Job job : compoundBodyHasher.getJobs()) {
             BodyHasherImpl bhj = job.getBodyHasher();
             if (bhj != null) {
@@ -540,6 +553,7 @@ public class DKIMVerifier {
             failures.add(job.getFailure());
             result.add(resultFromException(job.getSignatureField(), job.getFailure()));
         }
+        lastResults.set(Collections.unmodifiableList(result));
 
         if (verifiedSignatures.isEmpty()) {
             throw prepareException(failures);
@@ -549,20 +563,24 @@ public class DKIMVerifier {
     }
 
     /**
-     * Returns the results of all signature checks, success and fail.
-     * If a message doesn't have a DKIM-Signature header the result list will
-     * be empty. Use {@link Result#getResultType} or {@link Result#isSuccess}
-     * to get verification result of each DKIM-Signature check. Call {@link #resetResults}
-     * if the same instance of {@code DKIMVerifier} is reused for a new {@code verify} call.
+     * Returns the results of all signature checks, success and fail, of the last {@code verify} call
+     * made by the current thread on this instance. If that message doesn't have a DKIM-Signature header,
+     * or no {@code verify} call was made, the result list is empty. Use {@link Result#getResultType} or
+     * {@link Result#isSuccess} to get verification result of each DKIM-Signature check.
+     * <p>
+     * Each {@code verify} call replaces the results of the previous one: an instance can be reused for
+     * many messages and shared between threads. The results are bound to the calling thread: read them
+     * from the thread that called {@code verify}, before it verifies another message.
      *
-     * @return List of {@link Result} object.
+     * @return unmodifiable List of {@link Result} object.
      */
     public List<Result> getResults() {
-        return result;
+        return lastResults.get();
     }
 
     /**
-     * Returns {@code true} if at least one signature is successfully verified.
+     * Returns {@code true} if at least one signature is successfully verified by the last
+     * {@code verify} call made by the current thread, see {@link #getResults}.
      * A message pass the DKIM check when at least one signature is valid.
      * This method is DMARC compliant, and should be called after {@code DKIMVerifier.verify}.
      * Use {@link #getResults} to get result details.
@@ -572,14 +590,15 @@ public class DKIMVerifier {
      * @see #getResults
      */
     public boolean hasAnyValidSignature() {
-        return result.stream().anyMatch(Result::isSuccess);
+        return getResults().stream().anyMatch(Result::isSuccess);
     }
 
     /**
-     * Clears results list for the DKIMVerifier instance
+     * Clears the results of the last {@code verify} call made by the current thread. Not needed
+     * between two calls, each one replaces the results of the previous one.
      */
     public void resetResults() {
-        result.clear();
+        lastResults.remove();
     }
 
     private Result resultFromException(String signatureField, FailException e) {
