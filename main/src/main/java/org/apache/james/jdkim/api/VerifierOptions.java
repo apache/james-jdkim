@@ -236,6 +236,7 @@ public class VerifierOptions {
         /**
          * A custom dns resolver, used to retrieve the public keys unless
          * {@link #withPublicKeyRecordRetriever(PublicKeyRecordRetriever)} sets a retriever.
+         * These lookups use a cache of their own, not the JVM-wide default cache of dnsjava.
          *
          * @param dnsResolver a {@link Resolver}
          * @return {@link Builder}

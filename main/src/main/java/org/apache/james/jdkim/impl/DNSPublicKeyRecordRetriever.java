@@ -28,6 +28,8 @@ import java.util.stream.Collectors;
 import org.apache.james.jdkim.api.PublicKeyRecordRetriever;
 import org.apache.james.jdkim.exceptions.PermFailException;
 import org.apache.james.jdkim.exceptions.TempFailException;
+import org.xbill.DNS.Cache;
+import org.xbill.DNS.DClass;
 import org.xbill.DNS.Lookup;
 import org.xbill.DNS.Name;
 import org.xbill.DNS.Record;
@@ -40,13 +42,26 @@ public class DNSPublicKeyRecordRetriever implements PublicKeyRecordRetriever {
 
     // The resolver used for the lookup
     protected final Resolver resolver;
+    // null: the JVM-wide default cache of dnsjava
+    private final Cache cache;
 
+    /**
+     * Uses the default resolver and the default cache of dnsjava.
+     */
     public DNSPublicKeyRecordRetriever() {
-        this(Lookup.getDefaultResolver());
+        this.resolver = Lookup.getDefaultResolver();
+        this.cache = null;
     }
 
+    /**
+     * Uses the given resolver, with a cache of its own: the JVM-wide default
+     * cache of dnsjava holds answers of other resolvers.
+     *
+     * @param resolver the resolver of the key lookups
+     */
     public DNSPublicKeyRecordRetriever(Resolver resolver) {
         this.resolver = resolver;
+        this.cache = new Cache(DClass.IN);
     }
 
     /**
@@ -66,6 +81,9 @@ public class DNSPublicKeyRecordRetriever implements PublicKeyRecordRetriever {
             throw new PermFailException("Invalid dns record", e);
         }
         query.setResolver(resolver);
+        if (cache != null) {
+            query.setCache(cache);
+        }
 
         Record[] rr;
         try {

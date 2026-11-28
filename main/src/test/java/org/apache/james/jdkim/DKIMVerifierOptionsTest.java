@@ -26,6 +26,8 @@ import org.apache.james.jdkim.api.VerifierOptions;
 import org.apache.james.jdkim.impl.DNSPublicKeyRecordRetriever;
 import org.apache.james.jdkim.impl.MultiplexingPublicKeyRecordRetriever;
 import org.junit.Test;
+import org.xbill.DNS.Cache;
+import org.xbill.DNS.Credibility;
 import org.xbill.DNS.DClass;
 import org.xbill.DNS.Flags;
 import org.xbill.DNS.Lookup;
@@ -291,7 +293,6 @@ public class DKIMVerifierOptionsTest {
 
     @Test
     public void defaultRetrieverShouldUseTheConfiguredDnsResolver() throws Exception {
-        Lookup.getDefaultCache(DClass.IN).clearCache();
         List<Name> queried = new CopyOnWriteArrayList<>();
         String key = "k=rsa; p=" + Base64.getEncoder().encodeToString(TestKeys.publicKey.getEncoded()) + ";";
         VerifierOptions opt = new VerifierOptions.Builder()
@@ -304,6 +305,29 @@ public class DKIMVerifierOptionsTest {
 
         assertThat(new DKIMVerifier(opt).verify(new ByteArrayInputStream(signed))).hasSize(1);
         assertThat(queried).containsExactly(Name.fromString("stub._domainkey.resolver-option.invalid."));
+    }
+
+    @Test
+    public void defaultRetrieverShouldIgnoreTheDefaultCache() throws Exception {
+        Name name = Name.fromString("cached._domainkey.resolver-option.invalid.");
+        Cache defaultCache = Lookup.getDefaultCache(DClass.IN);
+        defaultCache.addRecord(new TXTRecord(name, DClass.IN, 3600, "v=DKIM1; p=AAAA"), Credibility.NORMAL);
+        try {
+            List<Name> queried = new CopyOnWriteArrayList<>();
+            String key = "k=rsa; p=" + Base64.getEncoder().encodeToString(TestKeys.publicKey.getEncoded()) + ";";
+            VerifierOptions opt = new VerifierOptions.Builder()
+                    .withDnsResolver(stubResolver(queried, key))
+                    .build();
+            byte[] mail = "From: joe@messiah.edu\r\n\r\nbody\r\n".getBytes(StandardCharsets.US_ASCII);
+            String field = new DKIMSigner("v=1; a=rsa-sha256; c=simple; d=resolver-option.invalid; h=from; s=cached;",
+                    TestKeys.privateKey).sign(new ByteArrayInputStream(mail));
+            byte[] signed = (field + "\r\n" + new String(mail, StandardCharsets.US_ASCII)).getBytes(StandardCharsets.US_ASCII);
+
+            assertThat(new DKIMVerifier(opt).verify(new ByteArrayInputStream(signed))).hasSize(1);
+            assertThat(queried).containsExactly(name);
+        } finally {
+            defaultCache.flushName(name);
+        }
     }
 
     @Test
